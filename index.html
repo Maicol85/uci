@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>UCI Dashboard v4</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 /* ===== TEMA: claro por defecto, oscuro via [data-theme=dark] ===== */
 :root{
@@ -185,6 +186,29 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--muted)}
 .vent-svg{width:100%;max-width:300px;height:auto;display:block;background:var(--surface2);border-radius:6px;margin:2px 0}
+/* ===== NUEVO: paraclinica comparativa / micro / atb / imagenes ===== */
+.para-wrap{overflow-x:auto;margin-top:6px}
+.para-table{border-collapse:collapse;font-size:12px;min-width:100%}
+.para-table th,.para-table td{border:1px solid var(--border);padding:4px 6px;text-align:center;white-space:nowrap}
+.para-table thead th{background:var(--surface2);color:var(--muted);font-size:11px;font-weight:700}
+.para-table th.para-param,.para-table td.para-param{position:sticky;left:0;background:var(--surface);text-align:left;font-weight:600;color:var(--text);z-index:1;min-width:110px}
+.para-table thead th.para-param{background:var(--surface2);z-index:2}
+.para-table td input{width:78px;padding:3px 5px;font-size:12px;text-align:center;background:transparent;border:1px solid transparent}
+.para-table td input:hover{border-color:var(--border)}
+.para-table td input:focus{border-color:var(--teal);background:var(--surface2)}
+.para-table th input[type="date"]{width:130px;padding:3px 5px;font-size:11px}
+.para-coldel{background:none;border:none;color:var(--red);cursor:pointer;font-size:11px;padding:0 2px}
+.mini-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
+.mini-tbl th{background:var(--surface2);color:var(--muted);padding:6px 8px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.mini-tbl td{padding:4px 6px;border-bottom:1px solid var(--border);vertical-align:top}
+.mini-tbl td input,.mini-tbl td select{padding:4px 6px;font-size:12px}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:8px}
+.img-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:8px;position:relative}
+.img-card img{width:100%;height:110px;object-fit:cover;border-radius:4px;cursor:pointer;background:#000}
+.img-card .img-del{position:absolute;top:4px;right:4px;background:var(--red);color:#fff;border:none;border-radius:4px;width:22px;height:22px;font-size:12px;cursor:pointer;line-height:1}
+.img-card input{margin-top:6px;font-size:11px;padding:4px 6px}
+.img-drop{border:2px dashed var(--border);border-radius:var(--r);padding:18px;text-align:center;color:var(--muted);font-size:12px;cursor:pointer;transition:all .15s}
+.img-drop:hover{border-color:var(--teal);color:var(--teal)}
 </style>
 </head>
 <body>
@@ -233,6 +257,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
     <button class="topbtn" onclick="importData()">⬆ Importar</button>
     <button class="topbtn" onclick="showCentroSelect()">🏥 Centro</button>
     <button class="topbtn" onclick="exportWord()">📄 Word</button>
+    <button class="topbtn" onclick="exportStructuredPDF()">📑 PDF</button>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Modo dia/noche">🌙</button>
   </div>
   <div class="main-tabs">
@@ -351,7 +376,7 @@ function saveMeta(){
 
 function emptyPatient(bed){
   return {
-    bed:bed, name:'', age:'', sex:'', weight:'', height:'',
+    bed:bed, name:'', age:'', ci:'', sex:'', weight:'', height:'',
     dx:'', antecedentes:'', ingreso:'', dias:'',
     pas:'',pad:'',pam_calc:'',fc:'',fr:'',temp:'',spo2:'',
     fio2:'',peep:'',pip:'',vt:'',vm:'',pafi_calc:'',
@@ -368,7 +393,18 @@ function emptyPatient(bed){
     vvc_sitio:'',vvc_fecha:'',via_art:'',art_fecha:'',sng:'',sonda_v:'',dren:'',
     padua_total:'',
     evolucion:'',
-    sid_na:'',sid_k:'',sid_cl:'',sid_lac:'',sid_result:''
+    sid_na:'',sid_k:'',sid_cl:'',sid_lac:'',sid_result:'',
+    // === NUEVO: paraclinica comparativa por fechas ===
+    paraDates:[],        // ['2026-07-01', ...] ordenadas
+    paraVals:{},         // { 'ParamKey||fecha': 'valor' }
+    // === NUEVO: microbiologia ===
+    micro:[],            // [{fecha, muestra, resultado, sens, estado}]
+    // === NUEVO: antibioticos ===
+    atb:[],              // [{atb, dosis, inicio, fin, motivo}]
+    // === NUEVO: imagenes ===
+    imagenes:[],         // [{data(base64), fecha, desc}]
+    // === NUEVO: resumen sistemas fisiologicos ===
+    sis_neuro:'',sis_hemo:'',sis_resp:'',sis_infec:'',sis_accesos:'',sis_metab:'',sis_conductas:''
   };
 }
 
@@ -709,6 +745,7 @@ function renderActivePatient(){
     '<button class="inner-tab" onclick="showInner(\'balance\',this)">\u2696\uFE0F Balance</button>'+
     '<button class="inner-tab" onclick="showInner(\'nutr\',this)">\uD83E\uDD57 Nutricion</button>'+
     '<button class="inner-tab" onclick="showInner(\'accesos\',this)">\uD83E\uDE7A Accesos</button>'+
+    '<button class="inner-tab" onclick="showInner(\'imagenes\',this)">\uD83D\uDDBC\uFE0F Imagenes</button>'+
     '<button class="inner-tab" onclick="showInner(\'evol\',this)">\uD83D\uDCDD Evolucion</button>'+
   '</div>'+
 
@@ -717,6 +754,7 @@ function renderActivePatient(){
       '<div class="section-card">'+
         '<h4><span>\uD83D\uDC64</span>Identificacion</h4>'+
         '<div class="field-row"><div class="field-group"><label>Nombre completo</label><input id="f-name" value="'+p.name+'"></div><div class="field-group"><label>Edad</label><input id="f-age" value="'+p.age+'" placeholder="anios"></div></div>'+
+        '<div class="field-group" style="margin-top:8px"><label>CI</label><input id="f-ci" value="'+esc(p.ci)+'" placeholder="Cedula de identidad"></div>'+
         '<div class="field-row three"><div class="field-group"><label>Sexo</label><select id="f-sex" onchange="calcDerived('+ab+')"><option value="">-</option><option '+(p.sex==='M'?'selected':'')+'>M</option><option '+(p.sex==='F'?'selected':'')+'>F</option></select></div><div class="field-group"><label>Peso real (kg)</label><input id="f-weight" type="number" value="'+p.weight+'" oninput="calcDerived('+ab+')"></div><div class="field-group"><label>Talla (cm)</label><input id="f-height" type="number" value="'+p.height+'" oninput="calcDerived('+ab+')"></div></div>'+
         '<div class="field-group" style="margin-top:8px"><label>Diagnostico principal</label><input id="f-dx" value="'+p.dx+'"></div>'+
         '<div class="field-group" style="margin-top:8px"><label>Fecha ingreso</label><input id="f-ingreso" type="date" value="'+p.ingreso+'"></div>'+
@@ -752,6 +790,12 @@ function renderActivePatient(){
   '</div>'+
 
   '<div id="inner-labs" class="inner-panel">'+
+    '<div class="inner-tabs">'+
+      '<button class="inner-tab active" onclick="showLabsSub(\'punt\',this)">Puntuales</button>'+
+      '<button class="inner-tab" onclick="showLabsSub(\'comp\',this)">\uD83D\uDCC5 Paraclinica (fechas)</button>'+
+      '<button class="inner-tab" onclick="showLabsSub(\'micro\',this)">\uD83E\uDDA0 Micro / ATB</button>'+
+    '</div>'+
+    '<div id="labsSub-punt" class="labs-sub">'+
     '<div class="section-grid">'+
       '<div class="section-card">'+
         '<h4><span>\uD83E\uDE78</span>Hemograma y Coagulacion</h4>'+
@@ -797,6 +841,26 @@ function renderActivePatient(){
         '<div class="field-group"><label>GOT/AST</label><input id="f-got" type="number" value="'+p.got+'"></div>'+
         '<div class="field-group"><label>GPT/ALT</label><input id="f-gpt" type="number" value="'+p.gpt+'"></div>'+
         '<div class="field-group"><label></label><div class="calc-val" style="font-size:11px">Lactato en Renal/Elec.</div></div>'+
+      '</div>'+
+    '</div>'+
+    '</div>'+/* fin labsSub-punt */
+    '<div id="labsSub-comp" class="labs-sub" style="display:none">'+
+      '<div class="section-card">'+
+        '<h4><span>📅</span>Paraclinica comparativa por fechas</h4>'+
+        '<div class="btn-row" style="margin-top:0"><button class="btn btn-teal btn-sm" onclick="addParaDate()">➕ Agregar fecha</button></div>'+
+        '<div id="paraTableWrap" class="para-wrap"></div>'+
+      '</div>'+
+    '</div>'+
+    '<div id="labsSub-micro" class="labs-sub" style="display:none">'+
+      '<div class="section-card">'+
+        '<h4><span>🦠</span>Microbiologia</h4>'+
+        '<div class="btn-row" style="margin-top:0"><button class="btn btn-teal btn-sm" onclick="addMicro()">➕ Agregar muestra</button></div>'+
+        '<div id="microTableWrap"></div>'+
+      '</div>'+
+      '<div class="section-card" style="margin-top:12px">'+
+        '<h4><span>💊</span>Antibioticos</h4>'+
+        '<div class="btn-row" style="margin-top:0"><button class="btn btn-teal btn-sm" onclick="addAtb()">➕ Agregar ATB</button></div>'+
+        '<div id="atbTableWrap"></div>'+
       '</div>'+
     '</div>'+
   '</div>'+
@@ -950,13 +1014,35 @@ function renderActivePatient(){
     '</div>'+
   '</div>'+
 
+  '<div id="inner-imagenes" class="inner-panel">'+
+    '<div class="section-card">'+
+      '<h4><span>\uD83D\uDDBC\uFE0F</span>Imagenes (RxTx, TAC, ECO...)</h4>'+
+      '<div class="img-drop" id="imgDrop" onclick="document.getElementById(\'imgFile\').click()" tabindex="0" onpaste="handleImgPaste(event)">\uD83D\uDCCE Clic para subir imagen(es) o pegar (Ctrl+V) aqui</div>'+
+      '<input type="file" id="imgFile" accept="image/*" multiple style="display:none" onchange="handleImgFile(event)">'+
+      '<div id="imgGrid" class="img-grid"></div>'+
+    '</div>'+
+  '</div>'+
+
   '<div id="inner-evol" class="inner-panel">'+
     '<div class="section-card">'+
       '<h4><span>\uD83D\uDCDD</span>Nota de Evolucion</h4>'+
-      '<textarea id="f-evolucion" rows="15" placeholder="Evolucion clinica del dia, conducta, plan...">'+p.evolucion+'</textarea>'+
+      '<textarea id="f-evolucion" rows="10" placeholder="Evolucion clinica del dia, conducta, plan...">'+p.evolucion+'</textarea>'+
       '<div class="btn-row">'+
         '<button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();alert(\'Guardado.\')">\uD83D\uDCBE Guardar nota</button>'+
       '</div>'+
+    '</div>'+
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>\uD83E\uDDEC</span>Resumen por Sistemas Fisiologicos</h4>'+
+      '<div class="section-grid">'+
+        '<div class="field-group"><label>\uD83E\uDDE0 Neurologico</label><textarea id="f-sis-neuro" rows="3" placeholder="Sedacion, RASS, pupilas, GCS...">'+esc(p.sis_neuro)+'</textarea></div>'+
+        '<div class="field-group"><label>\u2764\uFE0F Hemodinamico + drogas</label><textarea id="f-sis-hemo" rows="3" placeholder="PAM, ritmo, vasoactivos/dosis...">'+esc(p.sis_hemo)+'</textarea></div>'+
+        '<div class="field-group"><label>\uD83D\uDCA8 Respiratorio + ventilador</label><textarea id="f-sis-resp" rows="3" placeholder="Modo VM, FiO2/PEEP, PaFi, destete...">'+esc(p.sis_resp)+'</textarea></div>'+
+        '<div class="field-group"><label>\uD83E\uDDA0 Infeccioso</label><textarea id="f-sis-infec" rows="3" placeholder="Fiebre, leucocitosis, secreciones, foco...">'+esc(p.sis_infec)+'</textarea></div>'+
+        '<div class="field-group"><label>\uD83E\uDE7A Accesos (con fechas)</label><textarea id="f-sis-accesos" rows="3" placeholder="VVC, VA, SV, SNG - fechas de colocacion...">'+esc(p.sis_accesos)+'</textarea></div>'+
+        '<div class="field-group"><label>\uD83E\uDD57 Metabolico / nutricional</label><textarea id="f-sis-metab" rows="3" placeholder="Glucemia, funcion renal, nutricion...">'+esc(p.sis_metab)+'</textarea></div>'+
+      '</div>'+
+      '<div class="field-group" style="margin-top:8px"><label>\u2705 Conductas del dia</label><textarea id="f-sis-conductas" rows="4" placeholder="Plan y conductas del dia...">'+esc(p.sis_conductas)+'</textarea></div>'+
+      '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();alert(\'Guardado.\')">\uD83D\uDCBE Guardar sistemas</button></div>'+
     '</div>'+
   '</div>';
 
@@ -966,6 +1052,18 @@ function renderActivePatient(){
   calcSOFA();
   calcBalance();
   calcSID();
+  renderParaTable();
+  renderMicroTable();
+  renderAtbTable();
+  renderImgGrid();
+}
+
+// ===== SUB-TABS de Labs =====
+function showLabsSub(id, btn){
+  document.querySelectorAll('.labs-sub').forEach(function(pn){pn.style.display='none';});
+  document.querySelectorAll('#inner-labs .inner-tab').forEach(function(b){b.classList.remove('active');});
+  var el=document.getElementById('labsSub-'+id); if(el) el.style.display='block';
+  if(btn) btn.classList.add('active');
 }
 
 function showInner(id, btn){
@@ -1104,7 +1202,7 @@ function calcSID(){
 function readPatientForm(idx){
   var p=state.patients[idx];
   function gv(id){var el=document.getElementById(id);return el?el.value:'';}
-  p.name=gv('f-name');p.age=gv('f-age');p.sex=gv('f-sex');p.weight=gv('f-weight');p.height=gv('f-height');
+  p.name=gv('f-name');p.age=gv('f-age');p.ci=gv('f-ci');p.sex=gv('f-sex');p.weight=gv('f-weight');p.height=gv('f-height');
   p.dx=gv('f-dx');p.ingreso=gv('f-ingreso');p.antecedentes=gv('f-antecedentes');
   p.pas=gv('f-pas');p.pad=gv('f-pad');p.fc=gv('f-fc');p.fr=gv('f-fr');p.temp=gv('f-temp');p.spo2=gv('f-spo2');
   p.hb=gv('f-hb');p.leucos=gv('f-leucos');p.plaquetas=gv('f-plaquetas');
@@ -1119,6 +1217,8 @@ function readPatientForm(idx){
   p.vvc_sitio=gv('f-vvc-sitio');p.vvc_fecha=gv('f-vvc-fecha');p.via_art=gv('f-via-art');p.art_fecha=gv('f-art-fecha');
   p.sng=gv('f-sng');p.sonda_v=gv('f-sonda-v');p.dren=gv('f-dren');
   p.evolucion=gv('f-evolucion');
+  p.sis_neuro=gv('f-sis-neuro');p.sis_hemo=gv('f-sis-hemo');p.sis_resp=gv('f-sis-resp');
+  p.sis_infec=gv('f-sis-infec');p.sis_accesos=gv('f-sis-accesos');p.sis_metab=gv('f-sis-metab');p.sis_conductas=gv('f-sis-conductas');
   for(var i=0;i<PADUA_ITEMS.length;i++){var el=document.getElementById('padua-'+i);if(el)p['padua_'+i]=el.checked;}
   ['sofa-resp','sofa-neuro','sofa-cv','sofa-hepat','sofa-coag','sofa-renal'].forEach(function(kk){var el=document.getElementById('f-'+kk);if(el)p[kk.replace('-','_')]=el.value;});
 }
@@ -1251,6 +1351,396 @@ function renderDrugList(){
   el.innerHTML='<table class="drug-table"><thead><tr><th>Droga</th><th>Dosis</th><th>Dilucion</th><th>Via</th><th>Hora</th><th></th></tr></thead><tbody>'+
     drugs.map(function(d,i){return '<tr><td><strong>'+d.d+'</strong></td><td>'+(d.dose||'-')+'</td><td>'+(d.dil||'-')+'</td><td>'+d.route+'</td><td>'+d.added+'</td><td><button class="btn btn-red btn-sm" onclick="removeDrug('+i+')">X</button></td></tr>';}).join('')+
   '</tbody></table>';
+}
+
+// ===================================================================
+// ===== NUEVO: PARACLINICA COMPARATIVA POR FECHAS ===================
+// ===================================================================
+// Orden de filas: [clave interna, etiqueta]
+var PARA_ROWS = [
+  ['hbhto','Hb/Hto'],['gb','GB'],['pqt','PQT'],['urea','Urea'],['creat','Creatinina'],
+  ['nakcl','Na/K/Cl'],['tpkptt','TP/KPTT'],['btbdbi','BT/BD/BI'],['lactato','Lactato'],
+  ['pcrpct','PCR/PCT'],['glucemia','Glucemia'],['tgotgp','TGO/TGP'],['troponina','Troponina'],
+  ['ph','pH'],['paco2','PaCO2'],['hco3','HCO3'],['be','BE'],['pafi','PAFI'],['pao2','PaO2'],['sao2','SaO2']
+];
+function pKey(row,date){ return row+'||'+date; }
+function curPatient(){ return state.patients[state.activeBed]; }
+
+function addParaDate(){
+  var p=curPatient(); if(!p) return;
+  if(!p.paraDates) p.paraDates=[];
+  var today=new Date().toISOString().slice(0,10);
+  if(p.paraDates.indexOf(today)===-1){ p.paraDates.push(today); }
+  else { p.paraDates.push(today); } // permitir editar; se ordenan y de-dup visual
+  p.paraDates.sort();
+  save(); renderParaTable();
+}
+function delParaDate(date){
+  var p=curPatient(); if(!p||!p.paraDates) return;
+  if(!confirm('Eliminar la columna de fecha '+date+' y sus valores?')) return;
+  p.paraDates=p.paraDates.filter(function(d){return d!==date;});
+  // limpiar valores de esa fecha
+  Object.keys(p.paraVals||{}).forEach(function(k){ if(k.split('||')[1]===date) delete p.paraVals[k]; });
+  save(); renderParaTable();
+}
+function updateParaDate(oldDate, newDate){
+  var p=curPatient(); if(!p||!newDate) return;
+  var idx=p.paraDates.indexOf(oldDate);
+  if(idx>-1) p.paraDates[idx]=newDate;
+  // migrar valores a la nueva clave de fecha
+  Object.keys(p.paraVals||{}).forEach(function(k){
+    var parts=k.split('||');
+    if(parts[1]===oldDate){ p.paraVals[pKey(parts[0],newDate)]=p.paraVals[k]; delete p.paraVals[k]; }
+  });
+  p.paraDates.sort();
+  save(); renderParaTable();
+}
+function updateParaVal(row,date,val){
+  var p=curPatient(); if(!p) return;
+  if(!p.paraVals) p.paraVals={};
+  if(val===''){ delete p.paraVals[pKey(row,date)]; }
+  else { p.paraVals[pKey(row,date)]=val; }
+  save();
+}
+function renderParaTable(){
+  var wrap=document.getElementById('paraTableWrap'); if(!wrap) return;
+  var p=curPatient(); if(!p) return;
+  var dates=(p.paraDates||[]).slice().sort();
+  if(!dates.length){ wrap.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px 0">Sin fechas. Use "➕ Agregar fecha".</div>'; return; }
+  var vals=p.paraVals||{};
+  var html='<table class="para-table"><thead><tr><th class="para-param">Parametro</th>';
+  dates.forEach(function(d){
+    html+='<th><input type="date" value="'+esc(d)+'" onchange="updateParaDate(\''+d+'\',this.value)"><br><button class="para-coldel" onclick="delParaDate(\''+d+'\')">✕ quitar</button></th>';
+  });
+  html+='</tr></thead><tbody>';
+  PARA_ROWS.forEach(function(r){
+    html+='<tr><td class="para-param">'+esc(r[1])+'</td>';
+    dates.forEach(function(d){
+      var v=vals[pKey(r[0],d)]||'';
+      html+='<td><input value="'+esc(v)+'" oninput="updateParaVal(\''+r[0]+'\',\''+d+'\',this.value)"></td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  wrap.innerHTML=html;
+}
+
+// ===================================================================
+// ===== NUEVO: MICROBIOLOGIA ========================================
+// ===================================================================
+function addMicro(){
+  var p=curPatient(); if(!p) return;
+  if(!p.micro) p.micro=[];
+  p.micro.push({fecha:new Date().toISOString().slice(0,10),muestra:'',resultado:'',sens:'',estado:'Pendiente'});
+  save(); renderMicroTable();
+}
+function updateMicro(i,field,val){
+  var p=curPatient(); if(!p||!p.micro||!p.micro[i]) return;
+  p.micro[i][field]=val; save();
+}
+function delMicro(i){
+  var p=curPatient(); if(!p||!p.micro) return;
+  p.micro.splice(i,1); save(); renderMicroTable();
+}
+function renderMicroTable(){
+  var wrap=document.getElementById('microTableWrap'); if(!wrap) return;
+  var p=curPatient(); if(!p) return;
+  var rows=(p.micro||[]).map(function(m,i){return {m:m,i:i};});
+  rows.sort(function(a,b){return (a.m.fecha||'').localeCompare(b.m.fecha||'');});
+  if(!rows.length){ wrap.innerHTML='<div style="color:var(--muted);font-size:12px;padding:6px 0">Sin muestras registradas.</div>'; return; }
+  var html='<table class="mini-tbl"><thead><tr><th>Fecha</th><th>Muestra</th><th>Resultado/Germen</th><th>Sensibilidad</th><th>Estado</th><th></th></tr></thead><tbody>';
+  rows.forEach(function(o){
+    var m=o.m, i=o.i;
+    html+='<tr>'+
+      '<td><input type="date" value="'+esc(m.fecha)+'" onchange="updateMicro('+i+',\'fecha\',this.value);renderMicroTable()"></td>'+
+      '<td><input value="'+esc(m.muestra)+'" placeholder="Hemocultivo..." oninput="updateMicro('+i+',\'muestra\',this.value)"></td>'+
+      '<td><input value="'+esc(m.resultado)+'" placeholder="E. coli..." oninput="updateMicro('+i+',\'resultado\',this.value)"></td>'+
+      '<td><input value="'+esc(m.sens)+'" placeholder="S/R ATB..." oninput="updateMicro('+i+',\'sens\',this.value)"></td>'+
+      '<td><select onchange="updateMicro('+i+',\'estado\',this.value)"><option '+(m.estado==='Pendiente'?'selected':'')+'>Pendiente</option><option '+(m.estado==='Resultado'?'selected':'')+'>Resultado</option></select></td>'+
+      '<td><button class="btn btn-red btn-sm" onclick="delMicro('+i+')">X</button></td>'+
+    '</tr>';
+  });
+  html+='</tbody></table>';
+  wrap.innerHTML=html;
+}
+
+// ===================================================================
+// ===== NUEVO: ANTIBIOTICOS =========================================
+// ===================================================================
+function addAtb(){
+  var p=curPatient(); if(!p) return;
+  if(!p.atb) p.atb=[];
+  p.atb.push({atb:'',dosis:'',inicio:new Date().toISOString().slice(0,10),fin:'',motivo:''});
+  save(); renderAtbTable();
+}
+function updateAtb(i,field,val){
+  var p=curPatient(); if(!p||!p.atb||!p.atb[i]) return;
+  p.atb[i][field]=val; save();
+}
+function delAtb(i){
+  var p=curPatient(); if(!p||!p.atb) return;
+  p.atb.splice(i,1); save(); renderAtbTable();
+}
+function renderAtbTable(){
+  var wrap=document.getElementById('atbTableWrap'); if(!wrap) return;
+  var p=curPatient(); if(!p) return;
+  var rows=(p.atb||[]).map(function(a,i){return {a:a,i:i};});
+  rows.sort(function(x,y){return (x.a.inicio||'').localeCompare(y.a.inicio||'');});
+  if(!rows.length){ wrap.innerHTML='<div style="color:var(--muted);font-size:12px;padding:6px 0">Sin antibioticos registrados.</div>'; return; }
+  var html='<table class="mini-tbl"><thead><tr><th>ATB</th><th>Dosis</th><th>Inicio</th><th>Suspension/Cambio</th><th>Motivo</th><th></th></tr></thead><tbody>';
+  rows.forEach(function(o){
+    var a=o.a, i=o.i;
+    html+='<tr>'+
+      '<td><input value="'+esc(a.atb)+'" placeholder="Meropenem..." oninput="updateAtb('+i+',\'atb\',this.value)"></td>'+
+      '<td><input value="'+esc(a.dosis)+'" placeholder="1g c/8h" oninput="updateAtb('+i+',\'dosis\',this.value)"></td>'+
+      '<td><input type="date" value="'+esc(a.inicio)+'" onchange="updateAtb('+i+',\'inicio\',this.value);renderAtbTable()"></td>'+
+      '<td><input type="date" value="'+esc(a.fin)+'" onchange="updateAtb('+i+',\'fin\',this.value)"></td>'+
+      '<td><input value="'+esc(a.motivo)+'" placeholder="Escalamiento..." oninput="updateAtb('+i+',\'motivo\',this.value)"></td>'+
+      '<td><button class="btn btn-red btn-sm" onclick="delAtb('+i+')">X</button></td>'+
+    '</tr>';
+  });
+  html+='</tbody></table>';
+  wrap.innerHTML=html;
+}
+
+// ===================================================================
+// ===== NUEVO: IMAGENES =============================================
+// ===================================================================
+function handleImgFile(ev){
+  var files=ev.target.files; if(!files||!files.length) return;
+  Array.prototype.forEach.call(files,function(f){ readImgFile(f); });
+  ev.target.value='';
+}
+function handleImgPaste(ev){
+  var items=(ev.clipboardData||{}).items; if(!items) return;
+  for(var i=0;i<items.length;i++){
+    if(items[i].type && items[i].type.indexOf('image')===0){
+      var f=items[i].getAsFile(); if(f) readImgFile(f);
+    }
+  }
+}
+function readImgFile(file){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var p=curPatient(); if(!p) return;
+    if(!p.imagenes) p.imagenes=[];
+    p.imagenes.push({data:e.target.result,fecha:new Date().toISOString().slice(0,10),desc:''});
+    try{
+      save();
+      renderImgGrid();
+    }catch(err){
+      p.imagenes.pop();
+      alert('No se pudo guardar la imagen: almacenamiento lleno (quota). Elimine imagenes antiguas o exporte datos. ('+err.message+')');
+      renderImgGrid();
+    }
+  };
+  reader.readAsDataURL(file);
+}
+function updateImg(i,field,val){
+  var p=curPatient(); if(!p||!p.imagenes||!p.imagenes[i]) return;
+  p.imagenes[i][field]=val;
+  try{ save(); }catch(err){ alert('No se pudo guardar (quota).'); }
+}
+function delImg(i){
+  var p=curPatient(); if(!p||!p.imagenes) return;
+  if(!confirm('Eliminar esta imagen?')) return;
+  p.imagenes.splice(i,1); save(); renderImgGrid();
+}
+function renderImgGrid(){
+  var grid=document.getElementById('imgGrid'); if(!grid) return;
+  var p=curPatient(); if(!p) return;
+  var imgs=p.imagenes||[];
+  if(!imgs.length){ grid.innerHTML='<div style="color:var(--muted);font-size:12px">Sin imagenes cargadas.</div>'; return; }
+  grid.innerHTML=imgs.map(function(im,i){
+    return '<div class="img-card">'+
+      '<button class="img-del" onclick="delImg('+i+')" title="Eliminar">✕</button>'+
+      '<img src="'+im.data+'" onclick="window.open().document.write(\'<img src=\\\''+im.data+'\\\' style=max-width:100%>\')">'+
+      '<input type="date" value="'+esc(im.fecha)+'" onchange="updateImg('+i+',\'fecha\',this.value)">'+
+      '<input value="'+esc(im.desc)+'" placeholder="Descripcion (RxTx...)" oninput="updateImg('+i+',\'desc\',this.value)">'+
+    '</div>';
+  }).join('');
+}
+
+// ===================================================================
+// ===== NUEVO: PDF ESTRUCTURADO (jsPDF con fallback a impresion) =====
+// ===================================================================
+function exportStructuredPDF(){
+  if(!state.centro){ alert('Seleccione un centro primero.'); return; }
+  if(document.getElementById('f-name')){ try{ readPatientForm(state.activeBed); }catch(e){} }
+  var p=state.patients[state.activeBed];
+  if(!p){ alert('Sin paciente activo.'); return; }
+  save();
+  var jsPDFctor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (window.jsPDF||null);
+  if(!jsPDFctor){ exportStructuredPDFprint(p); return; }
+  try{ buildPDF(jsPDFctor, p); }
+  catch(err){ console.error(err); exportStructuredPDFprint(p); }
+}
+
+function hasVal(v){ return v!==null && v!==undefined && String(v).trim()!==''; }
+
+function buildPDF(jsPDF, p){
+  var doc=new jsPDF({unit:'mm',format:'a4'});
+  var PW=210, PH=297, M=12, y=M;
+  var teal=[0,121,95], muted=[90,98,112], line=[200,205,215], dark=[26,29,39];
+  function ck(h){ if(y+h>PH-M){ doc.addPage(); y=M; } }
+  function h2(t){ ck(10); doc.setFontSize(11); doc.setTextColor(teal[0],teal[1],teal[2]); doc.setFont(undefined,'bold'); doc.text(t,M,y); doc.setDrawColor(line[0],line[1],line[2]); doc.line(M,y+1.5,PW-M,y+1.5); y+=6; doc.setFont(undefined,'normal'); doc.setTextColor(dark[0],dark[1],dark[2]); doc.setFontSize(9.5); }
+  function para(t){ if(!hasVal(t)) return; var lines=doc.splitTextToSize(String(t),PW-2*M); lines.forEach(function(ln){ ck(5); doc.text(ln,M,y); y+=4.6; }); y+=1.5; }
+  function kv(k,v){ if(!hasVal(v)) return; ck(5); doc.setFont(undefined,'bold'); doc.text(k+': ',M,y); var kw=doc.getTextWidth(k+': '); doc.setFont(undefined,'normal'); var lines=doc.splitTextToSize(String(v),PW-2*M-kw); doc.text(lines[0]||'',M+kw,y); y+=4.6; for(var i=1;i<lines.length;i++){ ck(5); doc.text(lines[i],M,y); y+=4.6; } }
+
+  var c=CENTROS.find(function(x){return x.id===state.centro;});
+  var centroName=c?c.name:'-';
+  var now=new Date();
+  var fecha=now.toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+
+  // ---- Encabezado ----
+  doc.setFillColor(teal[0],teal[1],teal[2]); doc.rect(0,0,PW,3,'F');
+  doc.setFontSize(15); doc.setTextColor(teal[0],teal[1],teal[2]); doc.setFont(undefined,'bold');
+  doc.text('Resumen de Paciente - UCI',M,y+4); y+=9;
+  doc.setFontSize(9); doc.setTextColor(muted[0],muted[1],muted[2]); doc.setFont(undefined,'normal');
+  var hdr=[];
+  hdr.push('Cama '+(p.bed||'-'));
+  if(hasVal(p.name)) hdr.push(p.name);
+  if(hasVal(p.age)) hdr.push(p.age+' a');
+  if(hasVal(p.ci)) hdr.push('CI '+p.ci);
+  hdr.push(centroName); hdr.push(fecha);
+  doc.text(hdr.join('  |  '),M,y); y+=6;
+  doc.setTextColor(dark[0],dark[1],dark[2]);
+
+  // ---- AP ----
+  if(hasVal(p.antecedentes)){ h2('Antecedentes personales'); para(p.antecedentes); }
+
+  // ---- Tratamientos (drogas) ----
+  if(p.drugs && p.drugs.length){
+    h2('Tratamientos');
+    p.drugs.forEach(function(d){ ck(5); doc.text('- '+d.d+(d.dose&&d.dose!=='-'?': '+d.dose:'')+(d.dil?' ('+d.dil+')':'')+(d.route?' '+d.route:''),M,y); y+=4.6; }); y+=1.5;
+  }
+  if(p.atb && p.atb.some(function(a){return hasVal(a.atb);})){
+    // los ATB tambien mas abajo; aqui no repetir
+  }
+
+  // ---- Resumen historia clinica ----
+  if(hasVal(p.evolucion)){ /* evolucion se maneja abajo */ }
+  if(hasVal(p.dx)){ h2('Resumen historia clinica'); kv('Diagnostico',p.dx); if(hasVal(p.ingreso)) kv('Ingreso',p.ingreso); }
+
+  // ---- Evolucion ----
+  if(hasVal(p.evolucion)){ h2('Evolucion'); para(p.evolucion); }
+
+  // ---- Sistemas fisiologicos ----
+  var sis=[['🧠 Neuro',p.sis_neuro],['❤ HD + drogas',p.sis_hemo],['💨 Respiratorio + vent',p.sis_resp],['🦠 Infeccioso',p.sis_infec],['🩺 Accesos',p.sis_accesos],['🥗 Metabolico/nutricional',p.sis_metab]];
+  if(sis.some(function(s){return hasVal(s[1]);})){
+    h2('Sistemas fisiologicos');
+    sis.forEach(function(s){ if(hasVal(s[1])) kv(s[0].replace(/[^\x00-\x7F]/g,'').trim(),s[1]); });
+  }
+
+  // ---- 3 columnas: Conductas | Gasometria | Paraclinica ----
+  var colTitles=['Conductas del dia','Gasometria','Paraclinica'];
+  var gaso=[];
+  [['pH',p.ph],['PaCO2',p.pco2],['HCO3',p.hco3],['BE',p.be],['PAFI',p.pafi_calc],['PaO2',p.po2],['Lactato',p.lac],['SID',p.sid_result]].forEach(function(g){ if(hasVal(g[1])) gaso.push(g[0]+': '+g[1]); });
+  var paraLines=paraSummaryLines(p);
+  var conductas = hasVal(p.sis_conductas)? String(p.sis_conductas) : '';
+  if(conductas || gaso.length || paraLines.length){
+    h2('Conductas / Gasometria / Paraclinica');
+    var colW=(PW-2*M-8)/3, colX=[M,M+colW+4,M+2*colW+8];
+    var startY=y;
+    doc.setFont(undefined,'bold'); doc.setFontSize(9);
+    for(var ci=0;ci<3;ci++){ doc.text(colTitles[ci],colX[ci],startY); }
+    doc.setFont(undefined,'normal'); doc.setFontSize(8.5);
+    var cy=startY+5;
+    var col0=doc.splitTextToSize(conductas||'-',colW);
+    var col1=gaso.length?gaso:['-'];
+    var col2=paraLines.length?paraLines:['-'];
+    var maxRows=Math.max(col0.length,col1.length,col2.length);
+    for(var r=0;r<maxRows;r++){
+      if(cy>PH-M){ doc.addPage(); cy=M; }
+      if(col0[r]) doc.text(col0[r],colX[0],cy);
+      if(col1[r]) doc.text(col1[r],colX[1],cy);
+      if(col2[r]) doc.text(col2[r],colX[2],cy);
+      cy+=4.4;
+    }
+    y=cy+3;
+  }
+
+  // ---- Microbiologia (izq) + Antibioticos (der) ----
+  var micro=(p.micro||[]).filter(function(m){return hasVal(m.muestra)||hasVal(m.resultado);});
+  var atb=(p.atb||[]).filter(function(a){return hasVal(a.atb);});
+  if(micro.length || atb.length){
+    h2('Microbiologia / Antibioticos');
+    var halfW=(PW-2*M-6)/2, mX=M, aX=M+halfW+6;
+    var sY=y;
+    doc.setFont(undefined,'bold'); doc.setFontSize(9);
+    doc.text('Microbiologia',mX,sY); doc.text('Antibioticos',aX,sY);
+    doc.setFont(undefined,'normal'); doc.setFontSize(8.5);
+    var mLines=[]; micro.slice().sort(function(a,b){return (a.fecha||'').localeCompare(b.fecha||'');}).forEach(function(m){
+      var t=(m.fecha||'')+' '+(m.muestra||'')+': '+(m.resultado|| (m.estado||'Pendiente'))+(hasVal(m.sens)?' ['+m.sens+']':'')+(m.estado==='Pendiente'?' (pend.)':'');
+      doc.splitTextToSize(t,halfW).forEach(function(l){mLines.push(l);});
+    });
+    var aLines=[]; atb.slice().sort(function(a,b){return (a.inicio||'').localeCompare(b.inicio||'');}).forEach(function(a){
+      var t='- '+(a.atb||'')+(hasVal(a.dosis)?' '+a.dosis:'')+(hasVal(a.inicio)?' | ini '+a.inicio:'')+(hasVal(a.fin)?' | fin '+a.fin:'')+(hasVal(a.motivo)?' ('+a.motivo+')':'');
+      doc.splitTextToSize(t,halfW).forEach(function(l){aLines.push(l);});
+    });
+    var cy2=sY+5, mx=Math.max(mLines.length,aLines.length);
+    for(var q=0;q<mx;q++){
+      if(cy2>PH-M){ doc.addPage(); cy2=M; }
+      if(mLines[q]) doc.text(mLines[q],mX,cy2);
+      if(aLines[q]) doc.text(aLines[q],aX,cy2);
+      cy2+=4.4;
+    }
+    y=cy2+3;
+  }
+
+  // ---- pie ----
+  ck(10); doc.setFontSize(7.5); doc.setTextColor(muted[0],muted[1],muted[2]);
+  doc.text('UCI Dashboard - Documento de apoyo clinico generado localmente. No reemplaza el juicio medico ni la HC oficial.',M,PH-8);
+
+  var tag=(p.name||('cama'+p.bed)).replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+  doc.save('resumen_'+tag+'_'+now.toISOString().slice(0,10)+'.pdf');
+}
+
+// filas de paraclinica: ultimo valor de cada fila (solo con datos), en orden establecido
+function paraSummaryLines(p){
+  var out=[]; var dates=(p.paraDates||[]).slice().sort(); var vals=p.paraVals||{};
+  PARA_ROWS.forEach(function(r){
+    var last=''; var lastD='';
+    dates.forEach(function(d){ var v=vals[pKey(r[0],d)]; if(hasVal(v)){ last=v; lastD=d; } });
+    if(hasVal(last)) out.push(r[1]+': '+last);
+  });
+  return out;
+}
+
+// Fallback offline: abre ventana imprimible (Guardar como PDF)
+function exportStructuredPDFprint(p){
+  var c=CENTROS.find(function(x){return x.id===state.centro;});
+  var centroName=c?c.name:'-';
+  var now=new Date();
+  var fecha=now.toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+  function sec(t,body){ return body?('<h2>'+esc(t)+'</h2>'+body):''; }
+  function txt(t){ return hasVal(t)?('<p>'+esc(t).replace(/\n/g,'<br>')+'</p>'):''; }
+  var drugs=(p.drugs&&p.drugs.length)?('<ul>'+p.drugs.map(function(d){return '<li>'+esc(d.d)+(d.dose&&d.dose!=='-'?': '+esc(d.dose):'')+(d.dil?' ('+esc(d.dil)+')':'')+'</li>';}).join('')+'</ul>'):'';
+  var sisArr=[['Neuro',p.sis_neuro],['HD + drogas',p.sis_hemo],['Respiratorio + vent',p.sis_resp],['Infeccioso',p.sis_infec],['Accesos',p.sis_accesos],['Metabolico/nutricional',p.sis_metab]];
+  var sisHtml=sisArr.filter(function(s){return hasVal(s[1]);}).map(function(s){return '<p><strong>'+esc(s[0])+':</strong> '+esc(s[1]).replace(/\n/g,'<br>')+'</p>';}).join('');
+  var gaso=[['pH',p.ph],['PaCO2',p.pco2],['HCO3',p.hco3],['BE',p.be],['PAFI',p.pafi_calc],['PaO2',p.po2],['Lactato',p.lac],['SID',p.sid_result]].filter(function(g){return hasVal(g[1]);}).map(function(g){return '<div>'+esc(g[0])+': '+esc(g[1])+'</div>';}).join('');
+  var paraLines=paraSummaryLines(p).map(function(l){return '<div>'+esc(l)+'</div>';}).join('');
+  var cols=(hasVal(p.sis_conductas)||gaso||paraLines)?('<div style="display:flex;gap:12px"><div style="flex:1"><strong>Conductas</strong>'+txt(p.sis_conductas)+'</div><div style="flex:1"><strong>Gasometria</strong>'+gaso+'</div><div style="flex:1"><strong>Paraclinica</strong>'+paraLines+'</div></div>'):'';
+  var micro=(p.micro||[]).filter(function(m){return hasVal(m.muestra)||hasVal(m.resultado);}).sort(function(a,b){return (a.fecha||'').localeCompare(b.fecha||'');});
+  var atb=(p.atb||[]).filter(function(a){return hasVal(a.atb);}).sort(function(a,b){return (a.inicio||'').localeCompare(b.inicio||'');});
+  var mHtml=micro.map(function(m){return '<div>'+esc(m.fecha||'')+' '+esc(m.muestra||'')+': '+esc(m.resultado||m.estado||'')+(hasVal(m.sens)?' ['+esc(m.sens)+']':'')+(m.estado==='Pendiente'?' (pend.)':'')+'</div>';}).join('');
+  var aHtml=atb.map(function(a){return '<div>'+esc(a.atb||'')+' '+esc(a.dosis||'')+(hasVal(a.inicio)?' | ini '+esc(a.inicio):'')+(hasVal(a.fin)?' | fin '+esc(a.fin):'')+(hasVal(a.motivo)?' ('+esc(a.motivo)+')':'')+'</div>';}).join('');
+  var mAtb=(micro.length||atb.length)?('<div style="display:flex;gap:16px"><div style="flex:1"><strong>Microbiologia</strong>'+mHtml+'</div><div style="flex:1"><strong>Antibioticos</strong>'+aHtml+'</div></div>'):'';
+  var hdr='Cama '+esc(p.bed||'-')+(hasVal(p.name)?' | '+esc(p.name):'')+(hasVal(p.age)?' | '+esc(p.age)+' a':'')+(hasVal(p.ci)?' | CI '+esc(p.ci):'')+' | '+esc(centroName)+' | '+esc(fecha);
+  var html='<html><head><meta charset="utf-8"><title>Resumen UCI</title><style>body{font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;padding:20px}h1{color:#00795f;font-size:16pt;margin:0}h2{color:#00795f;font-size:12pt;border-bottom:1px solid #bbb;margin:14px 0 6px}.sub{color:#555;font-size:9pt;margin-bottom:8px}@media print{button{display:none}}</style></head><body>'+
+    '<h1>Resumen de Paciente - UCI</h1><div class="sub">'+hdr+'</div>'+
+    sec('Antecedentes personales',txt(p.antecedentes))+
+    sec('Tratamientos',drugs)+
+    sec('Resumen historia clinica',(hasVal(p.dx)?'<p><strong>Diagnostico:</strong> '+esc(p.dx)+'</p>':'')+(hasVal(p.ingreso)?'<p><strong>Ingreso:</strong> '+esc(p.ingreso)+'</p>':''))+
+    sec('Evolucion',txt(p.evolucion))+
+    sec('Sistemas fisiologicos',sisHtml)+
+    sec('Conductas / Gasometria / Paraclinica',cols)+
+    sec('Microbiologia / Antibioticos',mAtb)+
+    '<p style="margin-top:20px;font-size:8pt;color:#888;border-top:1px solid #ddd;padding-top:6px">UCI Dashboard - Documento de apoyo clinico. No reemplaza el juicio medico ni la HC oficial.</p>'+
+    '<button onclick="window.print()">Imprimir / Guardar PDF</button></body></html>';
+  var w=window.open('','_blank');
+  if(!w){ alert('Permita ventanas emergentes para generar el PDF.'); return; }
+  w.document.write(html); w.document.close();
 }
 </script>
 <script>
