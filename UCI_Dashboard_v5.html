@@ -188,6 +188,29 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 </style>
 </head>
 <body>
+<div id="modal-login" style="position:fixed;inset:0;z-index:10000;background:rgba(10,15,25,.82);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:30px 34px;max-width:400px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,.4)">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:36px">🏥</div>
+      <div style="font-size:22px;font-weight:800;color:var(--text)">UCI Dashboard</div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-top:3px">Panel de gestión clínica</div>
+    </div>
+    <h2 style="color:var(--text);font-size:17px;margin-bottom:10px">🔐 Acceso</h2>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Ingresá tu contraseña para acceder al sistema.</p>
+    <label style="display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:5px">Contraseña</label>
+    <div style="position:relative">
+      <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 40px 10px 12px;color:var(--text);font-size:14px;outline:none"
+        onkeydown="if(event.key==='Enter')uciLogin()">
+      <button type="button" id="login-eye" onclick="toggleLoginPass()" title="Mostrar / ocultar contraseña"
+        style="position:absolute;top:50%;right:8px;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:0;line-height:1">👁️</button>
+    </div>
+    <div id="login-error" style="display:none;color:var(--red);font-size:12px;margin-top:8px">✕ Contraseña incorrecta. Intentá nuevamente.</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:18px">
+      <button onclick="uciLogin()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer">Ingresar</button>
+    </div>
+  </div>
+</div>
 <div id="splash">
   <div style="font-size:36px">🏥</div>
   <h1>UCI Dashboard v4</h1>
@@ -1689,7 +1712,15 @@ function renderAll(){
   if(badge && c){ badge.textContent=c.name; badge.style.color=c.color; }
 }
 
+// ── LOGIN (sesión válida 8 horas) ──
+var UCI_LOGIN_PASS='maicoluci1', UCI_LOGIN_TTL=8*60*60*1000, UCI_LOGIN_KEY='uci_login_expira';
+function uciSesionValida(){var exp=parseInt(localStorage.getItem(UCI_LOGIN_KEY)||'0',10);return exp>Date.now();}
+function initLogin(){var lg=document.getElementById('modal-login');if(uciSesionValida()){if(lg)lg.style.display='none';}else if(lg){lg.style.display='flex';var p=document.getElementById('login-pass');if(p)p.focus();}}
+function toggleLoginPass(){var inp=document.getElementById('login-pass'),eye=document.getElementById('login-eye');if(!inp)return;var show=inp.type==='password';inp.type=show?'text':'password';if(eye)eye.textContent=show?'🙈':'👁️';inp.focus();}
+function uciLogin(){var inp=document.getElementById('login-pass'),err=document.getElementById('login-error');if(inp&&inp.value===UCI_LOGIN_PASS){localStorage.setItem(UCI_LOGIN_KEY,String(Date.now()+UCI_LOGIN_TTL));document.getElementById('modal-login').style.display='none';}else{if(err)err.style.display='block';if(inp){inp.value='';inp.focus();}}}
+
 window.addEventListener('load', function(){
+  initLogin();      // pantalla de acceso (sesión 8h)
   loadTheme();      // tema claro por defecto, recuerda eleccion
   loadMeta();       // nombres/lista de centros personalizados
   updateBackupBadge();
