@@ -695,6 +695,10 @@ function emptyPatient(bed){
     resp_oaf:'', resp_oaf_dias:'', resp_iot_previa:'', resp_traqueo:'', resp_traqueo_fecha:'', resp_fevi:'',
     // Datos infecciosos
     inf_neumo_ag:'', inf_covid:'', inf_ira:'', inf_ira_kdigo:'', inf_vasopresores:'',
+    // === INDICACIONES DIARIAS ===
+    indicaciones:{},
+    // === PARACLÍNICA DIARIA (solicitud) ===
+    paraOrden:{},
     // === NUEVO: predicción de alta ===
     altaProbableFecha:'',  // fecha en que alcanzó "Alta probable" (dischargeScore>=5) por 1ª vez
     // === NUEVO: bundle de prevención (checklist diario por fecha) ===
@@ -1907,6 +1911,8 @@ function renderActivePatient(){
     '<button class="inner-tab" onclick="showInner(\'imagenes\',this)">\uD83D\uDDBC\uFE0F Im\u00E1genes</button>'+
     '<button class="inner-tab" onclick="showInner(\'scores\',this)">\uD83D\uDCCA Scores</button>'+
     '<button class="inner-tab" onclick="showInner(\'proced\',this)">\uD83D\uDD27 Procedimientos</button>'+
+    '<button class="inner-tab" onclick="showInner(\'indicaciones\',this)">\uD83D\uDC8A Indicaciones</button>'+
+    '<button class="inner-tab" onclick="showInner(\'paraorden\',this)">\uD83E\uDDEA Paracl\u00EDnica</button>'+
   '</div>'+
 
   '<div id="inner-datos" class="inner-panel active">'+
@@ -2338,6 +2344,40 @@ function renderActivePatient(){
       '<div id="procTableWrap" style="overflow-x:auto"></div>'+
       '<div style="font-size:11px;color:var(--muted);margin-top:6px">Los procedimientos con precio configurado (CVC, cat\u00E9ter arterial, intubaci\u00F3n, traqueostom\u00EDa, broncoscop\u00EDa) se computan en Costos el d\u00EDa de su fecha.</div>'+
     '</div>'+
+  '</div>'+
+
+  '<div id="inner-indicaciones" class="inner-panel">'+
+    '<div class="section-card">'+
+      '<h4><span>💊</span>Indicaciones del día</h4>'+
+      '<div class="btn-row" style="margin-top:0;gap:6px">'+
+        '<input type="date" id="indic-fecha" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text)">'+
+        '<button class="btn btn-teal btn-sm" onclick="addIndicacion()">➕ Agregar indicación</button>'+
+        '<button class="btn btn-outline btn-sm" onclick="copiarIndicacionesDiaAnterior()">📅 Copiar día anterior</button>'+
+        '<button class="btn btn-outline btn-sm" onclick="pdfIndicaciones()">🖨️ Imprimir Kardex</button>'+
+      '</div>'+
+      '<div id="indicTableWrap" style="overflow-x:auto;margin-top:10px"></div>'+
+    '</div>'+
+    '<div class="section-card" style="margin-top:10px">'+
+      '<h4><span>⚙️</span>Configuración</h4>'+
+      '<label style="font-size:12px;display:flex;align-items:center;gap:8px;cursor:pointer">'+
+        '<input type="checkbox" id="indic-modo-inst" onchange="toggleModoInstitucional(this.checked)" style="width:16px;height:16px">'+
+        '<span>Modo institucional (confirmación de enfermería por turno)</span>'+
+      '</label>'+
+    '</div>'+
+  '</div>'+
+
+  '<div id="inner-paraorden" class="inner-panel">'+
+    '<div class="section-card">'+
+      '<h4><span>🧪</span>Solicitud de Paraclínica</h4>'+
+      '<div class="btn-row" style="margin-top:0;gap:6px">'+
+        '<input type="date" id="para-ord-fecha" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text)">'+
+        '<button class="btn btn-teal btn-sm" onclick="addParaOrdenBloque()">➕ Agregar bloque</button>'+
+        '<button class="btn btn-outline btn-sm" onclick="copiarParaOrdenDiaAnterior()">📅 Copiar día anterior</button>'+
+        '<button class="btn btn-outline btn-sm" onclick="agregarBloquePredefinido()">⚡ Bloque rápido UCI</button>'+
+        '<button class="btn btn-outline btn-sm" onclick="pdfParaOrden()">🖨️ Imprimir solicitud</button>'+
+      '</div>'+
+      '<div id="paraOrdenWrap" style="margin-top:10px"></div>'+
+    '</div>'+
   '</div>';
 
   renderDrugList();
@@ -2359,6 +2399,8 @@ function renderActivePatient(){
   renderBundle();
   renderBalanceSimp();
   renderProcedimientos();
+  renderIndicaciones();
+  renderParaOrden();
   try{ drawSofaChart(p); }catch(e){}
 }
 
@@ -2377,6 +2419,16 @@ function showInner(id, btn){
   document.querySelectorAll('.inner-tab').forEach(function(b){b.classList.remove('active');});
   document.getElementById('inner-'+id).classList.add('active');
   if(btn) btn.classList.add('active');
+  var hoy = new Date().toISOString().slice(0,10);
+  if(id==='indicaciones'){
+    var fi=document.getElementById('indic-fecha'); if(fi&&!fi.value) fi.value=hoy;
+    var p=curPatient(); if(p){ var cb=document.getElementById('indic-modo-inst'); if(cb) cb.checked=!!p.indicModoInst; }
+    renderIndicaciones();
+  }
+  if(id==='paraorden'){
+    var fp=document.getElementById('para-ord-fecha'); if(fp&&!fp.value) fp.value=hoy;
+    renderParaOrden();
+  }
 }
 
 /* =================================================================
@@ -2653,6 +2705,236 @@ function delProc(i){
   var p=curPatient(); if(!p||!p.procedimientos) return;
   p.procedimientos.splice(i,1); save(); renderProcedimientos();
 }
+
+var INDICACION_VIAS = ['IV','VO','SC','IM','SNG','Inhalado','Tópico','Otro'];
+var INDICACION_FREQ = ['Una vez','c/4h','c/6h','c/8h','c/12h','c/24h','Continuo','SOS','Según necesidad'];
+
+function pat(){ return curPatient(); }
+
+function indicFecha(){ var el=document.getElementById('indic-fecha'); return el?el.value:new Date().toISOString().slice(0,10); }
+function paraOrdFecha(){ var el=document.getElementById('para-ord-fecha'); return el?el.value:new Date().toISOString().slice(0,10); }
+
+function addIndicacion(){
+  var p=pat(); if(!p) return;
+  if(!p.indicaciones) p.indicaciones={};
+  var f=indicFecha();
+  if(!p.indicaciones[f]) p.indicaciones[f]=[];
+  p.indicaciones[f].push({id:Date.now(),droga:'',dosis:'',via:'IV',frecuencia:'c/8h',hora:'',obs:'',turnos:{m:null,t:null,n:null}});
+  save(); renderIndicaciones();
+}
+
+function updateIndicacion(fecha,idx,field,val){
+  var p=pat(); if(!p||!p.indicaciones||!p.indicaciones[fecha]) return;
+  p.indicaciones[fecha][idx][field]=val; save();
+}
+
+function deleteIndicacion(fecha,idx){
+  var p=pat(); if(!p||!p.indicaciones||!p.indicaciones[fecha]) return;
+  p.indicaciones[fecha].splice(idx,1); save(); renderIndicaciones();
+}
+
+function confirmarTurno(fecha,idx,turno,enf){
+  var p=pat(); if(!p||!p.indicaciones||!p.indicaciones[fecha]) return;
+  var item=p.indicaciones[fecha][idx];
+  if(!item.turnos) item.turnos={m:null,t:null,n:null};
+  var hora=new Date().toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'});
+  item.turnos[turno]=item.turnos[turno]?null:{hora:hora,enf:enf||''};
+  save(); renderIndicaciones();
+}
+
+function toggleModoInstitucional(val){
+  var p=pat(); if(!p) return; p.indicModoInst=val; save(); renderIndicaciones();
+}
+
+function copiarIndicacionesDiaAnterior(){
+  var p=pat(); if(!p) return;
+  if(!p.indicaciones) p.indicaciones={};
+  var f=indicFecha();
+  var fDate=new Date(f+'T00:00:00'); fDate.setDate(fDate.getDate()-1);
+  var fAnt=fDate.toISOString().slice(0,10);
+  var ant=p.indicaciones[fAnt];
+  if(!ant||!ant.length){ alert('No hay indicaciones del día anterior ('+fAnt+').'); return; }
+  if(p.indicaciones[f]&&p.indicaciones[f].length){ if(!confirm('Ya hay indicaciones para '+f+'. ¿Agregar las del día anterior?')) return; }
+  if(!p.indicaciones[f]) p.indicaciones[f]=[];
+  ant.forEach(function(it){ p.indicaciones[f].push({id:Date.now()+Math.random(),droga:it.droga,dosis:it.dosis,via:it.via,frecuencia:it.frecuencia,hora:it.hora,obs:it.obs,turnos:{m:null,t:null,n:null}}); });
+  save(); renderIndicaciones();
+}
+
+function renderIndicaciones(){
+  var wrap=document.getElementById('indicTableWrap'); if(!wrap) return;
+  var p=pat(); if(!p){ wrap.innerHTML=''; return; }
+  if(!p.indicaciones) p.indicaciones={};
+  var f=indicFecha(); var lista=p.indicaciones[f]||[]; var inst=!!p.indicModoInst;
+  if(!lista.length){ wrap.innerHTML='<div style="color:var(--muted);font-size:12px;padding:10px 0">Sin indicaciones para '+f+'.</div>'; return; }
+  var turnosHdr=inst?'<th style="min-width:90px;text-align:center">Turno M</th><th style="min-width:90px;text-align:center">Turno T</th><th style="min-width:90px;text-align:center">Turno N</th>':'';
+  var html='<table class="drug-table" style="min-width:100%"><thead><tr><th style="min-width:160px">Droga</th><th style="min-width:90px">Dosis</th><th style="min-width:80px">Vía</th><th style="min-width:100px">Frecuencia</th><th style="min-width:70px">Hora</th><th style="min-width:140px">Observaciones</th>'+turnosHdr+'<th></th></tr></thead><tbody>';
+  lista.forEach(function(it,i){
+    var viaOpts=INDICACION_VIAS.map(function(v){ return '<option'+(it.via===v?' selected':'')+'>'+v+'</option>'; }).join('');
+    var freqOpts=INDICACION_FREQ.map(function(v){ return '<option'+(it.frecuencia===v?' selected':'')+'>'+v+'</option>'; }).join('');
+    var turnosCells='';
+    if(inst){
+      ['m','t','n'].forEach(function(tr){
+        var label={m:'Mañana',t:'Tarde',n:'Noche'}[tr]; var conf=it.turnos&&it.turnos[tr];
+        turnosCells+=conf
+          ?'<td style="text-align:center;background:rgba(16,185,129,.12)"><div style="font-size:11px;color:var(--teal);font-weight:600">✅ '+conf.hora+'</div>'+(conf.enf?'<div style="font-size:10px;color:var(--muted)">'+conf.enf+'</div>':'')+'<button class="btn btn-outline btn-sm" style="font-size:10px;padding:2px 6px;margin-top:2px" onclick="confirmarTurno(\''+f+'\','+i+',\''+tr+'\',\'\')">Desmarcar</button></td>'
+          :'<td style="text-align:center"><button class="btn btn-outline btn-sm" style="font-size:10px;padding:3px 8px" onclick="promptConfirmarTurno(\''+f+'\','+i+',\''+tr+'\')">'+label+'</button></td>';
+      });
+    }
+    html+='<tr>'+
+      '<td><input style="width:100%;padding:3px 5px;font-size:12px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text)" value="'+esc(it.droga)+'" onchange="updateIndicacion(\''+f+'\','+i+',\'droga\',this.value)" placeholder="Droga..."></td>'+
+      '<td><input style="width:80px;padding:3px 5px;font-size:12px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text)" value="'+esc(it.dosis)+'" onchange="updateIndicacion(\''+f+'\','+i+',\'dosis\',this.value)" placeholder="ej: 40mg"></td>'+
+      '<td><select style="padding:3px 5px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)" onchange="updateIndicacion(\''+f+'\','+i+',\'via\',this.value)">'+viaOpts+'</select></td>'+
+      '<td><select style="padding:3px 5px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)" onchange="updateIndicacion(\''+f+'\','+i+',\'frecuencia\',this.value)">'+freqOpts+'</select></td>'+
+      '<td><input style="width:65px;padding:3px 5px;font-size:12px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text)" value="'+esc(it.hora)+'" onchange="updateIndicacion(\''+f+'\','+i+',\'hora\',this.value)" placeholder="08:00"></td>'+
+      '<td><input style="width:100%;padding:3px 5px;font-size:12px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text)" value="'+esc(it.obs)+'" onchange="updateIndicacion(\''+f+'\','+i+',\'obs\',this.value)" placeholder="Observaciones..."></td>'+
+      turnosCells+
+      '<td><button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red);padding:3px 8px;font-size:11px" onclick="deleteIndicacion(\''+f+'\','+i+')">✕</button></td>'+
+    '</tr>';
+  });
+  wrap.innerHTML=html+'</tbody></table>';
+}
+
+function promptConfirmarTurno(fecha,idx,turno){
+  var nombre=prompt('Nombre de enfermería (opcional):',''); if(nombre===null) return;
+  confirmarTurno(fecha,idx,turno,nombre);
+}
+
+function pdfIndicaciones(){
+  var p=pat(); if(!p) return;
+  var f=indicFecha(); var lista=(p.indicaciones&&p.indicaciones[f])||[]; var inst=!!p.indicModoInst;
+  var nombre=p.name||('Cama '+p.bed);
+  var turnosHdr=inst?'<th style="width:90px;text-align:center;border:1px solid #999">Turno M</th><th style="width:90px;text-align:center;border:1px solid #999">Turno T</th><th style="width:90px;text-align:center;border:1px solid #999">Turno N</th>':'';
+  var filas=lista.map(function(it){
+    var turnosCells='';
+    if(inst){ ['m','t','n'].forEach(function(tr){ var conf=it.turnos&&it.turnos[tr]; turnosCells+='<td style="border:1px solid #999;text-align:center;padding:6px;font-size:11px">'+(conf?'✓ '+conf.hora+(conf.enf?'<br>'+conf.enf:''):'')+'</td>'; }); }
+    return '<tr><td style="border:1px solid #999;padding:6px;font-size:12px">'+esc(it.droga)+'</td><td style="border:1px solid #999;padding:6px;font-size:12px;text-align:center">'+esc(it.dosis)+'</td><td style="border:1px solid #999;padding:6px;font-size:12px;text-align:center">'+esc(it.via)+'</td><td style="border:1px solid #999;padding:6px;font-size:12px;text-align:center">'+esc(it.frecuencia)+'</td><td style="border:1px solid #999;padding:6px;font-size:12px;text-align:center">'+esc(it.hora)+'</td><td style="border:1px solid #999;padding:6px;font-size:12px">'+esc(it.obs)+'</td>'+turnosCells+'</tr>';
+  }).join('');
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;font-size:12px;padding:20px}table{border-collapse:collapse;width:100%}th{background:#f0f0f0;border:1px solid #999;padding:6px;text-align:left;font-size:11px}.footer{margin-top:16px;font-size:10px;color:#666;border-top:1px solid #ccc;padding-top:6px}@media print{body{padding:10px}}</style></head><body>'+
+    '<div style="border-bottom:2px solid #333;margin-bottom:12px;padding-bottom:8px"><h2 style="margin:0 0 4px">INDICACIONES MÉDICAS — KARDEX</h2>'+
+    '<div style="display:flex;justify-content:space-between;margin-top:6px"><div><b>Paciente:</b> '+esc(nombre)+'</div><div><b>Cama:</b> '+esc(String(p.bed))+'</div><div><b>Fecha:</b> '+f+'</div><div><b>Médico:</b> Dr. M. Dos Santos</div></div></div>'+
+    (lista.length?'<table><thead><tr><th style="border:1px solid #999">Droga</th><th style="width:80px;border:1px solid #999">Dosis</th><th style="width:60px;border:1px solid #999">Vía</th><th style="width:90px;border:1px solid #999">Frecuencia</th><th style="width:60px;border:1px solid #999">Hora</th><th style="border:1px solid #999">Observaciones</th>'+turnosHdr+'</tr></thead><tbody>'+filas+'</tbody></table>':'<p style="color:#888">Sin indicaciones.</p>')+
+    '<div style="margin-top:24px;border-top:1px solid #ccc;padding-top:12px;display:flex;justify-content:space-between"><div style="font-size:11px">Firma:</div><div style="border-bottom:1px solid #333;width:200px"></div></div>'+
+    '<div class="footer">UCI Dashboard EasyMed — CJPP 129296 — '+new Date().toLocaleString('es-UY')+'</div></body></html>';
+  var w=window.open('','_blank','width=900,height=700'); w.document.write(html); w.document.close(); setTimeout(function(){ w.print(); },400);
+}
+
+var PARA_BLOQUES_RAPIDOS=[
+  {cat:'Hematología',items:['Hemograma','Plaquetas','Coagulograma (TP, KPTT, Fibrinógeno)','Dímero D']},
+  {cat:'Bioquímica',items:['Ionograma (Na, K, Cl, Ca, Mg, P)','Glucemia','Urea','Creatinina','Albúmina']},
+  {cat:'Función hepática',items:['TGO / TGP','Bilirrubina total y directa','Fosfatasa alcalina','GGT','LDH']},
+  {cat:'Gasometría',items:['AGA arterial','AGA venosa central','Lactato arterial']},
+  {cat:'Microbiología',items:['Hemocultivos x2','Urocultivo','Cultivo BAL','Cultivo punta catéter']},
+  {cat:'Imagen',items:['Rx tórax','Eco abdominal','TAC tórax','TAC abdomen','Ecocardiograma']},
+  {cat:'Marcadores cardíacos',items:['Troponina alta sensibilidad','NT-proBNP','CPK total y MB']},
+  {cat:'Otros',items:[]}
+];
+
+function addParaOrdenBloque(){
+  var p=pat(); if(!p) return;
+  if(!p.paraOrden) p.paraOrden={};
+  var f=paraOrdFecha(); if(!p.paraOrden[f]) p.paraOrden[f]={bloques:[]};
+  var cat=prompt('Nombre de la categoría:','Laboratorio'); if(!cat) return;
+  p.paraOrden[f].bloques.push({cat:cat,items:[{texto:'',marcado:false}]});
+  save(); renderParaOrden();
+}
+
+function agregarBloquePredefinido(){
+  var p=pat(); if(!p) return;
+  if(!p.paraOrden) p.paraOrden={};
+  var f=paraOrdFecha(); if(!p.paraOrden[f]) p.paraOrden[f]={bloques:[]};
+  [PARA_BLOQUES_RAPIDOS[0],PARA_BLOQUES_RAPIDOS[1],PARA_BLOQUES_RAPIDOS[3]].forEach(function(blq){
+    if(p.paraOrden[f].bloques.find(function(b){ return b.cat===blq.cat; })) return;
+    p.paraOrden[f].bloques.push({cat:blq.cat,items:blq.items.map(function(t){ return {texto:t,marcado:true}; })});
+  });
+  save(); renderParaOrden();
+}
+
+function copiarParaOrdenDiaAnterior(){
+  var p=pat(); if(!p) return;
+  if(!p.paraOrden) p.paraOrden={};
+  var f=paraOrdFecha();
+  var fDate=new Date(f+'T00:00:00'); fDate.setDate(fDate.getDate()-1);
+  var fAnt=fDate.toISOString().slice(0,10);
+  var ant=p.paraOrden&&p.paraOrden[fAnt];
+  if(!ant||!ant.bloques||!ant.bloques.length){ alert('No hay paraclínica del día anterior ('+fAnt+').'); return; }
+  if(p.paraOrden[f]&&p.paraOrden[f].bloques&&p.paraOrden[f].bloques.length){ if(!confirm('Ya hay paraclínica para '+f+'. ¿Reemplazar?')) return; }
+  p.paraOrden[f]={bloques:JSON.parse(JSON.stringify(ant.bloques))};
+  p.paraOrden[f].bloques.forEach(function(b){ b.items.forEach(function(it){ it.marcado=true; }); });
+  save(); renderParaOrden();
+}
+
+function addParaOrdenItem(f,bi){
+  var p=pat(); if(!p||!p.paraOrden||!p.paraOrden[f]) return;
+  p.paraOrden[f].bloques[bi].items.push({texto:'',marcado:true});
+  save(); renderParaOrden();
+}
+
+function updateParaOrdenItem(f,bi,ii,field,val){
+  var p=pat(); if(!p||!p.paraOrden||!p.paraOrden[f]) return;
+  p.paraOrden[f].bloques[bi].items[ii][field]=val; save();
+}
+
+function deleteParaOrdenItem(f,bi,ii){
+  var p=pat(); if(!p||!p.paraOrden||!p.paraOrden[f]) return;
+  p.paraOrden[f].bloques[bi].items.splice(ii,1); save(); renderParaOrden();
+}
+
+function deleteParaOrdenBloque(f,bi){
+  var p=pat(); if(!p||!p.paraOrden||!p.paraOrden[f]) return;
+  if(!confirm('¿Eliminar bloque?')) return;
+  p.paraOrden[f].bloques.splice(bi,1); save(); renderParaOrden();
+}
+
+function renderParaOrden(){
+  var wrap=document.getElementById('paraOrdenWrap'); if(!wrap) return;
+  var p=pat(); if(!p){ wrap.innerHTML=''; return; }
+  if(!p.paraOrden) p.paraOrden={};
+  var f=paraOrdFecha(); var dia=(p.paraOrden[f]&&p.paraOrden[f].bloques)||[];
+  if(!dia.length){ wrap.innerHTML='<div style="color:var(--muted);font-size:12px;padding:10px 0">Sin solicitudes para '+f+'. Use ⚡ Bloque rápido UCI o + Agregar bloque.</div>'; return; }
+  var html='';
+  dia.forEach(function(blq,bi){
+    html+='<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--surface2)">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div style="font-size:13px;font-weight:700;color:var(--teal)">🧪 '+esc(blq.cat)+'</div>'+
+        '<div style="display:flex;gap:6px">'+
+          '<button class="btn btn-teal btn-sm" style="font-size:11px;padding:3px 8px" onclick="addParaOrdenItem(\''+f+'\','+bi+')">➕ Ítem</button>'+
+          '<button class="btn btn-outline btn-sm" style="font-size:11px;padding:3px 8px;color:var(--red);border-color:var(--red)" onclick="deleteParaOrdenBloque(\''+f+'\','+bi+')">✕</button>'+
+        '</div>'+
+      '</div>';
+    blq.items.forEach(function(it,ii){
+      html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+        '<input type="checkbox"'+(it.marcado?' checked':'')+' onchange="updateParaOrdenItem(\''+f+'\','+bi+','+ii+',\'marcado\',this.checked)" style="width:16px;height:16px;accent-color:var(--teal);flex-shrink:0">'+
+        '<input style="flex:1;padding:4px 8px;font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text)" value="'+esc(it.texto)+'" onchange="updateParaOrdenItem(\''+f+'\','+bi+','+ii+',\'texto\',this.value)" placeholder="Examen solicitado...">'+
+        '<button class="btn btn-outline btn-sm" style="font-size:11px;padding:2px 6px;color:var(--red);border-color:var(--red);flex-shrink:0" onclick="deleteParaOrdenItem(\''+f+'\','+bi+','+ii+')">✕</button>'+
+      '</div>';
+    });
+    html+='</div>';
+  });
+  wrap.innerHTML=html;
+}
+
+function pdfParaOrden(){
+  var p=pat(); if(!p) return;
+  var f=paraOrdFecha(); var dia=(p.paraOrden&&p.paraOrden[f]&&p.paraOrden[f].bloques)||[];
+  var nombre=p.name||('Cama '+p.bed);
+  var cuerpo='';
+  dia.forEach(function(blq){
+    var activos=blq.items.filter(function(it){ return it.marcado&&it.texto; });
+    if(!activos.length) return;
+    cuerpo+='<div style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;color:#1a5276;border-bottom:1px solid #aaa;padding-bottom:4px;margin-bottom:8px">🧪 '+esc(blq.cat)+'</div>'+
+      '<table style="width:100%;border-collapse:collapse">'+
+      activos.map(function(it){ return '<tr><td style="padding:5px 8px;border:1px solid #ddd;width:28px;text-align:center;font-size:14px">□</td><td style="padding:5px 8px;border:1px solid #ddd;font-size:12px">'+esc(it.texto)+'</td></tr>'; }).join('')+
+      '</table></div>';
+  });
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;font-size:12px;padding:20px}@media print{body{padding:10px}}</style></head><body>'+
+    '<div style="border-bottom:2px solid #1a5276;margin-bottom:16px;padding-bottom:8px"><h2 style="margin:0 0 4px">SOLICITUD DE PARACLÍNICA</h2>'+
+    '<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px"><div><b>Paciente:</b> '+esc(nombre)+'</div><div><b>Cama:</b> '+esc(String(p.bed))+'</div><div><b>Fecha:</b> '+f+'</div><div><b>Solicitante:</b> Dr. M. Dos Santos — CJPP 129296</div></div></div>'+
+    (cuerpo||'<p style="color:#888">Sin ítems marcados.</p>')+
+    '<div style="margin-top:24px;border-top:1px solid #ccc;padding-top:12px;display:flex;justify-content:space-between"><div style="font-size:11px">Firma del médico solicitante:</div><div style="border-bottom:1px solid #333;width:200px"></div></div>'+
+    '<div style="margin-top:10px;font-size:10px;color:#666">UCI Dashboard EasyMed — '+new Date().toLocaleString('es-UY')+'</div></body></html>';
+  var w=window.open('','_blank','width=800,height=700'); w.document.write(html); w.document.close(); setTimeout(function(){ w.print(); },400);
+}
+
 function renderProcedimientos(){
   var wrap=document.getElementById('procTableWrap');
   if(!wrap) return;
