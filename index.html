@@ -612,7 +612,9 @@ function emptyPatient(bed){
     resp_tipo:'', resp_arm:'', resp_arm_dias:'', resp_vni:'', resp_vni_dias:'',
     resp_oaf:'', resp_oaf_dias:'', resp_iot_previa:'', resp_traqueo:'', resp_traqueo_fecha:'', resp_fevi:'',
     // Datos infecciosos
-    inf_neumo_ag:'', inf_covid:'', inf_ira:'', inf_ira_kdigo:'', inf_vasopresores:''
+    inf_neumo_ag:'', inf_covid:'', inf_ira:'', inf_ira_kdigo:'', inf_vasopresores:'',
+    // === NUEVO: predicción de alta ===
+    altaProbableFecha:''   // fecha en que alcanzó "Alta probable" (dischargeScore>=5) por 1ª vez
   };
   return _seedComorb(base);
 }
@@ -1706,16 +1708,31 @@ function renderBeds(){
       if(aisl.length) chips.push('<span class="bed-aisl" title="'+esc(aisl.join(' | '))+'">🦠 Aislamiento</span>');
       if(chips.length) infoHtml='<div class="bed-info">'+chips.join('')+'</div>';
     }
+    // Predicción de alta (solo si hay paciente)
+    var dischHtml='';
+    if(hasPatient){
+      recordAltaProbable(p);
+      var st=dischargeStatus(p);
+      dischHtml='<div class="bed-disch" style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+
+        '<span class="disch-badge" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid '+st.color+';color:'+st.color+'">'+st.icon+' '+esc(st.label)+' ('+st.score+'/'+st.total+')</span>'+
+        '<button class="btn btn-outline btn-sm disch-btn" style="font-size:10px;padding:2px 8px" data-bed="'+i+'">Ver criterios</button>'+
+      '</div>';
+    }
     card.innerHTML=
       '<div class="bed-num">Cama '+p.bed+'</div>'+
       '<div class="bed-name">'+(hasPatient?p.name:'- Libre -')+'</div>'+
       '<div class="bed-dx">'+(p.dx||'Sin diagnostico')+'</div>'+
       infoHtml+
-      (sofa>0?'<div class="bed-sofa">SOFA '+sofa+'</div>':'');
+      (sofa>0?'<div class="bed-sofa">SOFA '+sofa+'</div>':'')+
+      dischHtml;
     card.onclick=function(){
       state.activeBed=i;
       showMainTab('pacientes',document.querySelectorAll('.main-tab')[1]);
     };
+    var dbtn=card.querySelector('.disch-btn');
+    if(dbtn){
+      dbtn.onclick=function(ev){ ev.stopPropagation(); openDischargeModal(parseInt(this.getAttribute('data-bed'),10)); };
+    }
     grid.appendChild(card);
   });
   var addCard = document.createElement('div');
@@ -1792,6 +1809,7 @@ function renderActivePatient(){
       '</div>'+
     '</div>'+
     comorbSectionHtml(p)+
+    dischargePanelHtml(p)+
     '<div class="btn-row">'+
       '<button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();renderBeds();alert(\'Guardado.\')">\uD83D\uDCBE Guardar</button>'+
       '<button class="btn btn-sm" style="background:#0e7c66;color:#fff" onclick="askEgreso('+ab+')">\uD83D\uDEAA Egreso</button>'+
@@ -4490,6 +4508,198 @@ function armActivo(p){
   if(p.costArm) return true;
   return (p.peep&&String(p.peep).trim()!=='') || (p.vt&&String(p.vt).trim()!=='') ||
          (p.pip&&String(p.pip).trim()!=='') || (p.vm&&String(p.vm).trim()!=='');
+}
+
+/* ========================================================================
+   PREDICCION DE ALTA (weaning de UCI) — 7 criterios
+   Fuentes reales por criterio (ver notas/asunciones en cada detail):
+   1. SOFA (p.sofa_total)   — proxy SOFA<=2 (no hay historial de 48h)
+   2. Vasopresores (p.drugs vía detectVasopresores) — proxy ausencia actual
+   3. FiO2/PEEP (p.fio2,p.peep) o no ARM/extubado (p.resp_arm / armActivo)
+   4. Afebril (p.temp)      — proxy valor actual (sin historial de 24h)
+   5. Nutrición enteral (p.nutr_via = Enteral/Mixta)
+   6. GCS (p.ap_gcs de APACHE, o mapeo desde p.sofa_neuro)
+   7. Arritmias (p.com_arritmias / p.com_fa)
+   ===================================================================== */
+function _dischNum(v){ var n=parseFloat(v); return isNaN(n)?null:n; }
+// GCS estimado: usa el input GCS de APACHE si existe; si no, deriva del SOFA neuro
+function _dischGCS(p){
+  var g=_dischNum(p.ap_gcs);
+  if(g!==null) return {val:g, src:'APACHE'};
+  // Mapeo aproximado desde SOFA neuro (rangos): 0->15,1->13,2->10,3->6,4->3
+  var m={ '0':15,'1':13,'2':10,'3':6,'4':3 };
+  if(hasVal(p.sofa_neuro) && m[String(p.sofa_neuro)]!==undefined) return {val:m[String(p.sofa_neuro)], src:'SOFA-neuro'};
+  return {val:null, src:null};
+}
+function dischargeCriteria(p){
+  p = p || {};
+  var out=[];
+
+  // 1. SOFA <=2 (proxy de "mejoría >=2 en 48h", que requiere historial no almacenado)
+  (function(){
+    var s=_dischNum(p.sofa_total);
+    var met = s!==null && s<=2;
+    var detail = s===null
+      ? 'SOFA sin registrar. Se asume no cumplido hasta cargar el score.'
+      : 'SOFA actual = '+s+'. Criterio: ≤2. (Proxy: sin historial de 48h, se usa el valor actual.)';
+    out.push({key:'sofa', label:'SOFA ≤2 (estabilidad multiorgánica)', met:met, detail:detail});
+  })();
+
+  // 2. Sin vasopresores activos
+  (function(){
+    var onVaso = detectVasopresores(p);
+    var met = !onVaso;
+    var detail = onVaso
+      ? 'Recibe vasoactivos según Drogas. Criterio no cumplido.'
+      : 'Sin vasoactivos en la lista de Drogas. (Proxy: no se puede verificar ≥24h, se usa la ausencia actual.)';
+    out.push({key:'vaso', label:'Sin vasopresores activos', met:met, detail:detail});
+  })();
+
+  // 3. FiO2 ≤40% y PEEP ≤5 si en ARM; o extubado / sin ARM
+  (function(){
+    var enArm = (p.resp_arm==='Sí') || !!p.costArm;
+    var met, detail;
+    if(!enArm){
+      met=true;
+      detail='No en ARM / extubado. Criterio cumplido.';
+    } else {
+      var fio2=_dischNum(p.fio2); // guardado 0.21–1.0 (fracción) o a veces %
+      var peep=_dischNum(p.peep);
+      var fio2ok = fio2!==null && (fio2<=0.4 || fio2<=40);
+      var peepok = peep!==null && peep<=5;
+      met = fio2ok && peepok;
+      detail='En ARM. FiO2='+(fio2!==null?fio2:'-')+' (≤0.40/40%), PEEP='+(peep!==null?peep:'-')+' (≤5). '+(met?'Parámetros de destete alcanzados.':'Parámetros aún elevados o incompletos.');
+    }
+    out.push({key:'resp', label:'FiO2 ≤40% y PEEP ≤5 (o extubado)', met:met, detail:detail});
+  })();
+
+  // 4. Afebril
+  (function(){
+    var t=_dischNum(p.temp);
+    var met, detail;
+    if(t===null){
+      met=true;
+      detail='Temperatura no registrada. Se asume afebril (sin dato estructurado de fiebre). (Proxy: sin historial de 24h.)';
+    } else {
+      met = t<38;
+      detail='Temp actual = '+t+' °C. Criterio: <38 °C. (Proxy: sin historial de 24h, se usa el valor actual.)';
+    }
+    out.push({key:'febril', label:'Afebril (<38 °C)', met:met, detail:detail});
+  })();
+
+  // 5. Tolerando nutrición enteral
+  (function(){
+    var via=(p.nutr_via||'').trim();
+    var met = via==='Enteral' || via==='Mixta';
+    var detail = via
+      ? 'Vía nutricional: '+via+'. '+(met?'Incluye aporte enteral.':'Sin aporte enteral (parenteral exclusiva).')
+      : 'Vía nutricional no registrada. Criterio no cumplido.';
+    out.push({key:'nutr', label:'Tolerando nutrición enteral', met:met, detail:detail});
+  })();
+
+  // 6. GCS ≥13
+  (function(){
+    var g=_dischGCS(p);
+    var met = g.val!==null && g.val>=13;
+    var detail = g.val===null
+      ? 'GCS sin registrar (APACHE ni SOFA neuro). Criterio no cumplido.'
+      : 'GCS = '+g.val+' ('+g.src+'). Criterio: ≥13.';
+    out.push({key:'gcs', label:'GCS ≥13 (nivel de conciencia)', met:met, detail:detail});
+  })();
+
+  // 7. Sin arritmias activas
+  (function(){
+    var arr = !!p.com_arritmias || !!p.com_fa;
+    var met = !arr;
+    var etq=[]; if(p.com_arritmias) etq.push('arritmias'); if(p.com_fa) etq.push('FA');
+    var detail = arr
+      ? 'Comorbilidad activa: '+etq.join(' / ')+'. Criterio no cumplido.'
+      : 'Sin arritmias/FA marcadas en comorbilidades. Criterio cumplido.';
+    out.push({key:'arr', label:'Sin arritmias activas', met:met, detail:detail});
+  })();
+
+  return out;
+}
+function dischargeScore(p){
+  return dischargeCriteria(p).filter(function(c){return c.met;}).length;
+}
+// Estado global: {score, total, level:'green'|'amber'|'red', icon, label, color}
+function dischargeStatus(p){
+  var crit=dischargeCriteria(p);
+  var score=crit.filter(function(c){return c.met;}).length;
+  var lvl, icon, label, color;
+  if(score>=5){ lvl='green'; icon='🟢'; label='Alta probable'; color='var(--green)'; }
+  else if(score>=3){ lvl='amber'; icon='🟡'; label='En evaluación'; color='var(--amber)'; }
+  else { lvl='red'; icon='🔴'; label='No candidato'; color='var(--red)'; }
+  return {score:score, total:crit.length, criteria:crit, level:lvl, icon:icon, label:label, color:color};
+}
+// Registra la fecha en que el paciente alcanzó "Alta probable" por primera vez.
+// Se llama durante el render; guardado guardado (once) para no repetir.
+function recordAltaProbable(p){
+  if(!p) return;
+  try{
+    if(dischargeScore(p)>=5 && !p.altaProbableFecha && (p.name||'').trim()!==''){
+      p.altaProbableFecha=isoToday();
+      save();
+    }
+  }catch(e){}
+}
+// HTML del panel de criterios (reutilizado en Datos y en el modal de la cama)
+function dischargeCriteriaListHtml(p){
+  return dischargeCriteria(p).map(function(c){
+    var col = c.met?'var(--green)':'var(--red)';
+    var mark = c.met?'✓':'✗';
+    var bg = c.met?'var(--green-dim)':'var(--red-dim)';
+    return '<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid '+col+';background:'+bg+';border-radius:var(--rs);margin-bottom:6px">'+
+      '<span style="font-weight:800;color:'+col+';font-size:15px;line-height:1.2">'+mark+'</span>'+
+      '<div style="flex:1">'+
+        '<div style="font-size:12px;font-weight:700;color:var(--text)">'+esc(c.label)+'</div>'+
+        '<div style="font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5">'+esc(c.detail)+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+// Panel completo (section-card) para el tab Datos
+function dischargePanelHtml(p){
+  var st=dischargeStatus(p);
+  var altaTxt = p.altaProbableFecha ? ' · 1ª vez "Alta probable": '+esc(p.altaProbableFecha) : '';
+  return '<div class="section-card" style="margin-top:12px">'+
+    '<h4><span>🏁</span>Predicción de alta</h4>'+
+    '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid '+st.color+';border-radius:var(--rs);margin-bottom:12px">'+
+      '<div style="font-size:22px">'+st.icon+'</div>'+
+      '<div style="flex:1">'+
+        '<div style="font-size:14px;font-weight:800;color:'+st.color+'">'+esc(st.label)+'</div>'+
+        '<div style="font-size:11px;color:var(--muted)">'+st.score+' / '+st.total+' criterios cumplidos'+altaTxt+'</div>'+
+      '</div>'+
+    '</div>'+
+    dischargeCriteriaListHtml(p)+
+    '<div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5">Herramienta de apoyo. Varios criterios usan el valor actual como proxy (sin historial de 24–48h). No sustituye el juicio clínico.</div>'+
+  '</div>';
+}
+// Modal "Ver criterios" desde una cama
+function openDischargeModal(bedIdx){
+  var p = state.patients[bedIdx];
+  if(!p) return;
+  var st=dischargeStatus(p);
+  var m=document.getElementById('modalDischarge');
+  if(!m){
+    m=document.createElement('div');
+    m.id='modalDischarge';
+    m.className='modal';
+    m.style.display='none';
+    document.body.appendChild(m);
+  }
+  m.innerHTML='<div class="modal-box">'+
+    '<h3>🏁 Predicción de alta — Cama '+esc(String(p.bed))+(p.name?(' · '+esc(p.name)):'')+'</h3>'+
+    '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid '+st.color+';border-radius:var(--rs);margin-bottom:12px">'+
+      '<div style="font-size:22px">'+st.icon+'</div>'+
+      '<div><div style="font-size:14px;font-weight:800;color:'+st.color+'">'+esc(st.label)+'</div>'+
+      '<div style="font-size:11px;color:var(--muted)">'+st.score+' / '+st.total+' criterios cumplidos</div></div>'+
+    '</div>'+
+    dischargeCriteriaListHtml(p)+
+    '<div class="modal-actions"><button class="btn btn-teal btn-sm" onclick="document.getElementById(\'modalDischarge\').style.display=\'none\'">Cerrar</button></div>'+
+  '</div>';
+  m.style.display='flex';
 }
 
 // ===== HELPER COMPARTIDO: costo diario de un paciente para una fecha =====
