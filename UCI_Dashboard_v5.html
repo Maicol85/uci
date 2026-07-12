@@ -244,26 +244,70 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 </style>
 </head>
 <body>
-<div id="modal-login" style="position:fixed;inset:0;z-index:10000;background:rgba(10,15,25,.82);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:20px">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:30px 34px;max-width:400px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,.4)">
-    <div style="text-align:center;margin-bottom:18px">
-      <div style="font-size:48px;font-weight:800;letter-spacing:-1px;color:var(--teal);line-height:1">UCI</div>
-      <div style="font-size:18px;color:var(--muted);margin-top:6px">Gestión de Camas</div>
-      <div style="font-size:13px;color:var(--muted);opacity:.7;font-weight:400;margin-top:4px">EasyMed</div>
+<div id="modal-login" style="position:fixed;inset:0;z-index:10000;background:radial-gradient(1200px 600px at 50% 22%,#24503a 0%,#1a3a2a 52%,#0e2018 100%);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:rgba(255,255,255,.055);border:1px solid rgba(94,234,212,.28);border-radius:18px;padding:30px 34px;max-width:400px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(10px)">
+    <div style="text-align:center;margin-bottom:16px">
+      <svg width="132" height="112" viewBox="0 0 132 116" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 10px;filter:drop-shadow(0 4px 14px rgba(45,212,191,.35))">
+        <!-- Monitor de signos vitales -->
+        <rect x="37" y="5" width="58" height="41" rx="5" fill="#0b2419" stroke="#2dd4bf" stroke-width="2"/>
+        <rect x="41" y="9" width="50" height="29" rx="2.5" fill="#08301f"/>
+        <!-- Trazo ECG tenue de fondo -->
+        <path d="M43 27 H52 L55 27 L57 23 L59 27 H62 L64 28 L66 16 L68 34 L70 27 H74 L76 27 L78 23 L80 27 H89"
+              stroke="#0f5a44" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Trazo ECG brillante con barrido -->
+        <path d="M43 27 H52 L55 27 L57 23 L59 27 H62 L64 28 L66 16 L68 34 L70 27 H74 L76 27 L78 23 L80 27 H89"
+              stroke="#5eead4" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"
+              stroke-dasharray="26 120" stroke-dashoffset="146">
+          <animate attributeName="stroke-dashoffset" from="146" to="0" dur="2.2s" repeatCount="indefinite"/>
+        </path>
+        <!-- Latido pulsante -->
+        <circle cx="86" cy="13" r="2.6" fill="#f87171">
+          <animate attributeName="opacity" values="1;.25;1" dur="1s" repeatCount="indefinite"/>
+          <animate attributeName="r" values="2.6;3.4;2.6" dur="1s" repeatCount="indefinite"/>
+        </circle>
+        <!-- FC lectura -->
+        <rect x="45" y="12" width="7" height="2.4" rx="1.2" fill="#5eead4" opacity=".8"/>
+        <rect x="45" y="17" width="11" height="2.4" rx="1.2" fill="#5eead4" opacity=".5"/>
+        <!-- Soporte del monitor -->
+        <rect x="64" y="46" width="4" height="9" rx="1.5" fill="#5eead4" opacity=".55"/>
+        <path d="M58 55 H74" stroke="#5eead4" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>
+        <!-- Cama hospitalaria -->
+        <g fill="none" stroke="#5eead4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Cabecera -->
+          <path d="M19 72 V96"/>
+          <path d="M19 76 H29"/>
+          <!-- Colchón / estructura -->
+          <rect x="19" y="84" width="94" height="9" rx="4" fill="rgba(94,234,212,.10)"/>
+          <!-- Pie de cama -->
+          <path d="M113 82 V96"/>
+          <!-- Patas -->
+          <path d="M28 93 V102"/>
+          <path d="M104 93 V102"/>
+        </g>
+        <!-- Almohada y paciente -->
+        <path d="M40 84 Q64 61 96 84" fill="rgba(94,234,212,.16)" stroke="#5eead4" stroke-width="2.2" stroke-linejoin="round"/>
+        <circle cx="33" cy="79" r="5.2" fill="#5eead4"/>
+        <!-- Ruedas -->
+        <circle cx="28" cy="106" r="3.4" fill="none" stroke="#5eead4" stroke-width="2.2"/>
+        <circle cx="104" cy="106" r="3.4" fill="none" stroke="#5eead4" stroke-width="2.2"/>
+      </svg>
+      <div style="font-size:50px;font-weight:800;letter-spacing:-1px;color:#2dd4bf;line-height:1;text-shadow:0 0 22px rgba(45,212,191,.55)">UCI</div>
+      <div style="font-size:18px;color:#ffffff;font-weight:600;margin-top:6px">Gestión de Camas</div>
+      <div style="font-size:13px;color:#86efac;opacity:.9;font-weight:500;margin-top:4px;letter-spacing:.5px">EasyMed</div>
     </div>
-    <h2 style="color:var(--text);font-size:17px;margin-bottom:10px">🔐 Acceso</h2>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Ingresá tu contraseña para acceder al sistema.</p>
-    <label style="display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:5px">Contraseña</label>
+    <h2 style="color:#eafff6;font-size:17px;margin-bottom:10px">🔐 Acceso</h2>
+    <p style="color:rgba(230,255,245,.7);font-size:13px;margin-bottom:14px">Ingresá tu contraseña para acceder al sistema.</p>
+    <label style="display:block;font-size:12px;color:rgba(230,255,245,.75);font-weight:600;margin-bottom:5px">Contraseña</label>
     <div style="position:relative">
       <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password"
-        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 40px 10px 12px;color:var(--text);font-size:14px;outline:none"
+        style="width:100%;background:rgba(6,25,18,.55);border:1px solid rgba(94,234,212,.3);border-radius:8px;padding:10px 40px 10px 12px;color:#eafff6;font-size:14px;outline:none"
         onkeydown="if(event.key==='Enter')uciLogin()">
       <button type="button" id="login-eye" onclick="toggleLoginPass()" title="Mostrar / ocultar contraseña"
         style="position:absolute;top:50%;right:8px;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:0;line-height:1">👁️</button>
     </div>
-    <div id="login-error" style="display:none;color:var(--red);font-size:12px;margin-top:8px">✕ Contraseña incorrecta. Intentá nuevamente.</div>
+    <div id="login-error" style="display:none;color:#fca5a5;font-size:12px;margin-top:8px">✕ Contraseña incorrecta. Intentá nuevamente.</div>
     <div style="display:flex;justify-content:flex-end;margin-top:18px">
-      <button onclick="uciLogin()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer">Ingresar</button>
+      <button onclick="uciLogin()" style="background:linear-gradient(135deg,#2dd4bf,#14b8a6);color:#06231a;border:none;border-radius:8px;padding:9px 22px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 6px 18px rgba(20,184,166,.4)">Ingresar</button>
     </div>
   </div>
 </div>
@@ -301,6 +345,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
     <button class="topbtn" onclick="exportWord()">📄 Word</button>
     <button class="topbtn" onclick="exportStructuredPDF()">📑 PDF</button>
     <button class="topbtn" onclick="openTraspaso()">📋 Traspaso</button>
+    <button class="topbtn" onclick="openHelp()" title="Ayuda">?</button>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Modo dia/noche">🌙</button>
   </div>
   <div class="main-tabs">
@@ -369,6 +414,41 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
     </div>
   </div>
 </div>
+<div id="modalHelp" class="modal" style="display:none">
+  <div class="modal-box" style="max-width:640px;max-height:88vh;overflow:auto">
+    <h3>❔ Ayuda — UCI</h3>
+    <div style="font-size:12px;line-height:1.7;color:var(--muted)">
+      <p><b>UCI</b> es un sistema institucional de gestión de cuidados críticos diseñado para intensivistas y equipos de UCI.</p>
+      <p style="margin-top:8px"><b>Flujo principal:</b> Login → Selección de centro → Camas → Pacientes → Egreso → Estadísticas.</p>
+      <p style="margin-top:8px"><b>Gestión de camas:</b> vista en tiempo real de todas las camas con días de internación, días de ARM, APACHE II, SOFA, badge de predicción de alta 🟢🟡🔴, badge de sepsis 🔴, badge de deterioro ⚠️ y badge de aislamiento 🦠.</p>
+      <p style="margin-top:8px"><b>Ficha del paciente (inner tabs):</b></p>
+      <ul style="margin:4px 0 0 16px;padding:0">
+        <li><b>Datos:</b> identificación, antecedentes, ingreso, comorbilidades, Score de Charlson.</li>
+        <li><b>Evolución:</b> notas con fechas, sistemas fisiológicos (Neuro/CV/Respiratorio/Infeccioso/Accesos/Metabólico), conductas del día, bundle de prevención diario.</li>
+        <li><b>Ventilación:</b> parámetros ventilatorios, vía aérea (SOT/traqueostomía), checklist de destete con semáforo, gasometría.</li>
+        <li><b>CV:</b> drogas vasoactivas, parámetros hemodinámicos.</li>
+        <li><b>Drogas:</b> medicación activa.</li>
+        <li><b>Balance:</b> balance hídrico del día y acumulado.</li>
+        <li><b>Accesos:</b> vías venosas, arteriales, fechas.</li>
+        <li><b>Nutrición:</b> tipo, volumen, control glucémico.</li>
+        <li><b>Labs:</b> paraclínica comparativa por fechas con gráficos de evolución, microbiología, ATB.</li>
+        <li><b>Scores:</b> SOFA, APACHE II con curva de tendencia, predicción de alta.</li>
+        <li><b>Sedoanalgesia:</b> calculadora de dosis por peso y objetivo RASS.</li>
+        <li><b>Procedimientos:</b> registro con fecha, operador y complicaciones.</li>
+        <li><b>Imágenes:</b> fotos de RxTx, TAC, ECO con fecha y descripción.</li>
+      </ul>
+      <p style="margin-top:8px"><b>Alertas automáticas:</b> predicción de sepsis (lactato + fiebre + leucocitosis + hipotensión), deterioro (SOFA ≥2 puntos en 24hs), predicción de alta por criterios clínicos.</p>
+      <p style="margin-top:8px"><b>Pase de guardia:</b> resumen automático de todos los pacientes activos exportable como PDF o texto.</p>
+      <p style="margin-top:8px"><b>Costos:</b> configuración de precios por categoría, cálculo automático diario por paciente, resumen por internación con gráficos.</p>
+      <p style="margin-top:8px"><b>Estadísticas:</b> ocupación, mortalidad, APACHE/SOFA promedio, IAAS, costos, análisis por población con filtros por período. Export PDF.</p>
+      <p style="margin-top:8px"><b>Egresados:</b> tabla completa con filtros, export Excel para investigación con comorbilidades, datos respiratorios, ATB, scores.</p>
+      <p style="margin-top:10px"><b>Aviso:</b> herramienta de apoyo clínico; no reemplaza el juicio médico profesional.</p>
+      <p style="margin-top:6px;font-size:11px;color:var(--muted)">© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clínico exclusivo</p>
+    </div>
+    <div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="document.getElementById('modalHelp').style.display='none'">Cerrar</button></div>
+  </div>
+</div>
+
 <div id="modalImport" class="modal" style="display:none">
   <div class="modal-box">
     <h3>Importar datos</h3>
@@ -4193,6 +4273,7 @@ function traspasoBlocks(p){
   var dias=''; if(hasVal(p.ingreso)){ try{ var d=Math.floor((new Date(paraToday())-new Date(p.ingreso))/86400000); if(!isNaN(d)&&d>=0) dias=(d+1)+' d'; }catch(e){} }
   return {sis:sis, atb:atb, para:para, gaso:gaso, dias:dias};
 }
+function openHelp(){ document.getElementById('modalHelp').style.display='flex'; }
 function openTraspaso(){
   if(!state.centro){ alert('Seleccione un centro primero.'); return; }
   var list=traspasoPatients();
