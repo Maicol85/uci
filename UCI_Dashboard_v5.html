@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>UCI</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 /* ===== TEMA: claro por defecto, oscuro via [data-theme=dark] ===== */
 :root{
@@ -76,6 +77,9 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .bed-card .bed-num{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 .bed-card .bed-name{font-size:13px;font-weight:600;color:var(--text);margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bed-card .bed-dx{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bed-card .bed-info{font-size:10px;color:var(--muted);margin-top:5px;line-height:1.5;display:flex;flex-wrap:wrap;gap:3px 8px}
+.bed-card .bed-info b{color:var(--text);font-weight:700}
+.bed-card .bed-aisl{cursor:help}
 .bed-card .bed-sofa{position:absolute;top:10px;right:10px;font-size:11px;font-weight:700;background:var(--surface2);border-radius:4px;padding:2px 6px}
 .bed-card.sev-low .bed-sofa{color:var(--green)}
 .bed-card.sev-mod .bed-sofa{color:var(--amber)}
@@ -376,13 +380,20 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 </div>
 <div id="modalEgreso" class="modal" style="display:none">
   <div class="modal-box">
-    <h3>🗂️ Dar de alta / Limpiar cama</h3>
-    <p id="modalEgresoMsg" style="font-size:13px;color:var(--text);margin-bottom:6px">¿Dar de alta al paciente? Sus datos quedarán guardados en el archivo de egresados.</p>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:14px">La cama quedará libre. Podrá consultar y exportar el egreso desde la pestaña Egresados.</p>
-    <div class="modal-actions" style="flex-wrap:wrap">
-      <button class="btn btn-teal btn-sm" id="btnEgresarLimpiar" onclick="egresarYlimpiar(EGRESO_MODAL_BED)">Dar de alta y limpiar</button>
-      <button class="btn btn-outline btn-sm" onclick="limpiarSinGuardar(EGRESO_MODAL_BED)">Limpiar sin guardar</button>
-      <button class="btn btn-outline btn-sm" onclick="document.getElementById('modalEgreso').style.display='none'">Cancelar</button>
+    <h3 id="modalEgresoTitle">🚪 Dar de alta al paciente</h3>
+    <p id="modalEgresoMsg" style="font-size:12px;color:var(--muted);margin-bottom:10px">Sus datos quedarán guardados en el archivo de egresados y la cama quedará libre.</p>
+    <div id="modalEgresoForm">
+      <div class="field-row">
+        <div class="field-group"><label>Fecha de egreso</label><input type="date" id="egreso-fecha"></div>
+        <div class="field-group"><label>Motivo de egreso</label><select id="egreso-motivo" onchange="egresoMotivoToggle()"><option>Alta médica</option><option>Traslado</option><option>Fallecimiento</option><option>Otro</option></select></div>
+      </div>
+      <div class="field-group" id="egreso-motivo-otro-wrap" style="display:none;margin-top:6px"><label>Detalle del motivo</label><input type="text" id="egreso-motivo-otro" placeholder="Especificar motivo"></div>
+      <div id="egreso-resumen" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-top:10px;font-size:12px;color:var(--text);line-height:1.6"></div>
+    </div>
+    <div class="modal-actions" style="flex-wrap:wrap;margin-top:12px">
+      <button class="btn btn-teal btn-sm" id="btnEgresarLimpiar" onclick="egresarYlimpiar(EGRESO_MODAL_BED)">✅ Confirmar egreso y guardar</button>
+      <button class="btn btn-outline btn-sm" onclick="limpiarSinGuardar(EGRESO_MODAL_BED)">🗑️ Limpiar sin guardar</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('modalEgreso').style.display='none'">❌ Cancelar</button>
     </div>
   </div>
 </div>
@@ -593,8 +604,51 @@ function emptyPatient(bed){
     costAtbFreq:{},      // { <atb name lowercase>: dosis/dia (number) }
     costAtbDosis:{},     // { <atb name lowercase>: viales por dosis (number) }
     costArm:false,       // marca manual de ARM activo (además de detección por parámetros)
-    costFluidos:{}       // { 'YYYY-MM-DD': { sf500:n, sf1000:n, ... } }  unidades del día
+    costFluidos:{},      // { 'YYYY-MM-DD': { sf500:n, sf1000:n, ... } }  unidades del día
+    // === NUEVO F6: COMORBILIDADES Y DATOS CLINICOS ===
+    // Comorbilidades: se guardan como p.com_<key> booleanos (ver COMORB list)
+    charlson_total:'',   // score Charlson calculado (informativo)
+    // Datos respiratorios
+    resp_tipo:'', resp_arm:'', resp_arm_dias:'', resp_vni:'', resp_vni_dias:'',
+    resp_oaf:'', resp_oaf_dias:'', resp_iot_previa:'', resp_traqueo:'', resp_traqueo_fecha:'', resp_fevi:'',
+    // Datos infecciosos
+    inf_neumo_ag:'', inf_covid:'', inf_ira:'', inf_ira_kdigo:'', inf_vasopresores:''
   };
+  return _seedComorb(base);
+}
+// Semilla de los campos booleanos com_<key> en el objeto paciente
+function _seedComorb(base){
+  (typeof COMORB!=='undefined'?COMORB:[]).forEach(function(c){ if(base['com_'+c.k]===undefined) base['com_'+c.k]=false; });
+  return base;
+}
+// ===== COMORBILIDADES + CHARLSON =====
+// charlson = peso del índice de comorbilidad de Charlson (0 si no aplica)
+var COMORB = [
+  {k:'erc_dial',    label:'ERC en diálisis',                     charlson:2},
+  {k:'erc_nodial',  label:'ERC sin diálisis',                    charlson:2},
+  {k:'tumor_loco',  label:'Tumor sólido loco-regional',          charlson:2},
+  {k:'tumor_meta',  label:'Tumor sólido con metástasis',         charlson:6},
+  {k:'inmunodef',   label:'Inmunodeficiencia/inmunosupresión',   charlson:0},
+  {k:'vih',         label:'VIH/SIDA',                            charlson:6},
+  {k:'hta',         label:'HTA',                                 charlson:0},
+  {k:'dbt',         label:'Diabetes mellitus',                   charlson:1},
+  {k:'arritmias',   label:'Arritmias',                           charlson:0},
+  {k:'tvp_tep',     label:'TVP/TEP previo',                      charlson:0},
+  {k:'aoc',         label:'Arteriopatía obstructiva crónica',    charlson:1},
+  {k:'alcohol',     label:'Alcoholismo',                         charlson:0},
+  {k:'fa',          label:'Fibrilación auricular',               charlson:0},
+  {k:'psiq',        label:'Patología psiquiátrica',              charlson:0},
+  {k:'obesidad',    label:'Obesidad mórbida (IMC >40)',          charlson:0},
+  {k:'tabaco',      label:'Tabaquismo activo',                   charlson:0},
+  {k:'falla_resp',  label:'Falla respiratoria crónica',          charlson:1},
+  {k:'icc',         label:'Insuficiencia cardíaca crónica',      charlson:1},
+  {k:'hepato',      label:'Hepatopatía crónica',                 charlson:1},
+  {k:'demencia',    label:'Demencia',                            charlson:1}
+];
+// Puntos por edad (Charlson): 50-59=1,60-69=2,70-79=3,80-89=4,>=90=5
+function charlsonAgePoints(age){
+  var a = parseInt(age,10); if(isNaN(a)) return 0;
+  if(a>=90) return 5; if(a>=80) return 4; if(a>=70) return 3; if(a>=60) return 2; if(a>=50) return 1; return 0;
 }
 
 function initPatients(){
@@ -1639,10 +1693,24 @@ function renderBeds(){
     var hasPatient = p.name.trim()!=='';
     var card=document.createElement('div');
     card.className='bed-card'+(sevClass?' '+sevClass:'')+(hasPatient?'':' empty');
+    // datos compactos
+    var infoHtml='';
+    if(hasPatient){
+      var chips=[];
+      var dias = hasVal(p.ingreso) ? (egresoDias({ingreso:p.ingreso, fecha_egreso:isoToday()})+1) : null;
+      if(dias!=null) chips.push('📅 <b>'+dias+'</b>d intern.');
+      if(p.resp_arm==='Sí') chips.push('🫁 ARM'+(hasVal(p.resp_arm_dias)?' <b>'+esc(String(p.resp_arm_dias))+'</b>d':''));
+      if(hasVal(p.ap_total)) chips.push('APACHE <b>'+esc(String(p.ap_total))+'</b>');
+      var aisl=(p.micro||[]).filter(function(m){return hasVal(m.resultado);})
+        .map(function(m){return (hasVal(m.muestra)?m.muestra+': ':'')+m.resultado+(hasVal(m.sens)?' ['+m.sens+']':'');});
+      if(aisl.length) chips.push('<span class="bed-aisl" title="'+esc(aisl.join(' | '))+'">🦠 Aislamiento</span>');
+      if(chips.length) infoHtml='<div class="bed-info">'+chips.join('')+'</div>';
+    }
     card.innerHTML=
       '<div class="bed-num">Cama '+p.bed+'</div>'+
       '<div class="bed-name">'+(hasPatient?p.name:'- Libre -')+'</div>'+
       '<div class="bed-dx">'+(p.dx||'Sin diagnostico')+'</div>'+
+      infoHtml+
       (sofa>0?'<div class="bed-sofa">SOFA '+sofa+'</div>':'');
     card.onclick=function(){
       state.activeBed=i;
@@ -1723,9 +1791,11 @@ function renderActivePatient(){
         '<textarea id="f-ingresohc" rows="6" placeholder="Motivo de ingreso, resumen de la historia clinica...">'+esc(p.ingresohc||'')+'</textarea>'+
       '</div>'+
     '</div>'+
+    comorbSectionHtml(p)+
     '<div class="btn-row">'+
       '<button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();renderBeds();alert(\'Guardado.\')">\uD83D\uDCBE Guardar</button>'+
-      '<button class="btn btn-red btn-sm" onclick="askLimpiarCama('+ab+')">\uD83D\uDDD1 Limpiar cama</button>'+
+      '<button class="btn btn-sm" style="background:#0e7c66;color:#fff" onclick="askEgreso('+ab+')">\uD83D\uDEAA Egreso</button>'+
+      '<button class="btn btn-red btn-sm" onclick="askEgreso('+ab+')">\uD83D\uDDD1 Limpiar cama</button>'+
     '</div>'+
   '</div>'+
 
@@ -1790,7 +1860,7 @@ function renderActivePatient(){
     '<div id="labsSub-comp" class="labs-sub" style="display:none">'+
       '<div class="section-card">'+
         '<h4><span>📅</span>Paraclinica comparativa por fechas</h4>'+
-        '<div class="btn-row" style="margin-top:0"><button class="btn btn-teal btn-sm" onclick="addParaDate()">➕ Agregar fecha</button></div>'+
+        '<div class="btn-row" style="margin-top:0"><button class="btn btn-teal btn-sm" onclick="addParaDate()">➕ Agregar fecha</button><button class="btn btn-outline btn-sm" onclick="exportParaPDF()">📄 Exportar PDF</button></div>'+
         '<div id="paraTableWrap" class="para-wrap"></div>'+
       '</div>'+
     '</div>'+
@@ -2515,6 +2585,125 @@ function readPatientForm(idx){
   // F4 sedoanalgesia
   p.sedo_drug=gv('f-sedo-drug');p.sedo_rass=gv('f-sedo-rass');p.sedo_weight=gv('f-sedo-weight');
   p.sedo_dose=gv('f-sedo-dose');p.sedo_rate=gv('f-sedo-rate');
+  // F6 comorbilidades y datos clínicos
+  COMORB.forEach(function(c){ p['com_'+c.k]=chk('f-com-'+c.k); });
+  p.charlson_total=gv('f-charlson-total');
+  p.resp_tipo=gv('f-resp-tipo');p.resp_arm=gv('f-resp-arm');p.resp_arm_dias=gv('f-resp-arm-dias');
+  p.resp_vni=gv('f-resp-vni');p.resp_vni_dias=gv('f-resp-vni-dias');
+  p.resp_oaf=gv('f-resp-oaf');p.resp_oaf_dias=gv('f-resp-oaf-dias');
+  p.resp_iot_previa=gv('f-resp-iot-previa');p.resp_traqueo=gv('f-resp-traqueo');
+  p.resp_traqueo_fecha=gv('f-resp-traqueo-fecha');p.resp_fevi=gv('f-resp-fevi');
+  p.inf_neumo_ag=gv('f-inf-neumo-ag');p.inf_covid=gv('f-inf-covid');p.inf_ira=gv('f-inf-ira');
+  p.inf_ira_kdigo=gv('f-inf-ira-kdigo');p.inf_vasopresores=gv('f-inf-vasopresores');
+}
+// Detecta si el paciente recibe vasoactivos según p.drugs
+function detectVasopresores(p){
+  if(!p||!p.drugs||!p.drugs.length) return false;
+  var vaso=['noradrenalina','adrenalina','dopamina','dobutamina','vasopresina','milrinona'];
+  return p.drugs.some(function(d){
+    var n=(d&&d.d?String(d.d):'').toLowerCase();
+    return vaso.some(function(v){ return n.indexOf(v)!==-1; });
+  });
+}
+// Calcula el score Charlson en vivo desde los checkboxes del formulario
+function computeCharlson(){
+  var p=curPatient(); if(!p) return;
+  var score=0;
+  COMORB.forEach(function(c){
+    var el=document.getElementById('f-com-'+c.k);
+    if(el&&el.checked) score+=c.charlson;
+  });
+  var ageEl=document.getElementById('f-age');
+  var age=ageEl?ageEl.value:p.age;
+  score+=charlsonAgePoints(age);
+  var surv=Math.pow(0.983, Math.exp(score*0.9));
+  var mort=Math.round((1-surv)*1000)/10; // % con 1 decimal
+  var out=document.getElementById('cv-charlson');
+  if(out){
+    out.innerHTML='<div class="big">'+score+'</div>'+
+      '<div class="interp">Supervivencia estimada a 10 años: '+(Math.round(surv*1000)/10)+'% · Mortalidad estimada: '+mort+'%</div>';
+  }
+  var hid=document.getElementById('f-charlson-total'); if(hid) hid.value=String(score);
+  p.charlson_total=String(score);
+}
+// Renderiza la sección "COMORBILIDADES Y DATOS CLÍNICOS" del tab Datos
+function comorbSectionHtml(p){
+  function sel(id,val,opts){
+    var o='<option value="">-</option>';
+    opts.forEach(function(x){ o+='<option'+(val===x?' selected':'')+'>'+esc(x)+'</option>'; });
+    return '<select id="'+id+'">'+o+'</select>';
+  }
+  function selSN(id,val){ return sel(id,val,['Sí','No']); }
+  // Comorbilidades como checkboxes
+  var comChecks=COMORB.map(function(c){
+    var ck=p['com_'+c.k]?' checked':'';
+    return '<label class="chk" style="display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0">'+
+      '<input type="checkbox" id="f-com-'+c.k+'"'+ck+' onchange="computeCharlson()">'+
+      '<span>'+esc(c.label)+(c.charlson>0?(' <span style="color:var(--muted)">(+'+c.charlson+')</span>'):'')+'</span>'+
+    '</label>';
+  }).join('');
+  // Vasopresores: auto-detección desde p.drugs
+  var autoVaso=detectVasopresores(p);
+  var vasoVal=hasVal(p.inf_vasopresores)?p.inf_vasopresores:(autoVaso?'Sí':'');
+  var vasoNote=autoVaso?' <span style="color:var(--teal);font-size:11px">(auto-detectado por medicación)</span>':'';
+
+  var initScore=(function(){
+    var s=0; COMORB.forEach(function(c){ if(p['com_'+c.k]) s+=c.charlson; }); s+=charlsonAgePoints(p.age); return s;
+  })();
+  var initSurv=Math.pow(0.983,Math.exp(initScore*0.9));
+  var initMort=Math.round((1-initSurv)*1000)/10;
+
+  return '<div class="section-card" style="margin-top:12px">'+
+    '<h4><span>🩺</span>Comorbilidades y datos clínicos</h4>'+
+    '<input type="hidden" id="f-charlson-total" value="'+esc(p.charlson_total||'')+'">'+
+    '<div class="section-grid">'+
+      '<div>'+
+        '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Comorbilidades</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 14px">'+comChecks+'</div>'+
+      '</div>'+
+      '<div>'+
+        '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Índice de Charlson</div>'+
+        '<div class="calc-result" id="cv-charlson">'+
+          '<div class="big">'+initScore+'</div>'+
+          '<div class="interp">Supervivencia estimada a 10 años: '+(Math.round(initSurv*1000)/10)+'% · Mortalidad estimada: '+initMort+'%</div>'+
+        '</div>'+
+        '<div class="stats-note" style="margin-top:6px">Incluye puntos por edad. Se recalcula al marcar comorbilidades.</div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:14px 0 6px">Datos respiratorios</div>'+
+    '<div class="section-grid">'+
+      '<div class="field-group"><label>Tipo de insuficiencia respiratoria</label>'+
+        sel('f-resp-tipo',p.resp_tipo,['Hipoxémica (tipo I)','Hipercápnica (tipo II)','Mixta','No aplica'])+'</div>'+
+      '<div class="field-group"><label>FEVI (%)</label><input id="f-resp-fevi" type="number" value="'+esc(p.resp_fevi||'')+'"></div>'+
+    '</div>'+
+    '<div class="field-row three" style="margin-top:8px">'+
+      '<div class="field-group"><label>ARM</label>'+selSN('f-resp-arm',p.resp_arm)+'</div>'+
+      '<div class="field-group"><label>Días ARM</label><input id="f-resp-arm-dias" type="number" value="'+esc(p.resp_arm_dias||'')+'"></div>'+
+      '<div class="field-group"><label>IOT previa al ingreso</label>'+selSN('f-resp-iot-previa',p.resp_iot_previa)+'</div>'+
+    '</div>'+
+    '<div class="field-row four" style="margin-top:8px">'+
+      '<div class="field-group"><label>VNI</label>'+selSN('f-resp-vni',p.resp_vni)+'</div>'+
+      '<div class="field-group"><label>Días VNI</label><input id="f-resp-vni-dias" type="number" value="'+esc(p.resp_vni_dias||'')+'"></div>'+
+      '<div class="field-group"><label>OAF</label>'+selSN('f-resp-oaf',p.resp_oaf)+'</div>'+
+      '<div class="field-group"><label>Días OAF</label><input id="f-resp-oaf-dias" type="number" value="'+esc(p.resp_oaf_dias||'')+'"></div>'+
+    '</div>'+
+    '<div class="field-row" style="margin-top:8px">'+
+      '<div class="field-group"><label>Traqueostomía</label>'+selSN('f-resp-traqueo',p.resp_traqueo)+'</div>'+
+      '<div class="field-group"><label>Fecha traqueostomía</label><input id="f-resp-traqueo-fecha" type="date" value="'+esc(p.resp_traqueo_fecha||'')+'"></div>'+
+    '</div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:14px 0 6px">Datos infecciosos</div>'+
+    '<div class="section-grid">'+
+      '<div class="field-group"><label>Antígeno neumococo en orina</label>'+
+        sel('f-inf-neumo-ag',p.inf_neumo_ag,['Positivo','Negativo','No realizado'])+'</div>'+
+      '<div class="field-group"><label>Estado COVID</label>'+
+        sel('f-inf-covid',p.inf_covid,['Positivo','Negativo','No testeado'])+'</div>'+
+    '</div>'+
+    '<div class="field-row three" style="margin-top:8px">'+
+      '<div class="field-group"><label>Insuficiencia renal aguda</label>'+selSN('f-inf-ira',p.inf_ira)+'</div>'+
+      '<div class="field-group"><label>KDIGO (nota, opcional)</label><input id="f-inf-ira-kdigo" value="'+esc(p.inf_ira_kdigo||'')+'" placeholder="Estadio KDIGO..."></div>'+
+      '<div class="field-group"><label>Requirió vasopresores'+vasoNote+'</label>'+selSN('f-inf-vasopresores',vasoVal)+'</div>'+
+    '</div>'+
+  '</div>';
 }
 
 // ===== DRUGS =====
@@ -2801,6 +2990,50 @@ function paraMatrix(p){
     if(arr.some(function(v){return hasVal(v);})) rows.push({label:r[1], values:arr});
   });
   return {dates:dates, rows:rows, today:today};
+}
+
+// Exporta la tabla comparativa de paraclínica a PDF (fechas × parámetros, solo filas con datos)
+function exportParaPDF(){
+  var p=curPatient();
+  if(!p){ alert('Seleccione un paciente.'); return; }
+  if(document.getElementById('f-name')){ try{ readPatientForm(state.activeBed); }catch(e){} p=curPatient(); }
+  var pm=paraMatrix(p);
+  if(!pm.rows.length){ alert('No hay datos de paraclínica para exportar.'); return; }
+  var jsPDFctor=(window.jspdf && window.jspdf.jsPDF)?window.jspdf.jsPDF:(window.jsPDF||null);
+  if(!jsPDFctor){ alert('jsPDF no disponible.'); return; }
+  var doc=new jsPDFctor({unit:'mm',format:'a4'});
+  var PW=210, PH=297, M=12, y=M;
+  var teal=[0,121,95], muted=[90,98,112], dark=[26,29,39];
+  var c=CENTROS.find(function(x){return x.id===state.centro;});
+  var now=new Date();
+  doc.setFillColor(teal[0],teal[1],teal[2]); doc.rect(0,0,PW,3,'F');
+  doc.setFontSize(14); doc.setTextColor(teal[0],teal[1],teal[2]); doc.setFont(undefined,'bold');
+  doc.text('Paraclínica comparativa por fechas',M,y+4); y+=9;
+  doc.setFontSize(9.5); doc.setTextColor(dark[0],dark[1],dark[2]); doc.setFont(undefined,'normal');
+  doc.text('Paciente: '+(hasVal(p.name)?p.name:'-')+'   |   Cama '+(p.bed||'-')+'   |   CI: '+(hasVal(p.ci)?p.ci:'-'),M,y); y+=5;
+  doc.setTextColor(muted[0],muted[1],muted[2]);
+  doc.text((c?c.name:'-')+'   |   Generado: '+now.toLocaleDateString('es')+' '+now.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}),M,y); y+=6;
+  // tabla
+  var labelW=32, availW=PW-2*M-labelW, ncol=pm.dates.length, cw=availW/ncol;
+  function head(){
+    doc.setFont(undefined,'bold'); doc.setFontSize(7.8); doc.setTextColor(60,60,60);
+    doc.text('Parámetro',M,y);
+    pm.dates.forEach(function(d,ci){ var lbl=(d===pm.today)?'HOY':(d.slice(8,10)+'/'+d.slice(5,7)); doc.text(lbl, M+labelW+ci*cw, y); });
+    y+=2; doc.setDrawColor(200,200,200); doc.line(M,y,PW-M,y); y+=3.5;
+    doc.setFont(undefined,'normal'); doc.setFontSize(7.8);
+  }
+  head();
+  pm.rows.forEach(function(row){
+    if(y>PH-M-6){ doc.addPage(); y=M; head(); }
+    doc.setTextColor(60,60,60); doc.text(row.label,M,y);
+    row.values.forEach(function(v,ci){ if(hasVal(v)) doc.text(String(v).slice(0,14), M+labelW+ci*cw, y); });
+    y+=4.4;
+  });
+  var _tp=doc.internal.getNumberOfPages(), _cw=doc.internal.pageSize.getWidth();
+  for(var _p=1;_p<=_tp;_p++){ doc.setPage(_p); doc.setFontSize(7); doc.setTextColor(150,150,150);
+    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', _cw/2, PH-3, {align:'center'}); }
+  var tag=(hasVal(p.name)?p.name:('cama'+(p.bed||''))).replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+  doc.save('paraclinica_'+tag+'_'+now.toISOString().slice(0,10)+'.pdf');
 }
 
 function renderParaTable(){
@@ -5122,48 +5355,78 @@ function deleteEgresado(id){
   saveEgresados(arr);
 }
 
-// --- Flujo de alta desde "Limpiar cama" ---
-function askLimpiarCama(ab){
+// --- Flujo de egreso / alta ---
+function egresoMotivoToggle(){
+  var sel=document.getElementById('egreso-motivo'), wrap=document.getElementById('egreso-motivo-otro-wrap');
+  if(sel&&wrap) wrap.style.display = (sel.value==='Otro') ? 'block' : 'none';
+}
+function askEgreso(ab){
   EGRESO_MODAL_BED = ab;
+  if(document.getElementById('f-name')){ try{ readPatientForm(ab); }catch(e){} }
   var p = (state.patients||[])[ab];
   var real = p && ((p.name && String(p.name).trim()!=='') || (p.dx && String(p.dx).trim()!==''));
   var btn = document.getElementById('btnEgresarLimpiar');
+  var title = document.getElementById('modalEgresoTitle');
   var msg = document.getElementById('modalEgresoMsg');
+  var form = document.getElementById('modalEgresoForm');
+  var nombre = (p && hasVal(p.name)) ? p.name : 'paciente';
+  if(title) title.textContent = '🚪 ¿Dar de alta al paciente '+(p&&hasVal(p.name)?p.name:'')+'?';
   if(btn) btn.disabled = !real;
-  if(msg){
-    msg.textContent = real
-      ? '¿Dar de alta al paciente? Sus datos quedarán guardados en el archivo de egresados.'
-      : 'La cama está vacía (sin nombre ni diagnóstico). Solo puede limpiarla; no hay datos para archivar.';
-  }
+  if(form) form.style.display = real ? 'block' : 'none';
+  if(msg) msg.textContent = real
+    ? 'Sus datos quedarán guardados en el archivo de egresados y la cama quedará libre.'
+    : 'La cama está vacía (sin nombre ni diagnóstico). Solo puede limpiarla; no hay datos para archivar.';
+  // fecha por defecto hoy, motivo por defecto
+  var fe=document.getElementById('egreso-fecha'); if(fe) fe.value=isoToday();
+  var mo=document.getElementById('egreso-motivo'); if(mo) mo.value='Alta médica';
+  egresoMotivoToggle();
+  // resumen breve
+  var res=document.getElementById('egreso-resumen');
+  if(res && real){
+    var dias = (p&&hasVal(p.ingreso)) ? (egresoDias({ingreso:p.ingreso, fecha_egreso:isoToday()})+1)+' día(s)' : '—';
+    var apache = (p&&hasVal(p.ap_total)) ? p.ap_total : '—';
+    var mort = (p&&hasVal(p.ap_total)&&typeof apacheMortality==='function') ? (' (mortalidad est. '+apacheMortality(num(p.ap_total))+')') : '';
+    res.innerHTML = '<strong>Resumen:</strong><br>'+
+      'Días de internación: '+esc(String(dias))+'<br>'+
+      'Diagnóstico: '+esc(p&&hasVal(p.dx)?p.dx:'—')+'<br>'+
+      'APACHE II: '+esc(String(apache))+esc(mort);
+  } else if(res){ res.innerHTML=''; }
   document.getElementById('modalEgreso').style.display='flex';
 }
+var askLimpiarCama = askEgreso; // alias de compatibilidad
 function egresarYlimpiar(ab){
   if(ab===null||ab===undefined) return;
-  // volcar el formulario al estado si está renderizado
   if(document.getElementById('f-name')){ try{ readPatientForm(ab); }catch(e){} }
   var p = (state.patients||[])[ab];
   var real = p && ((p.name && String(p.name).trim()!=='') || (p.dx && String(p.dx).trim()!==''));
   if(!real){ alert('No hay datos de paciente para archivar (requiere nombre o diagnóstico).'); return; }
   var c = CENTROS.find(function(x){ return x.id===state.centro; });
-  var snap = JSON.parse(JSON.stringify(p)); // snapshot completo
-  snap.fecha_egreso = isoToday();
-  // ingreso se conserva tal cual (ya está en el snapshot)
+  var feEl=document.getElementById('egreso-fecha');
+  var moEl=document.getElementById('egreso-motivo');
+  var moOtroEl=document.getElementById('egreso-motivo-otro');
+  var fecha = (feEl&&feEl.value) ? feEl.value : isoToday();
+  var motivo = moEl ? moEl.value : 'Alta médica';
+  if(motivo==='Otro' && moOtroEl && hasVal(moOtroEl.value)) motivo = moOtroEl.value.trim();
+  var snap = JSON.parse(JSON.stringify(p));
+  snap.fecha_egreso = fecha;
+  snap.motivo_egreso = motivo;
+  snap.dias_internacion = egresoDias({ingreso:p.ingreso, fecha_egreso:fecha});
   snap.centro = state.centro;
   snap.centroName = c ? c.name : '';
   snap.id = String(Date.now()) + '-c' + (p.bed || (ab+1));
   var arr = getEgresados();
   arr.push(snap);
   saveEgresados(arr);
-  // limpiar la cama
   state.patients[ab] = emptyPatient(ab+1);
   save();
   document.getElementById('modalEgreso').style.display='none';
   renderPatientTabs();
   renderBeds();
-  alert('Paciente dado de alta y archivado en Egresados.');
+  alert('Paciente egresado y guardado correctamente.');
 }
 function limpiarSinGuardar(ab){
   if(ab===null||ab===undefined) return;
+  if(!confirm('⚠️ Esta acción eliminará todos los datos sin guardar. ¿Continuar?')) return;
   state.patients[ab] = emptyPatient(ab+1);
   save();
   document.getElementById('modalEgreso').style.display='none';
@@ -5267,6 +5530,7 @@ function renderEgresados(){
         '<div class="stats-ctrl"><label>Egreso desde</label><input type="date" id="egrfEgrDesde" value="'+esc(f.egrDesde||'')+'" onchange="egresadosApplyFilters()"></div>'+
         '<div class="stats-ctrl"><label>Egreso hasta</label><input type="date" id="egrfEgrHasta" value="'+esc(f.egrHasta||'')+'" onchange="egresadosApplyFilters()"></div>'+
         '<button class="btn btn-outline btn-sm" onclick="egresadosClearFilters()">Limpiar filtros</button>'+
+        '<button class="btn btn-teal btn-sm" onclick="exportEgresadosExcel()">📊 Exportar Excel</button>'+
       '</div>'+
     '</div>';
 
@@ -5357,6 +5621,85 @@ function egresadoExportPDF(id){
   try{ buildPDF(jsPDFctor, r); }
   catch(err){ console.error(err); if(typeof exportStructuredPDFprint==='function') exportStructuredPDFprint(r); }
   finally{ state.centro = prevCentro; }
+}
+
+// ===== EXPORTAR EGRESADOS A EXCEL (SheetJS) =====
+// Suma de días totales de ATB: por cada ATB inicio->fin (o fecha_egreso/hoy)
+function egresadoAtbDiasTotales(r){
+  var atb=(r&&r.atb)||[]; if(!atb.length) return '';
+  var end0=r.fecha_egreso || isoToday();
+  var total=0, counted=false;
+  atb.forEach(function(a){
+    if(!a||!a.inicio) return;
+    var ini=new Date(String(a.inicio).slice(0,10));
+    var fin=new Date(String(a.fin||end0).slice(0,10));
+    if(isNaN(ini.getTime())||isNaN(fin.getTime())) return;
+    var d=Math.floor((fin.getTime()-ini.getTime())/86400000)+1;
+    if(d>0){ total+=d; counted=true; }
+  });
+  return counted?total:'';
+}
+// Fila plana (objeto) para un egresado — reutilizada por json_to_sheet
+function egresadoRow(r){
+  var estado=(r&&r.motivo_egreso==='Fallecimiento')?'Fallecido':'Vivo';
+  var row={
+    'Nombre': r.name||'', 'Edad': r.age||'', 'Sexo': r.sex||'', 'CI': r.ci||'',
+    'Fecha ingreso': r.ingreso||'', 'Fecha egreso': r.fecha_egreso||'',
+    'Días internación': (egresoDias(r)!==null?egresoDias(r):''),
+    'Diagnóstico': r.dx||'', 'Centro': r.centroName||'', 'Etiqueta/Cobertura': r.cobertura||'',
+    'Estado al egreso': estado
+  };
+  // Comorbilidades (una columna por comorbilidad)
+  (typeof COMORB!=='undefined'?COMORB:[]).forEach(function(c){
+    row['Com: '+c.label]=r['com_'+c.k]?'Sí':'No';
+  });
+  // Charlson
+  row['Charlson']=hasVal(r.charlson_total)?r.charlson_total:'';
+  // Respiratorios
+  row['Tipo IR']=r.resp_tipo||'';
+  row['ARM']=r.resp_arm||''; row['Días ARM']=r.resp_arm_dias||'';
+  row['VNI']=r.resp_vni||''; row['OAF']=r.resp_oaf||'';
+  row['IOT previa']=r.resp_iot_previa||''; row['Traqueostomía']=r.resp_traqueo||'';
+  row['FEVI']=r.resp_fevi||'';
+  // Infecciosos
+  row['Antígeno neumococo']=r.inf_neumo_ag||''; row['COVID']=r.inf_covid||'';
+  row['IRA']=r.inf_ira||'';
+  row['Vasopresores']=hasVal(r.inf_vasopresores)?r.inf_vasopresores:(detectVasopresores(r)?'Sí':'');
+  // Paraclínica (snapshot)
+  row['pH']=r.ph||''; row['PCO2']=r.pco2||''; row['HCO3']=r.hco3||''; row['Lactato']=r.lac||'';
+  row['Hb']=r.hb||''; row['GB']=r.leucos||''; row['PQT']=r.plaquetas||''; row['Creatinina']=r.creat||'';
+  // ATB
+  row['ATB utilizados']=((r.atb||[]).map(function(a){return a&&a.atb?a.atb:'';}).filter(Boolean).join('; '));
+  row['Días totales de ATB']=egresadoAtbDiasTotales(r);
+  // Scores
+  row['APACHE II']=hasVal(r.ap_total)?r.ap_total:'';
+  row['Mortalidad estimada (%)']=(hasVal(r.ap_total)&&typeof apacheMortality==='function')?apacheMortality(num(r.ap_total)):'';
+  row['SOFA ingreso']=hasVal(r.sofa_ingreso)?r.sofa_ingreso:'';
+  row['SOFA egreso']=hasVal(r.sofa_egreso)?r.sofa_egreso:(hasVal(r.sofa_total)?r.sofa_total:'');
+  // Costos
+  var costo='';
+  if(typeof computeCostoPeriodo==='function' && r.ingreso){
+    try{
+      var to=r.fecha_egreso || isoToday();
+      var cp=computeCostoPeriodo(r, (typeof loadPrecios==='function'?loadPrecios():null), String(r.ingreso).slice(0,10), String(to).slice(0,10));
+      if(cp && typeof cp.total==='number') costo=Math.round(cp.total*100)/100;
+    }catch(e){}
+  }
+  row['Costo total internación']=costo;
+  return row;
+}
+function exportEgresadosExcel(){
+  if(typeof XLSX==='undefined' || !XLSX){
+    alert('No se pudo cargar la librería de Excel (SheetJS). Verifique su conexión a internet e intente nuevamente.');
+    return;
+  }
+  var list=(typeof egresadosFiltered==='function')?egresadosFiltered():getEgresados();
+  if(!list.length){ alert('No hay egresados para exportar (según los filtros actuales).'); return; }
+  var rows=list.map(egresadoRow);
+  var ws=XLSX.utils.json_to_sheet(rows);
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Egresados');
+  XLSX.writeFile(wb, 'egresados_'+isoToday()+'.xlsx');
 }
 
 // ===================================================================
