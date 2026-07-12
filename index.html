@@ -312,6 +312,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
     <button class="main-tab" onclick="showMainTab('calc',this)">🧮 Calculadoras</button>
     <button class="main-tab" onclick="showMainTab('stats',this)">📊 Estadísticas</button>
     <button class="main-tab" onclick="showMainTab('costos',this)">💰 Costos</button>
+    <button class="main-tab" onclick="showMainTab('alertas',this)">🚨 Alertas <span id="alertBadge" style="display:none;font-weight:800;color:var(--red);margin-left:2px"></span></button>
   </div>
   <div id="panelCamas" style="display:block">
     <div class="beds-header">
@@ -341,6 +342,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
   <div id="panelStats" style="display:none"></div>
   <div id="panelCostos" style="display:none"></div>
   <div id="panelEgresados" style="display:none"></div>
+  <div id="panelAlertas" style="display:none;padding:16px;overflow-y:auto"></div>
 </div>
 <div id="app-footer" style="text-align:center;padding:14px 16px;color:var(--muted);font-size:11px;border-top:1px solid var(--border)">© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clínico exclusivo</div>
 <div id="easymed-corner" style="position:fixed;bottom:12px;right:16px;font-size:12px;color:var(--muted);opacity:.55;font-weight:400;z-index:50;pointer-events:none">EasyMed</div>
@@ -614,7 +616,15 @@ function emptyPatient(bed){
     // Datos infecciosos
     inf_neumo_ag:'', inf_covid:'', inf_ira:'', inf_ira_kdigo:'', inf_vasopresores:'',
     // === NUEVO: predicción de alta ===
-    altaProbableFecha:''   // fecha en que alcanzó "Alta probable" (dischargeScore>=5) por 1ª vez
+    altaProbableFecha:'',  // fecha en que alcanzó "Alta probable" (dischargeScore>=5) por 1ª vez
+    // === NUEVO: bundle de prevención (checklist diario por fecha) ===
+    bundle:{},             // { 'YYYY-MM-DD': {cab,bucal,tvp,movil,sedac,nutri,accesos} }
+    // === NUEVO: historial SOFA (curva de tendencia) ===
+    sofaHist:[],           // [{fecha:'YYYY-MM-DD', valor:n}]
+    // === NUEVO: balance hídrico simplificado por fecha ===
+    balanceHist:{},        // { 'YYYY-MM-DD': {dia:n, acum:n} }
+    // === NUEVO: procedimientos registrados ===
+    procedimientos:[]      // [{fecha,tipo,operador,indicacion,compl,compl_desc}]
   };
   return _seedComorb(base);
 }
@@ -1213,6 +1223,9 @@ function computeStats(filter){
   var diasSinEstado = (diasSinInf===null) ? 'none' : (diasSinInf>=14 ? 'green' : diasSinInf>=7 ? 'yellow' : 'red');
   var conNutr = pts.filter(function(p){return p.nutr_via&&p.nutr_via.trim()!=='';}).length;
 
+  // BUNDLE de prevención: % cumplimiento diario (hoy) y semanal (7 días)
+  var bundle = (typeof bundleStats==='function') ? bundleStats(pts) : {dia:null,diaN:0,semana:null,semanaN:0};
+
   return {
     filter: f, range: range,
     scope: g.scope, centrosCount: g.centrosCount, ptsCount: pts.length,
@@ -1224,7 +1237,8 @@ function computeStats(filter){
     germTop: germTop, resTop: resTop, atbTop: atbTop,
     accItems: accItems,
     diasSinInf: diasSinInf, diasSinEstado: diasSinEstado, lastMicro: lastMicro,
-    conNutr: conNutr
+    conNutr: conNutr,
+    bundle: bundle
   };
 }
 
@@ -1563,13 +1577,21 @@ function renderEstadisticas(){
     diasSinBody = statsNoData('(sin cultivos con Resultado y fecha en el período)');
     qiRows.push({ind:'Días sin infección asociada', val:'Sin datos', estado:'none'});
   }
-  qiRows.push({ind:'Compliance con bundles', val:'Sin datos', estado:'none'});
+  var bnd = d.bundle || {dia:null,semana:null};
+  function bndEstado(v){ return v==null?'none':(v>=80?'green':v>=50?'yellow':'red'); }
+  var bndDiaEstado = bndEstado(bnd.dia);
+  qiRows.push({ind:'Compliance con bundles (día)', val:(bnd.dia!=null?bnd.dia+'%':'Sin datos'), estado:bndDiaEstado});
   qiRows.push({ind:'Tiempo hasta nutrición enteral', val:'Sin datos', estado:'none'});
 
   var diasSinCard = statsCard('Días sin infección asociada '+statsSemaforo(d.diasSinEstado), '🛡',
     diasSinBody, 'Aproximación: no hay clasificación formal de IAAS en el modelo.');
-  var bundlesCard = statsCard('Compliance con bundles '+statsSemaforo('none'), '📋',
-    statsNoData('(no existe campo de checklist/bundles en la ficha)'));
+  var bundlesBody = (bnd.dia!=null || bnd.semana!=null)
+    ? (statsBigNum((bnd.dia!=null?bnd.dia:0), '% hoy')+
+       '<div class="stats-bar-track" style="margin-top:8px"><div class="stats-bar-fill" style="width:'+(bnd.dia!=null?bnd.dia:0)+'%;background:var(--teal)"></div></div>'+
+       '<div class="stats-note">Diario: '+(bnd.dia!=null?bnd.dia+'% ('+bnd.diaN+' registro/s)':'sin registros hoy')+' · Semanal (7 días): '+(bnd.semana!=null?bnd.semana+'% ('+bnd.semanaN+' registro/s)':'sin registros')+'</div>')
+    : statsNoData('(sin checklists de bundle registrados)');
+  var bundlesCard = statsCard('Compliance con bundles '+statsSemaforo(bndDiaEstado), '📋', bundlesBody,
+    'Promedio de % de cumplimiento del checklist diario en pacientes reales del censo.');
   var nutrExtra = d.conNutr>0 ? ('Pacientes con vía nutricional registrada: '+d.conNutr+' (censo actual).') : null;
   var nutrCard = statsCard('Tiempo hasta inicio de nutrición enteral '+statsSemaforo('none'), '🍽',
     statsNoData('(el modelo no registra la fecha/hora de inicio de nutrición enteral)'), nutrExtra);
@@ -1663,13 +1685,13 @@ function renderEstadisticas(){
 }
 
 function showMainTab(tab, btn){
-  ['panelCamas','panelPacientes','panelRefs','panelVade','panelCalc','panelStats','panelCostos','panelEgresados'].forEach(function(id){
+  ['panelCamas','panelPacientes','panelRefs','panelVade','panelCalc','panelStats','panelCostos','panelEgresados','panelAlertas'].forEach(function(id){
     var el=document.getElementById(id);
-    el.style.display='none'; el.style.flexDirection='';
+    if(el){ el.style.display='none'; el.style.flexDirection=''; }
   });
   document.querySelectorAll('.main-tab').forEach(function(b){b.classList.remove('active');});
   if(btn) btn.classList.add('active');
-  var map={camas:'panelCamas',pacientes:'panelPacientes',refs:'panelRefs',vade:'panelVade',calc:'panelCalc',stats:'panelStats',costos:'panelCostos',egresados:'panelEgresados'};
+  var map={camas:'panelCamas',pacientes:'panelPacientes',refs:'panelRefs',vade:'panelVade',calc:'panelCalc',stats:'panelStats',costos:'panelCostos',egresados:'panelEgresados',alertas:'panelAlertas'};
   var el=document.getElementById(map[tab]);
   if(tab==='pacientes'||tab==='refs'){ el.style.display='flex'; el.style.flexDirection='column'; }
   else { el.style.display='block'; }
@@ -1681,6 +1703,7 @@ function showMainTab(tab, btn){
   if(tab==='stats') renderEstadisticas();
   if(tab==='costos') renderCostos();
   if(tab==='egresados') renderEgresados();
+  if(tab==='alertas') renderAlertas();
 }
 
 // ===== BEDS =====
@@ -1708,6 +1731,22 @@ function renderBeds(){
       if(aisl.length) chips.push('<span class="bed-aisl" title="'+esc(aisl.join(' | '))+'">🦠 Aislamiento</span>');
       if(chips.length) infoHtml='<div class="bed-info">'+chips.join('')+'</div>';
     }
+    // Alertas automáticas (badges de sepsis y deterioro) — cómputo puro
+    var alertHtml='';
+    var _spark=false;
+    if(hasPatient){
+      var abadges=[];
+      try{
+        if(sepsisAlert(p)) abadges.push('<span title="≥3 criterios de sepsis" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid var(--red);color:var(--red);background:var(--red-dim)">🔴 Posible Sepsis</span>');
+        var dt=sofaDeterioro(p);
+        if(dt.jump) abadges.push('<span title="Salto de SOFA ≥2" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid var(--amber);color:var(--amber);background:#7c5c0022">⚠️ Deterioro SOFA (+'+dt.diff+')</span>');
+      }catch(e){}
+      if(abadges.length) alertHtml='<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'+abadges.join('')+'</div>';
+      _spark = Array.isArray(p.sofaHist) && p.sofaHist.filter(function(o){return o&&o.valor!=='';}).length>=2;
+    }
+    var sparkHtml = _spark
+      ? '<div style="margin-top:6px;display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:var(--muted)">SOFA</span><canvas class="sofa-spark" width="90" height="24" style="width:90px;height:24px"></canvas></div>'
+      : '';
     // Predicción de alta (solo si hay paciente)
     var dischHtml='';
     if(hasPatient){
@@ -1724,6 +1763,8 @@ function renderBeds(){
       '<div class="bed-dx">'+(p.dx||'Sin diagnostico')+'</div>'+
       infoHtml+
       (sofa>0?'<div class="bed-sofa">SOFA '+sofa+'</div>':'')+
+      sparkHtml+
+      alertHtml+
       dischHtml;
     card.onclick=function(){
       state.activeBed=i;
@@ -1734,6 +1775,8 @@ function renderBeds(){
       dbtn.onclick=function(ev){ ev.stopPropagation(); openDischargeModal(parseInt(this.getAttribute('data-bed'),10)); };
     }
     grid.appendChild(card);
+    var spk=card.querySelector('.sofa-spark');
+    if(spk){ try{ drawSofaSparkline(spk, p.sofaHist); }catch(e){} }
   });
   var addCard = document.createElement('div');
   addCard.className='bed-card';
@@ -1741,6 +1784,7 @@ function renderBeds(){
   addCard.innerHTML='<div style="font-size:24px;color:var(--teal)">+</div><div style="font-size:11px;color:var(--muted)">Agregar cama</div>';
   addCard.onclick=function(){ addBed(); };
   grid.appendChild(addCard);
+  try{ updateAlertBadge(); }catch(e){}
 }
 
 function addBed(){
@@ -1782,6 +1826,7 @@ function renderActivePatient(){
     '<button class="inner-tab" onclick="showInner(\'labs\',this)">\uD83E\uDDEA Labs</button>'+
     '<button class="inner-tab" onclick="showInner(\'imagenes\',this)">\uD83D\uDDBC\uFE0F Im\u00E1genes</button>'+
     '<button class="inner-tab" onclick="showInner(\'scores\',this)">\uD83D\uDCCA Scores</button>'+
+    '<button class="inner-tab" onclick="showInner(\'proced\',this)">\uD83D\uDD27 Procedimientos</button>'+
   '</div>'+
 
   '<div id="inner-datos" class="inner-panel active">'+
@@ -1913,6 +1958,11 @@ function renderActivePatient(){
         '<div class="calc-result" style="margin-top:10px">'+
           '<div class="big" id="cv-sofa">'+(p.sofa_total||'0')+'</div>'+
           '<div class="interp" id="cv-sofa-interp">Complete los campos</div>'+
+        '</div>'+
+        '<div style="margin-top:12px">'+
+          '<div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px">Curva de tendencia SOFA (ref. l\u00EDnea en SOFA=2)</div>'+
+          '<canvas id="sofaChartCanvas" width="380" height="180" style="width:100%;max-width:420px;display:none"></canvas>'+
+          '<div id="sofaChartEmpty" class="stats-note" style="display:none"></div>'+
         '</div>'+
       '</div>'+
       '<div class="section-card">'+
@@ -2079,24 +2129,26 @@ function renderActivePatient(){
   '</div>'+
 
   '<div id="inner-balance" class="inner-panel">'+
-    '<div class="section-grid">'+
-      '<div class="section-card">'+
-        '<h4><span>\u2B06\uFE0F</span>Ingresos (mL)</h4>'+
-        '<div class="field-group"><label>EV</label><input id="f-ing-ev" type="number" value="'+p.ing_ev+'" oninput="calcBalance()"></div>'+
-        '<div class="field-group" style="margin-top:8px"><label>Enteral</label><input id="f-ing-ent" type="number" value="'+p.ing_ent+'" oninput="calcBalance()"></div>'+
-        '<div class="field-group" style="margin-top:8px"><label>Otros</label><input id="f-ing-otros" type="number" value="'+p.ing_otros+'" oninput="calcBalance()"></div>'+
+    '<div class="section-card">'+
+      '<h4><span>\u2696\uFE0F</span>Balance h\u00EDdrico simplificado</h4>'+
+      '<div class="field-row">'+
+        '<div class="field-group"><label>Balance h\u00EDdrico del d\u00EDa (mL)</label><input id="f-bal-dia" type="number" value="'+esc((p.balanceHist&&p.balanceHist[isoToday()]&&p.balanceHist[isoToday()].dia!=null)?p.balanceHist[isoToday()].dia:'')+'" placeholder="+/- mL"></div>'+
+        '<div class="field-group"><label>Balance h\u00EDdrico acumulado (mL)</label><input id="f-bal-acum" type="number" value="'+esc((p.balanceHist&&p.balanceHist[isoToday()]&&p.balanceHist[isoToday()].acum!=null)?p.balanceHist[isoToday()].acum:'')+'" placeholder="+/- mL"></div>'+
       '</div>'+
-      '<div class="section-card">'+
-        '<h4><span>\u2B07\uFE0F</span>Egresos (mL)</h4>'+
-        '<div class="field-group"><label>Diuresis</label><input id="f-eg-ur" type="number" value="'+p.eg_ur+'" oninput="calcBalance()"></div>'+
-        '<div class="field-group" style="margin-top:8px"><label>SNG/drenajes</label><input id="f-eg-sg" type="number" value="'+p.eg_sg+'" oninput="calcBalance()"></div>'+
-        '<div class="field-group" style="margin-top:8px"><label>Otros/perdidas insensibles</label><input id="f-eg-otros" type="number" value="'+p.eg_otros+'" oninput="calcBalance()"></div>'+
-      '</div>'+
+      '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="balanceSimpSave()">\uD83D\uDCBE Guardar balance del d\u00EDa</button></div>'+
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px">Se guarda en el historial con la fecha de hoy ('+esc(isoToday())+').</div>'+
     '</div>'+
-    '<div class="calc-result" style="margin-top:12px">'+
-      '<div class="big" id="cv-balance">'+(p.balance_calc||'0')+' mL</div>'+
-      '<div class="interp" id="cv-balance-interp">Balance hidrico</div>'+
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>\uD83D\uDCC8</span>Evoluci\u00F3n del balance</h4>'+
+      '<div id="balanceHistWrap"></div>'+
     '</div>'+
+    /* Campos legados (ocultos) para no romper calcBalance / readPatientForm / PDF */
+    '<input type="hidden" id="f-ing-ev" value="'+esc(p.ing_ev)+'">'+
+    '<input type="hidden" id="f-ing-ent" value="'+esc(p.ing_ent)+'">'+
+    '<input type="hidden" id="f-ing-otros" value="'+esc(p.ing_otros)+'">'+
+    '<input type="hidden" id="f-eg-ur" value="'+esc(p.eg_ur)+'">'+
+    '<input type="hidden" id="f-eg-sg" value="'+esc(p.eg_sg)+'">'+
+    '<input type="hidden" id="f-eg-otros" value="'+esc(p.eg_otros)+'">'+
   '</div>'+
 
   '<div id="inner-nutr" class="inner-panel">'+
@@ -2180,6 +2232,11 @@ function renderActivePatient(){
       '</div>'+
     '</div>'+
     '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>\u2705</span>Bundle de prevenci\u00F3n (checklist diario)</h4>'+
+      '<div id="bundleWrap"></div>'+
+      '<div style="font-size:11px;color:var(--muted);margin-top:6px">Toque cada \u00EDtem para alternar \uD83D\uDFE2 cumplido / \uD83D\uDD34 pendiente. Se guarda por fecha.</div>'+
+    '</div>'+
+    '<div class="section-card" style="margin-top:12px">'+
       '<h4><span>\uD83E\uDDEC</span>Resumen por Sistemas Fisiologicos</h4>'+
       '<div class="section-grid">'+
         '<div class="field-group"><label>\uD83E\uDDE0 Neurologico</label><textarea id="f-sis-neuro" rows="3" placeholder="Sedacion, RASS, pupilas, GCS...">'+esc(p.sis_neuro)+'</textarea></div>'+
@@ -2191,6 +2248,15 @@ function renderActivePatient(){
       '</div>'+
       '<div class="field-group" style="margin-top:8px"><label>\u2705 Conductas del dia</label><textarea id="f-sis-conductas" rows="4" placeholder="Plan y conductas del dia...">'+esc(p.sis_conductas)+'</textarea></div>'+
       '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();alert(\'Guardado.\')">\uD83D\uDCBE Guardar sistemas</button></div>'+
+    '</div>'+
+  '</div>'+
+
+  '<div id="inner-proced" class="inner-panel">'+
+    '<div class="section-card">'+
+      '<h4><span>\uD83D\uDD27</span>Procedimientos</h4>'+
+      '<div class="btn-row" style="margin-top:0"><button class="btn btn-teal btn-sm" onclick="addProcedimiento()">\u2795 Agregar procedimiento</button></div>'+
+      '<div id="procTableWrap" style="overflow-x:auto"></div>'+
+      '<div style="font-size:11px;color:var(--muted);margin-top:6px">Los procedimientos con precio configurado (CVC, cat\u00E9ter arterial, intubaci\u00F3n, traqueostom\u00EDa, broncoscop\u00EDa) se computan en Costos el d\u00EDa de su fecha.</div>'+
     '</div>'+
   '</div>';
 
@@ -2210,6 +2276,10 @@ function renderActivePatient(){
   syncSedoMode();
   calcSedo();
   renderGlucemiaTable();
+  renderBundle();
+  renderBalanceSimp();
+  renderProcedimientos();
+  try{ drawSofaChart(p); }catch(e){}
 }
 
 // ===== SUB-TABS de Labs =====
@@ -2227,6 +2297,304 @@ function showInner(id, btn){
   document.querySelectorAll('.inner-tab').forEach(function(b){b.classList.remove('active');});
   document.getElementById('inner-'+id).classList.add('active');
   if(btn) btn.classList.add('active');
+}
+
+/* =================================================================
+   NUEVAS FUNCIONES CLÍNICAS (sepsis, deterioro, bundle, sofaHist,
+   balance simplificado, procedimientos). Cómputo puro, sin recursión.
+   ================================================================= */
+
+function _numOrNull(v){ var n=parseFloat(v); return isNaN(n)?null:n; }
+
+// ---- 1) Predicción de sepsis: 5 criterios ----
+// lactato>2 (p.lac) · fiebre>38.5 o temp<36 (p.temp) ·
+// leucocitos>12 o <4 x10³ (p.leucos) · PAS<90 o MAP<65 (p.pas / p.pam_calc) ·
+// FC>90 (p.fc). Devuelve {criterios:[{ok,label}], met:n}
+function sepsisCriteria(p){
+  var out=[];
+  var lac=_numOrNull(p.lac);
+  out.push({ok: lac!=null && lac>2, label:'Lactato > 2 mmol/L'+(lac!=null?' ('+lac+')':'')});
+  var temp=_numOrNull(p.temp);
+  out.push({ok: temp!=null && (temp>38.5 || temp<36), label:'Fiebre > 38.5 °C o hipotermia < 36 °C'+(temp!=null?' ('+temp+')':'')});
+  var gb=_numOrNull(p.leucos);
+  out.push({ok: gb!=null && (gb>12 || gb<4), label:'Leucocitos > 12 o < 4 x10³/µL'+(gb!=null?' ('+gb+')':'')});
+  var pas=_numOrNull(p.pas), pam=_numOrNull(p.pam_calc);
+  out.push({ok: (pas!=null && pas<90) || (pam!=null && pam<65), label:'PAS < 90 mmHg o PAM < 65 mmHg'+((pas!=null||pam!=null)?' (PAS '+(pas!=null?pas:'-')+' / PAM '+(pam!=null?pam:'-')+')':'')});
+  var fc=_numOrNull(p.fc);
+  out.push({ok: fc!=null && fc>90, label:'FC > 90 lpm'+(fc!=null?' ('+fc+')':'')});
+  var met=out.filter(function(c){return c.ok;}).length;
+  return {criterios:out, met:met};
+}
+function sepsisAlert(p){ return sepsisCriteria(p).met>=3; }
+
+// ---- 4) Deterioro por salto de SOFA ----
+// Compara los dos últimos registros de sofaHist. Devuelve
+// {jump:bool, prev, curr, diff, fecha} o {jump:false} si <2 registros.
+function sofaDeterioro(p){
+  var h = Array.isArray(p.sofaHist)?p.sofaHist:[];
+  if(h.length<2) return {jump:false};
+  var curr=h[h.length-1], prev=h[h.length-2];
+  var pv=_numOrNull(prev.valor), cv=_numOrNull(curr.valor);
+  if(pv==null || cv==null) return {jump:false};
+  var diff=cv-pv;
+  return {jump: diff>=2, prev:pv, curr:cv, diff:diff, fecha:curr.fecha};
+}
+
+// ---- Motor de alertas (cómputo puro, SIN recursión) ----
+// Recorre state.patients y devuelve una lista de alertas calculadas.
+function buildAlerts(){
+  var alerts=[];
+  (state.patients||[]).forEach(function(p,i){
+    if(!p || (p.name||'').trim()==='') return;
+    var cama='Cama '+(p.bed||(i+1))+(p.name?' · '+p.name:'');
+    // Sepsis
+    var sc=sepsisCriteria(p);
+    if(sc.met>=3){
+      var det=sc.criterios.filter(function(c){return c.ok;}).map(function(c){return c.label;}).join('; ');
+      alerts.push({sev:3, tipo:'sepsis', bed:i, titulo:'🔴 Posible Sepsis — '+cama,
+        detalle:sc.met+' de 5 criterios cumplidos: '+det});
+    }
+    // Deterioro SOFA
+    var dt=sofaDeterioro(p);
+    if(dt.jump){
+      alerts.push({sev:3, tipo:'deterioro', bed:i, titulo:'⚠️ Deterioro (salto de SOFA) — '+cama,
+        detalle:'SOFA subió de '+dt.prev+' a '+dt.curr+' (Δ +'+dt.diff+') el '+dt.fecha+'.'});
+    }
+  });
+  return alerts;
+}
+
+// Actualiza el badge del contador de alertas (no recursivo).
+function updateAlertBadge(){
+  var b=document.getElementById('alertBadge');
+  if(!b) return;
+  var n=0; try{ n=buildAlerts().length; }catch(e){ n=0; }
+  if(n>0){ b.textContent='🚨 '+n; b.style.display=''; }
+  else { b.textContent=''; b.style.display='none'; }
+}
+
+// Render del panel de Alertas (llamado desde showMainTab). No recursivo.
+function renderAlertas(){
+  var panel=document.getElementById('panelAlertas');
+  if(!panel) return;
+  var alerts=[];
+  try{ alerts=buildAlerts(); }catch(e){ alerts=[]; }
+  var html='<div class="section-card"><h4><span>🚨</span>Alertas automáticas</h4>';
+  if(!alerts.length){
+    html+='<div class="stats-note">Sin alertas activas. Se recalculan a partir de los datos cargados (sepsis y deterioro por salto de SOFA).</div>';
+  } else {
+    html+=alerts.map(function(a){
+      var col=a.tipo==='sepsis'?'var(--red)':'var(--amber)';
+      var bg=a.tipo==='sepsis'?'var(--red-dim)':'#7c5c0022';
+      return '<div style="border:1px solid '+col+';background:'+bg+';border-radius:var(--rs);padding:10px 12px;margin-bottom:8px">'+
+        '<div style="font-weight:800;color:'+col+';font-size:13px">'+esc(a.titulo)+'</div>'+
+        '<div style="font-size:12px;color:var(--text);margin-top:4px;line-height:1.5">'+esc(a.detalle)+'</div>'+
+        '<div style="margin-top:6px"><button class="btn btn-outline btn-sm" style="font-size:10px;padding:2px 8px" onclick="state.activeBed='+a.bed+';showMainTab(\'pacientes\',document.querySelectorAll(\'.main-tab\')[1])">Ir a la cama</button></div>'+
+      '</div>';
+    }).join('');
+  }
+  html+='<div class="stats-note" style="margin-top:6px">Herramienta de apoyo: severidad clínica basada en umbrales estándar. No sustituye el juicio clínico.</div></div>';
+  panel.innerHTML=html;
+}
+
+/* ---- 2) Bundle de prevención (checklist diario) ---- */
+var BUNDLE_ITEMS=[
+  ['cab','Cabecera 30–45°'],
+  ['bucal','Higiene bucal con clorhexidina'],
+  ['tvp','Profilaxis TVP'],
+  ['movil','Movilización precoz / fisioterapia'],
+  ['sedac','Interrupción diaria de sedación (si aplica)'],
+  ['nutri','Nutrición enteral iniciada (si aplica)'],
+  ['accesos','Sondas / accesos revisados']
+];
+var BUNDLE_SEL_DATE=null; // fecha seleccionada en el editor del bundle
+
+function bundleGetDay(p, date){
+  if(!p.bundle) p.bundle={};
+  if(!p.bundle[date]){
+    var o={}; BUNDLE_ITEMS.forEach(function(it){ o[it[0]]=false; }); p.bundle[date]=o;
+  } else {
+    BUNDLE_ITEMS.forEach(function(it){ if(p.bundle[date][it[0]]===undefined) p.bundle[date][it[0]]=false; });
+  }
+  return p.bundle[date];
+}
+function bundlePct(dayObj){
+  if(!dayObj) return 0;
+  var t=BUNDLE_ITEMS.length, done=0;
+  BUNDLE_ITEMS.forEach(function(it){ if(dayObj[it[0]]) done++; });
+  return t?Math.round((done/t)*100):0;
+}
+function bundleToggle(k){
+  var p=curPatient(); if(!p) return;
+  var date=BUNDLE_SEL_DATE||isoToday();
+  var day=bundleGetDay(p,date);
+  day[k]=!day[k];
+  save();
+  renderBundle();
+}
+function bundleSetDate(v){ BUNDLE_SEL_DATE=v||isoToday(); renderBundle(); }
+function renderBundle(){
+  var wrap=document.getElementById('bundleWrap');
+  if(!wrap) return;
+  var p=curPatient(); if(!p){ wrap.innerHTML=''; return; }
+  var date=BUNDLE_SEL_DATE||isoToday();
+  var day=bundleGetDay(p,date);
+  var pct=bundlePct(day);
+  var pcol=pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
+  var rows=BUNDLE_ITEMS.map(function(it){
+    var on=!!day[it[0]];
+    var col=on?'var(--green)':'var(--red)';
+    var mark=on?'🟢':'🔴';
+    return '<div onclick="bundleToggle(\''+it[0]+'\')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid '+col+';border-radius:var(--rs);margin-bottom:6px;cursor:pointer">'+
+      '<span style="font-size:16px">'+mark+'</span>'+
+      '<span style="flex:1;font-size:12px;color:var(--text)">'+esc(it[1])+'</span>'+
+      '<span style="font-size:11px;font-weight:700;color:'+col+'">'+(on?'Cumplido':'Pendiente')+'</span>'+
+    '</div>';
+  }).join('');
+  wrap.innerHTML=
+    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">'+
+      '<label style="font-size:12px;color:var(--muted)">Fecha:</label>'+
+      '<input type="date" value="'+esc(date)+'" onchange="bundleSetDate(this.value)" style="max-width:170px">'+
+      '<div style="margin-left:auto;font-size:13px;font-weight:800;color:'+pcol+'">Cumplimiento del día: '+pct+'%</div>'+
+    '</div>'+
+    '<div class="stats-bar-track" style="margin-bottom:10px"><div class="stats-bar-fill" style="width:'+pct+'%;background:'+pcol+'"></div></div>'+
+    rows;
+}
+
+// Estadísticas de bundle: % promedio diario (hoy) y semanal (7 días) sobre todos los pacientes reales.
+function bundleStats(pts){
+  var hoy=isoToday();
+  var last7={}; // set de fechas de los últimos 7 días
+  for(var d=0;d<7;d++){ var dt=new Date(); dt.setDate(dt.getDate()-d); last7[dt.toISOString().slice(0,10)]=true; }
+  var dayVals=[], weekVals=[];
+  (pts||[]).forEach(function(p){
+    var b=p.bundle||{};
+    if(b[hoy]) dayVals.push(bundlePct(b[hoy]));
+    Object.keys(b).forEach(function(f){ if(last7[f]) weekVals.push(bundlePct(b[f])); });
+  });
+  function avg(a){ return a.length?Math.round(a.reduce(function(x,y){return x+y;},0)/a.length):null; }
+  return {dia:avg(dayVals), diaN:dayVals.length, semana:avg(weekVals), semanaN:weekVals.length};
+}
+
+/* ---- 5) Balance hídrico simplificado ---- */
+function balanceSimpDate(){ return isoToday(); }
+function balanceSimpRead(p){
+  var date=balanceSimpDate();
+  var dia=(document.getElementById('f-bal-dia')||{}).value;
+  var acum=(document.getElementById('f-bal-acum')||{}).value;
+  if(!p.balanceHist) p.balanceHist={};
+  if(hasVal(dia)||hasVal(acum)){
+    p.balanceHist[date]={dia:_numOrNull(dia), acum:_numOrNull(acum)};
+  }
+}
+function balanceSimpSave(){
+  var p=curPatient(); if(!p) return;
+  balanceSimpRead(p); save(); renderBalanceSimp();
+}
+function renderBalanceSimp(){
+  var wrap=document.getElementById('balanceHistWrap');
+  if(!wrap) return;
+  var p=curPatient(); if(!p){ wrap.innerHTML=''; return; }
+  var h=p.balanceHist||{};
+  var dates=Object.keys(h).sort();
+  if(!dates.length){ wrap.innerHTML='<div class="stats-note">Sin registros de balance todavía.</div>'; return; }
+  var rows=dates.map(function(d){
+    var r=h[d]||{};
+    var dv=(r.dia!=null?((r.dia>=0?'+':'')+r.dia):'-');
+    var av=(r.acum!=null?((r.acum>=0?'+':'')+r.acum):'-');
+    var dc=r.dia!=null?(r.dia>1000?'var(--red)':r.dia<-1000?'var(--amber)':'var(--teal)'):'var(--muted)';
+    return '<tr><td>'+esc(d)+'</td><td style="text-align:right;color:'+dc+';font-weight:700">'+esc(dv)+'</td><td style="text-align:right">'+esc(av)+'</td></tr>';
+  }).join('');
+  wrap.innerHTML='<table class="mini-tbl"><thead><tr><th>Fecha</th><th style="text-align:right">Día (mL)</th><th style="text-align:right">Acum. (mL)</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+/* ---- 3) Curva/sparkline SOFA ---- */
+// Dibuja la curva de tendencia en el canvas 'sofaChartCanvas' (Scores).
+function drawSofaChart(p){
+  var cv=document.getElementById('sofaChartCanvas'); if(!cv) return;
+  var empty=document.getElementById('sofaChartEmpty');
+  var h=Array.isArray(p.sofaHist)?p.sofaHist.slice():[];
+  var pts=h.map(function(o){ return _numOrNull(o.valor); });
+  var labels=h.map(function(o){ return (o.fecha||'').slice(5); });
+  if(pts.filter(function(v){return v!=null;}).length<1){
+    if(empty){ empty.style.display='block'; empty.textContent='Sin histórico de SOFA. Recalcule el SOFA para generar registros.'; }
+    cv.style.display='none'; return;
+  }
+  if(empty) empty.style.display='none';
+  cv.style.display='block';
+  // Reutiliza el mismo estilo que drawParaChart, con línea de referencia SOFA=2.
+  drawParaChart(pts, labels, {lo:2, hi:null});
+}
+// Miniatura sparkline en el canvas dado (bed card): dibuja sofaHist en pequeño.
+function drawSofaSparkline(canvas, hist){
+  if(!canvas) return;
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width, H=canvas.height; ctx.clearRect(0,0,W,H);
+  var ys=(hist||[]).map(function(o){ return _numOrNull(o.valor); }).filter(function(v){return v!=null;});
+  if(ys.length<1) return;
+  var lo=Math.min.apply(null,ys), hi=Math.max.apply(null,ys);
+  if(lo===hi){ lo-=1; hi+=1; }
+  var n=ys.length, pad=3;
+  function X(i){ return pad + (n<=1? (W-2*pad)/2 : (i/(n-1))*(W-2*pad)); }
+  function Y(v){ return pad + (H-2*pad) - ((v-lo)/(hi-lo))*(H-2*pad); }
+  var cs=getComputedStyle(document.documentElement);
+  var teal=(cs.getPropertyValue('--teal')||'#00a487').trim()||'#00a487';
+  ctx.strokeStyle=teal; ctx.lineWidth=1.5; ctx.beginPath();
+  ys.forEach(function(v,i){ var x=X(i),y=Y(v); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }); ctx.stroke();
+  ctx.fillStyle=teal;
+  ys.forEach(function(v,i){ ctx.beginPath(); ctx.arc(X(i),Y(v),1.6,0,6.29); ctx.fill(); });
+}
+
+/* ---- 6) Procedimientos ---- */
+var PROC_TIPOS=['CVC','Catéter arterial','Intubación','Traqueostomía','Broncoscopía','Toracocentesis','Paracentesis','Punción lumbar','Otro'];
+// Mapea tipo de procedimiento -> clave de precio en COSTOS_PROCS (o null).
+function procTipoToCostKey(tipo){
+  switch(tipo){
+    case 'CVC': return 'cvc';
+    case 'Catéter arterial': return 'catart';
+    case 'Intubación': return 'intub';
+    case 'Traqueostomía': return 'traqueo';
+    case 'Broncoscopía': return 'bronco';
+    default: return null;
+  }
+}
+function addProcedimiento(){
+  var p=curPatient(); if(!p) return;
+  if(!Array.isArray(p.procedimientos)) p.procedimientos=[];
+  p.procedimientos.push({fecha:isoToday(), tipo:'CVC', operador:'', indicacion:'', compl:'No', compl_desc:''});
+  save(); renderProcedimientos();
+}
+function updateProc(i,field,val){
+  var p=curPatient(); if(!p||!p.procedimientos||!p.procedimientos[i]) return;
+  p.procedimientos[i][field]=val; save();
+  if(field==='compl') renderProcedimientos();
+}
+function delProc(i){
+  var p=curPatient(); if(!p||!p.procedimientos) return;
+  p.procedimientos.splice(i,1); save(); renderProcedimientos();
+}
+function renderProcedimientos(){
+  var wrap=document.getElementById('procTableWrap');
+  if(!wrap) return;
+  var p=curPatient(); if(!p){ wrap.innerHTML=''; return; }
+  var list=Array.isArray(p.procedimientos)?p.procedimientos:[];
+  if(!list.length){ wrap.innerHTML='<div class="stats-note">Sin procedimientos registrados.</div>'; return; }
+  var tipoOpts=function(sel){ return PROC_TIPOS.map(function(t){ return '<option'+(t===sel?' selected':'')+'>'+esc(t)+'</option>'; }).join(''); };
+  var rows=list.map(function(pr,i){
+    var complDesc=(pr.compl==='Sí')
+      ? '<input value="'+esc(pr.compl_desc||'')+'" placeholder="Descripción" onchange="updateProc('+i+',\'compl_desc\',this.value)" style="width:100%">'
+      : '<span style="color:var(--muted);font-size:11px">-</span>';
+    return '<tr>'+
+      '<td><input type="date" value="'+esc(pr.fecha||'')+'" onchange="updateProc('+i+',\'fecha\',this.value)"></td>'+
+      '<td><select onchange="updateProc('+i+',\'tipo\',this.value)">'+tipoOpts(pr.tipo)+'</select></td>'+
+      '<td><input value="'+esc(pr.operador||'')+'" onchange="updateProc('+i+',\'operador\',this.value)"></td>'+
+      '<td><input value="'+esc(pr.indicacion||'')+'" onchange="updateProc('+i+',\'indicacion\',this.value)"></td>'+
+      '<td><select onchange="updateProc('+i+',\'compl\',this.value)"><option'+(pr.compl!=='Sí'?' selected':'')+'>No</option><option'+(pr.compl==='Sí'?' selected':'')+'>Sí</option></select></td>'+
+      '<td>'+complDesc+'</td>'+
+      '<td style="text-align:center"><button class="btn btn-red btn-sm" style="padding:2px 8px;font-size:11px" onclick="delProc('+i+')">✕</button></td>'+
+    '</tr>';
+  }).join('');
+  wrap.innerHTML='<table class="mini-tbl"><thead><tr><th>Fecha</th><th>Tipo</th><th>Operador</th><th>Indicación</th><th>Compl.</th><th>Descripción</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 </script>
 <script>
@@ -2522,7 +2890,23 @@ function calcSOFA(){
     var m=total>=11?'Mortalidad >80%':total>=8?'Mortalidad 40-50%':total>=5?'Mortalidad ~20%':total>=2?'Mortalidad <10%':'Mortalidad <10%';
     el2.textContent=m+' (referencia Vincent 1996)';
   }
-  state.patients[state.activeBed].sofa_total=total;
+  var _pt=state.patients[state.activeBed];
+  _pt.sofa_total=total;
+  recordSofaHist(_pt, total);
+}
+
+// Registra/actualiza el valor SOFA del día en el historial (dedupe por fecha).
+function recordSofaHist(p, valor){
+  if(!p) return;
+  var v=parseInt(valor); if(isNaN(v)) return;
+  if(!Array.isArray(p.sofaHist)) p.sofaHist=[];
+  var hoy=isoToday();
+  var found=false;
+  for(var i=0;i<p.sofaHist.length;i++){
+    if(p.sofaHist[i] && p.sofaHist[i].fecha===hoy){ p.sofaHist[i].valor=v; found=true; break; }
+  }
+  if(!found) p.sofaHist.push({fecha:hoy, valor:v});
+  p.sofaHist.sort(function(a,b){ return (a.fecha<b.fecha)?-1:(a.fecha>b.fecha?1:0); });
 }
 
 function calcPadua(){
@@ -2579,6 +2963,8 @@ function readPatientForm(idx){
   p.fio2=gv('f-fio2');p.peep=gv('f-peep');p.pip=gv('f-pip');p.vt=gv('f-vt');p.vm=gv('f-vm');
   p.ing_ev=gv('f-ing-ev');p.ing_ent=gv('f-ing-ent');p.ing_otros=gv('f-ing-otros');
   p.eg_ur=gv('f-eg-ur');p.eg_sg=gv('f-eg-sg');p.eg_otros=gv('f-eg-otros');
+  // Balance hídrico simplificado (día/acumulado) -> historial por fecha
+  if(typeof balanceSimpRead==='function'){ try{ balanceSimpRead(p); }catch(e){} }
   p.nutr_via=gv('f-nutr-via');p.nutr_cal=gv('f-nutr-cal');p.nutr_prot=gv('f-nutr-prot');p.nutr_vol=gv('f-nutr-vol');p.nutr_notas=gv('f-nutr-notas');
   p.vvc_sitio=gv('f-vvc-sitio');p.vvc_fecha=gv('f-vvc-fecha');p.via_art=gv('f-via-art');p.art_fecha=gv('f-art-fecha');
   p.sng=gv('f-sng');p.sonda_v=gv('f-sonda-v');p.dren=gv('f-dren');
@@ -4358,6 +4744,7 @@ function renderAll(){
   renderBeds();
   renderPatientTabs();
   updateBackupBadge();
+  try{ updateAlertBadge(); }catch(e){}
   var c = CENTROS.find(function(x){return x.id===state.centro;});
   var badge=document.getElementById('centroBadge');
   if(badge && c){ badge.textContent=c.name; badge.style.color=c.color; }
@@ -4770,6 +5157,15 @@ function computeCostoDiario(p, cfg, date){
     }
   });
 
+  // --- Procedimientos registrados (tab Procedimientos) del día ---
+  (p.procedimientos||[]).forEach(function(pr){
+    if(!pr || (pr.fecha||'')!==date) return;
+    var ck = (typeof procTipoToCostKey==='function') ? procTipoToCostKey(pr.tipo) : null;
+    var precio = ck ? num((cfg.procedimientos||{})[ck]) : 0;
+    if(precio>0){ r.procedimientos+=precio; r.detalle.push({cat:'Procedimientos', item:(pr.tipo||'Procedimiento'), costo:precio}); }
+    else if(!proc[ck]){ r.detalle.push({cat:'Procedimientos', item:(pr.tipo||'Procedimiento')+' (sin precio)', costo:0}); }
+  });
+
   // --- Estadía (1 cama/día) ---
   var est = num(cfg.estadia_dia);
   if(est>0){ r.estadia+=est; r.detalle.push({cat:'Estadía', item:'Cama UCI (1 día)', costo:est}); }
@@ -4810,7 +5206,7 @@ function computeCostoPeriodo(p, cfg, fromISO, toISO){
   var hoy = computeCostoDiario(p, cfg, today); // régimen actual como base de estimación
   for(var i=0;i<dias;i++){
     var dd = new Date(start.getTime()+i*86400000).toISOString().slice(0,10);
-    var stored = ((p.costProc||{})[dd]) || ((p.costFluidos||{})[dd]);
+    var stored = ((p.costProc||{})[dd]) || ((p.costFluidos||{})[dd]) || (Array.isArray(p.procedimientos) && p.procedimientos.some(function(pr){return pr&&(pr.fecha||"")===dd;}));
     var r;
     if(dd===today){ r = hoy; }
     else if(stored){ r = computeCostoDiario(p, cfg, dd); }
@@ -5410,7 +5806,7 @@ function renderCostosResumen(){
   var acum = { meds:0, atb:0, fluidos:0, nutricion:0, procedimientos:0, estadia:0, arm:0, total:0 };
   for(var i=0;i<dias;i++){
     var dd = new Date(start.getTime()+i*86400000).toISOString().slice(0,10);
-    var stored = ((p.costProc||{})[dd]) || ((p.costFluidos||{})[dd]);
+    var stored = ((p.costProc||{})[dd]) || ((p.costFluidos||{})[dd]) || (Array.isArray(p.procedimientos) && p.procedimientos.some(function(pr){return pr&&(pr.fecha||"")===dd;}));
     var r;
     if(dd===today){ r = hoy; }
     else if(stored){ r = computeCostoDiario(p, cfg, dd); }
