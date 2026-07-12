@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>UCI Dashboard v4</title>
+<title>UCI</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 /* ===== TEMA: claro por defecto, oscuro via [data-theme=dark] ===== */
@@ -44,8 +44,8 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .centro-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;max-width:560px;width:100%}
 .centro-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 16px;text-align:center;cursor:pointer;transition:all .2s;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;gap:10px}
 .centro-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(20,30,50,.12);border-color:var(--cc,var(--teal))}
-.centro-card .cc-icon{width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:var(--cc-dim,var(--teal-dim))}
-.centro-card .cc-icon svg{width:34px;height:34px}
+.centro-card .cc-icon{width:104px;height:104px;display:flex;align-items:center;justify-content:center;border-radius:18px;background:var(--cc-dim,var(--teal-dim))}
+.centro-card .cc-icon svg{width:88px;height:88px}
 .centro-card .cn{font-size:14px;font-weight:600;color:var(--text)}
 .centro-card .cs{font-size:11px;color:var(--muted)}
 .centro-card.add .cc-icon{background:var(--surface2)}
@@ -202,6 +202,24 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .mini-tbl th{background:var(--surface2);color:var(--muted);padding:6px 8px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
 .mini-tbl td{padding:4px 6px;border-bottom:1px solid var(--border);vertical-align:top}
 .mini-tbl td input,.mini-tbl td select{padding:4px 6px;font-size:12px}
+/* ===== ESTADISTICAS ===== */
+#panelStats{flex:1;overflow-y:auto;padding:16px}
+.stats-wrap{max-width:1000px;margin:0 auto}
+.stats-header{margin-bottom:14px}
+.stats-caption{font-size:12px;color:var(--muted);margin-top:4px}
+.stats-section-title{font-size:13px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.5px;margin:18px 0 8px}
+.stats-grid{grid-template-columns:1fr 1fr}
+@media(max-width:640px){.stats-grid{grid-template-columns:1fr}}
+.stats-note{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.4}
+.stats-nodata{font-size:15px;font-weight:700;color:var(--muted);padding:6px 0}
+.stats-big{font-size:26px;font-weight:800;color:var(--text);line-height:1.1}
+.stats-big .stats-unit{font-size:13px;font-weight:600;color:var(--muted);margin-left:4px}
+.stats-bars{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.stats-bar-row{display:flex;align-items:center;gap:8px}
+.stats-bar-label{flex:0 0 34%;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stats-bar-track{flex:1;height:14px;background:var(--surface2);border-radius:8px;overflow:hidden}
+.stats-bar-fill{height:100%;border-radius:8px;min-width:2px;transition:width .3s}
+.stats-bar-val{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--muted);min-width:20px;text-align:right}
 .img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:8px}
 .img-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:8px;position:relative}
 .img-card img{width:100%;height:110px;object-fit:cover;border-radius:4px;cursor:pointer;background:#000}
@@ -214,10 +232,10 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 <body>
 <div id="modal-login" style="position:fixed;inset:0;z-index:10000;background:rgba(10,15,25,.82);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:20px">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:30px 34px;max-width:400px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,.4)">
-    <div style="text-align:center;margin-bottom:16px">
-      <div style="font-size:36px">🏥</div>
-      <div style="font-size:22px;font-weight:800;color:var(--text)">UCI Dashboard</div>
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-top:3px">Panel de gestión clínica</div>
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-size:48px;font-weight:800;letter-spacing:-1px;color:var(--teal);line-height:1">UCI</div>
+      <div style="font-size:18px;color:var(--muted);margin-top:6px">Gestión de Camas</div>
+      <div style="font-size:13px;color:var(--muted);opacity:.7;font-weight:400;margin-top:4px">EasyMed</div>
     </div>
     <h2 style="color:var(--text);font-size:17px;margin-bottom:10px">🔐 Acceso</h2>
     <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Ingresá tu contraseña para acceder al sistema.</p>
@@ -237,20 +255,30 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 </div>
 <div id="splash">
   <div style="font-size:36px">🏥</div>
-  <h1>UCI Dashboard v4</h1>
+  <h1>UCI</h1>
   <p>Panel de gestión clínica para Unidad de Cuidados Intensivos. Almacenamiento local en su dispositivo.</p>
-  <div class="disclaimer">⚠️ <strong>Aviso:</strong> Esta herramienta es un apoyo clínico. No reemplaza el juicio médico. UCI Dashboard puede cometer errores — use adecuado criterio clínico.</div>
+  <div class="disclaimer">⚠️ <strong>Aviso:</strong> Esta herramienta es un apoyo clínico. No reemplaza el juicio médico. UCI puede cometer errores — use adecuado criterio clínico.</div>
   <button onclick="closeSplash()">Entendido — Ingresar</button>
 </div>
 <div id="centroScreen">
+  <div style="text-align:center;margin-bottom:20px">
+    <div style="font-size:40px;font-weight:900;letter-spacing:-1px;color:var(--teal);line-height:1">EasyMed</div>
+    <div style="font-size:13px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px">UCI — Cuidados Críticos</div>
+  </div>
   <h2>Seleccionar Centro</h2>
   <p>¿Desde qué institución está accediendo?</p>
+  <div style="margin:0 auto 16px;max-width:320px;width:100%;text-align:left">
+    <label style="display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:5px">Médico / Usuario</label>
+    <input id="medicoInput" placeholder="Nombre del médico que ingresa" oninput="saveMedicoUsuario()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none">
+  </div>
   <div class="centro-grid" id="centroGrid"></div>
+  <div style="position:absolute;bottom:16px;right:20px;font-size:12px;color:var(--muted);opacity:.6;font-weight:400">EasyMed</div>
 </div>
 <div id="app">
   <div class="topbar">
-    <div class="logo">UCI Dashboard</div>
+    <div class="logo">UCI</div>
     <div class="centro-badge" id="centroBadge" onclick="showCentroSelect()">— Centro —</div>
+    <div class="centro-badge" id="medicoBadge" style="display:none;cursor:default"></div>
     <div class="spacer"></div>
     <span class="backup-badge" id="backupBadge">💾 Sin guardado</span>
     <button class="topbtn" onclick="exportData()">⬇ Exportar</button>
@@ -266,6 +294,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
     <button class="main-tab" onclick="showMainTab('refs',this)">📚 Referencias</button>
     <button class="main-tab" onclick="showMainTab('vade',this)">💊 Vademécum</button>
     <button class="main-tab" onclick="showMainTab('calc',this)">🧮 Calculadoras</button>
+    <button class="main-tab" onclick="showMainTab('stats',this)">📊 Estadísticas</button>
   </div>
   <div id="panelCamas" style="display:block">
     <div class="beds-header">
@@ -292,7 +321,10 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
   <div id="panelCalc" style="display:none">
     <div class="calc-grid" id="calcGrid"></div>
   </div>
+  <div id="panelStats" style="display:none"></div>
 </div>
+<div id="app-footer" style="text-align:center;padding:14px 16px;color:var(--muted);font-size:11px;border-top:1px solid var(--border)">© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clínico exclusivo</div>
+<div id="easymed-corner" style="position:fixed;bottom:12px;right:16px;font-size:12px;color:var(--muted);opacity:.55;font-weight:400;z-index:50;pointer-events:none">EasyMed</div>
 <div id="modalImport" class="modal" style="display:none">
   <div class="modal-box">
     <h3>Importar datos</h3>
@@ -315,8 +347,7 @@ var CENTRO_COLORS = ['#00a487','#2563eb','#c2410c','#7c3aed','#b9770e','#0891b2'
 var CENTROS = [
   {id:'c1',name:'Centro 1',sub:'Institucion',color:CENTRO_COLORS[0]},
   {id:'c2',name:'Centro 2',sub:'Institucion',color:CENTRO_COLORS[1]},
-  {id:'c3',name:'Centro 3',sub:'Institucion',color:CENTRO_COLORS[2]},
-  {id:'c4',name:'Centro 4',sub:'Institucion',color:CENTRO_COLORS[3]}
+  {id:'c3',name:'Centro 3',sub:'Institucion',color:CENTRO_COLORS[2]}
 ];
 // state.centro = id del centro activo. Los pacientes viven en la key del centro.
 var state = { centro:null, patients:[], activeBed:0, lastSave:null };
@@ -332,6 +363,77 @@ function plusSVG(color){
   return '<svg viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+
     '<circle cx="12" cy="12" r="9"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>';
 }
+// ===== Iconos detallados de centros (coloridos, 120x120) =====
+// Centro 1: edificio hospitalario moderno (azul/teal/rojo)
+function iconHospital(){
+  return '<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round">'+
+    '<rect x="26" y="40" width="68" height="68" rx="4" fill="#12304a" stroke="#2563eb" stroke-width="3"/>'+
+    '<rect x="26" y="40" width="68" height="15" rx="4" fill="#00a487"/>'+
+    '<circle cx="60" cy="47.5" r="6.5" fill="#ffffff"/>'+
+    '<path d="M60 43.5v8M56 47.5h8" stroke="#e11d48" stroke-width="2.9"/>'+
+    '<g fill="#0e2a3f" stroke="#38bdf8" stroke-width="2.2">'+
+      '<rect x="35" y="63" width="12" height="12" rx="2"/><rect x="54" y="63" width="12" height="12" rx="2"/><rect x="73" y="63" width="12" height="12" rx="2"/>'+
+      '<rect x="35" y="82" width="12" height="12" rx="2"/><rect x="73" y="82" width="12" height="12" rx="2"/>'+
+    '</g>'+
+    '<rect x="53" y="90" width="14" height="18" rx="2" fill="#2563eb" stroke="#5fd0bb" stroke-width="2"/>'+
+    '<path d="M14 108h92" stroke="#64748b" stroke-width="3.2"/>'+
+    // Ambulancia que cruza de derecha a izquierda en loop (ruedas girando + sirena rojo/azul)
+    '<g>'+
+      '<animateTransform attributeName="transform" type="translate" from="120 92" to="-42 92" dur="4.5s" repeatCount="indefinite"/>'+
+      '<rect x="6" y="2" width="26" height="12" rx="2.5" fill="#ffffff" stroke="#00a487" stroke-width="1.6"/>'+
+      '<rect x="0" y="5" width="7" height="9" rx="2" fill="#38bdf8" stroke="#00a487" stroke-width="1.3"/>'+
+      '<rect x="1.4" y="6.6" width="4" height="3.4" rx="1" fill="#0e2a3f"/>'+
+      '<path d="M20 5v6M17 8h6" stroke="#e11d48" stroke-width="1.9"/>'+
+      '<rect x="14" y="-1.6" width="5" height="3" rx="1.2" fill="#e11d48"><animate attributeName="fill" values="#e11d48;#2563eb;#e11d48" dur="0.5s" repeatCount="indefinite"/></rect>'+
+      '<g><circle cx="8" cy="15" r="3.2" fill="#0e2a3f" stroke="#94a3b8" stroke-width="1.2"/><path d="M8 12v6M5 15h6" stroke="#cbd5e1" stroke-width="1"><animateTransform attributeName="transform" type="rotate" from="0 8 15" to="360 8 15" dur="0.6s" repeatCount="indefinite"/></path></g>'+
+      '<g><circle cx="25" cy="15" r="3.2" fill="#0e2a3f" stroke="#94a3b8" stroke-width="1.2"/><path d="M25 12v6M22 15h6" stroke="#cbd5e1" stroke-width="1"><animateTransform attributeName="transform" type="rotate" from="0 25 15" to="360 25 15" dur="0.6s" repeatCount="indefinite"/></path></g>'+
+    '</g>'+
+  '</svg>';
+}
+// Centro 2: cama hospitalaria con paciente respirando + circuito al ventilador (animado)
+function iconVentilador(){
+  return '<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round">'+
+    '<rect x="84" y="38" width="28" height="42" rx="4" fill="#12304a" stroke="#2563eb" stroke-width="2.6"/>'+
+    '<rect x="88" y="43" width="20" height="15" rx="2" fill="#04140c" stroke="#0b3d2e" stroke-width="1.4"/>'+
+    '<path d="M90 51h3l2-6 2 10 2-12 2 9 2-1h3" fill="none" stroke="#22ff88" stroke-width="1.6"/>'+
+    '<circle cx="92" cy="69" r="3" fill="none" stroke="#94a3b8" stroke-width="1.6"/><rect x="100" y="66" width="6" height="6" rx="1.5" fill="none" stroke="#94a3b8" stroke-width="1.6"/>'+
+    '<rect x="10" y="70" width="66" height="10" rx="3" fill="#12304a" stroke="#00a487" stroke-width="2.4"/>'+
+    '<rect x="8" y="52" width="4" height="32" rx="1.5" fill="#00a487"/>'+
+    '<rect x="74" y="60" width="4" height="24" rx="1.5" fill="#00a487"/>'+
+    '<path d="M16 80v9M70 80v9" stroke="#64748b" stroke-width="2.6"/>'+
+    '<circle cx="16" cy="92" r="2.6" fill="none" stroke="#64748b" stroke-width="1.6"/><circle cx="70" cy="92" r="2.6" fill="none" stroke="#64748b" stroke-width="1.6"/>'+
+    '<rect x="14" y="60" width="15" height="10" rx="3" fill="#e8edf2"/>'+
+    '<circle cx="24" cy="62" r="5.5" fill="#cbd5e1"/>'+
+    '<rect x="32" y="64" width="42" height="8" rx="4" fill="#00a487" opacity="0.9"/>'+
+    '<ellipse cx="42" cy="63" rx="8" ry="5" fill="#0e7c66" stroke="#5fd0bb" stroke-width="1.3">'+
+      '<animate attributeName="ry" values="5;8.5;5" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.45;1" keySplines="0.4 0 0.2 1;0.4 0 0.2 1"/>'+
+      '<animate attributeName="cy" values="63;60.5;63" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.45;1" keySplines="0.4 0 0.2 1;0.4 0 0.2 1"/>'+
+    '</ellipse>'+
+    '<path d="M86 52C64 58 44 60 30 63" fill="none" stroke="#22c55e" stroke-width="2.4">'+
+      '<animate attributeName="stroke-width" values="2;3.8;2" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.45;1" keySplines="0.4 0 0.2 1;0.4 0 0.2 1"/>'+
+    '</path>'+
+    '<path d="M30 59c-4 0-6 2-6 4.5s2 4.5 6 4.5" fill="#123a54" stroke="#22c55e" stroke-width="1.5"/>'+
+  '</svg>';
+}
+// Centro 3: monitor de signos vitales (ECG verde brillante animado sobre pantalla negra)
+function iconMonitor(){
+  return '<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round">'+
+    '<rect x="12" y="18" width="96" height="70" rx="7" fill="#12304a" stroke="#2563eb" stroke-width="3"/>'+
+    '<rect x="18" y="24" width="84" height="52" rx="3" fill="#02120a" stroke="#0b3d2e" stroke-width="1.6"/>'+
+    '<g stroke="#0b3d2e" stroke-width="0.7">'+
+      '<path d="M18 42h84M18 58h84M40 24v52M70 24v52"/>'+
+    '</g>'+
+    '<path d="M20 52h10l3-11 4 22 5-30 4 24 3-5h8l3-11 4 22 5-30 4 24 3-5h11" fill="none" stroke="#22ff88" stroke-width="2.6" stroke-dasharray="230" stroke-dashoffset="230">'+
+      '<animate attributeName="stroke-dashoffset" from="230" to="0" dur="1.8s" repeatCount="indefinite"/>'+
+    '</path>'+
+    '<path d="M23 66c-2-2 0-5 2-3 2-2 4 1 2 3l-2 2z" fill="#22ff88"/>'+
+    '<text x="29" y="70" fill="#22ff88" font-family="monospace" font-size="10" font-weight="700">78</text>'+
+    '<text x="66" y="70" fill="#38bdf8" font-family="monospace" font-size="10" font-weight="700">SpO2 98</text>'+
+    '<path d="M60 88v10" stroke="#64748b" stroke-width="3.2"/>'+
+    '<path d="M44 102h32" stroke="#64748b" stroke-width="3.2"/>'+
+  '</svg>';
+}
+var CENTRO_ICONS = [iconHospital, iconVentilador, iconMonitor];
 function centroColorDim(hex){
   // devuelve rgba con baja opacidad a partir de hex
   var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
@@ -374,10 +476,16 @@ function saveMeta(){
   localStorage.setItem(LS_META, JSON.stringify({centros:CENTROS}));
 }
 
+// ===== Médico / Usuario que ingresa =====
+var LS_MEDICO = 'uci_v5_medico';
+function saveMedicoUsuario(){ var el=document.getElementById('medicoInput'); if(el) localStorage.setItem(LS_MEDICO, el.value.trim()); updateMedicoBadge(); }
+function loadMedicoUsuario(){ var el=document.getElementById('medicoInput'); if(el) el.value = localStorage.getItem(LS_MEDICO) || ''; updateMedicoBadge(); }
+function updateMedicoBadge(){ var b=document.getElementById('medicoBadge'); if(!b) return; var v=localStorage.getItem(LS_MEDICO)||''; if(v){ b.textContent='👤 '+v; b.style.display=''; } else { b.textContent=''; b.style.display='none'; } }
+
 function emptyPatient(bed){
   return {
     bed:bed, name:'', age:'', ci:'', sex:'', weight:'', height:'',
-    dx:'', antecedentes:'', ingreso:'', dias:'',
+    dx:'', antecedentes:'', ingreso:'', ingresohc:'', dias:'',
     pas:'',pad:'',pam_calc:'',fc:'',fr:'',temp:'',spo2:'',
     fio2:'',peep:'',pip:'',vt:'',vm:'',pafi_calc:'',
     shock_index:'',drivp_calc:'',cst_calc:'',pbw_calc:'',
@@ -573,7 +681,8 @@ function exportWord(){
   '<h2>Evolucion</h2>'+
   '<p>'+evol+'</p>'+
 
-  '<div class="foot">UCI Dashboard - Documento de apoyo clinico generado localmente. No reemplaza el juicio medico ni la historia clinica oficial. Verifique todos los datos.</div>'+
+  '<div class="foot">UCI - Documento de apoyo clinico generado localmente. No reemplaza el juicio medico ni la historia clinica oficial. Verifique todos los datos.</div>'+
+  '<div class="foot" style="text-align:center;margin-top:4px">© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clínico exclusivo</div>'+
   '</body></html>';
 
   var blob = new Blob(['\ufeff', doc], {type:'application/msword'});
@@ -614,22 +723,35 @@ function doImport(){
 function showCentroSelect(){
   var grid = document.getElementById('centroGrid');
   grid.innerHTML = '';
-  CENTROS.forEach(function(c){
+  CENTROS.forEach(function(c,i){
     var card = document.createElement('div');
     card.className='centro-card';
     card.style.setProperty('--cc', c.color);
     card.style.setProperty('--cc-dim', centroColorDim(c.color));
-    card.innerHTML='<div class="cc-icon">'+hospitalSVG(c.color)+'</div>'+
-                   '<div class="cn">'+c.name+'</div><div class="cs">'+c.sub+'</div>';
+    var iconFn = CENTRO_ICONS[i] || function(){ return hospitalSVG(c.color); };
+    var icon = document.createElement('div'); icon.className='cc-icon'; icon.innerHTML=iconFn();
+    var nm = document.createElement('div'); nm.className='cn'; nm.textContent=c.name; nm.contentEditable='true'; nm.title='Clic para editar el nombre'; nm.style.cursor='text';
+    var sb = document.createElement('div'); sb.className='cs'; sb.textContent=c.sub; sb.contentEditable='true'; sb.title='Clic para editar la institución'; sb.style.cursor='text';
+    function stop(e){ e.stopPropagation(); }
+    nm.addEventListener('click', stop); sb.addEventListener('click', stop);
+    nm.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); nm.blur(); } });
+    sb.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); sb.blur(); } });
+    nm.addEventListener('blur', function(){ c.name = nm.textContent.trim() || c.name; nm.textContent=c.name; saveMeta(); if(state.centro===c.id){ var bb=document.getElementById('centroBadge'); if(bb) bb.textContent=c.name; } });
+    sb.addEventListener('blur', function(){ c.sub = sb.textContent.trim() || 'Institucion'; sb.textContent=c.sub; saveMeta(); });
+    card.appendChild(icon); card.appendChild(nm); card.appendChild(sb);
     card.onclick=function(){ selectCentro(c.id); };
     grid.appendChild(card);
   });
   // tarjeta "+" para agregar centro
   var add = document.createElement('div');
   add.className='centro-card add';
+  add.style.gridColumn='1 / -1';
+  add.style.justifySelf='center';
+  add.style.width='170px';
   add.innerHTML='<div class="cc-icon">'+plusSVG('#5b6270')+'</div><div class="cn">Agregar centro</div>';
   add.onclick=function(){ addCentro(); };
   grid.appendChild(add);
+  loadMedicoUsuario();
   document.getElementById('centroScreen').style.display='flex';
 }
 
@@ -650,6 +772,7 @@ function selectCentro(id){
   var c = CENTROS.find(function(x){return x.id===id;});
   var badge = document.getElementById('centroBadge');
   if(badge && c){ badge.textContent = c.name; badge.style.color = c.color; }
+  updateMedicoBadge();
   renderAll();
 }
 
@@ -660,14 +783,341 @@ function closeSplash(){
 }
 
 // ===== MAIN TABS =====
+// ===================================================================
+// ===== ESTADISTICAS ================================================
+// ===================================================================
+// Recolecta pacientes reales (con nombre o dx) de TODOS los centros
+// enumerables via CENTROS/localStorage. Si falla, usa state.patients.
+function statsGatherPatients(){
+  var result = { patients: [], scope: 'centro', centrosCount: 0 };
+  try{
+    var all = [], count = 0;
+    (CENTROS||[]).forEach(function(c){
+      var raw = localStorage.getItem(centroKey(c.id));
+      if(!raw) return;
+      var saved = JSON.parse(raw);
+      if(saved && Array.isArray(saved.patients)){
+        count++;
+        saved.patients.forEach(function(p){ if(p) all.push(p); });
+      }
+    });
+    if(count>0){
+      result.patients = all; result.scope = 'all'; result.centrosCount = count;
+      // fusionar con estado actual sin guardar (por si hay cambios sin persistir)
+      return result;
+    }
+  }catch(e){}
+  result.patients = (state.patients||[]).slice();
+  result.scope = 'centro';
+  return result;
+}
+function statsIsReal(p){
+  return p && ((p.name && p.name.trim()!=='') || (p.dx && p.dx.trim()!==''));
+}
+function statsDaysBetween(iso){
+  if(!iso) return null;
+  var d = new Date(iso); if(isNaN(d.getTime())) return null;
+  var ms = Date.now() - d.getTime();
+  if(ms < 0) return 0;
+  return Math.floor(ms/86400000);
+}
+function statsTopCounts(arr, n){
+  var map = {};
+  arr.forEach(function(v){
+    if(v===null||v===undefined) return;
+    var k = String(v).trim(); if(!k) return;
+    var kk = k.toLowerCase();
+    if(!map[kk]) map[kk] = { label:k, count:0 };
+    map[kk].count++;
+  });
+  var out = Object.keys(map).map(function(k){return map[k];});
+  out.sort(function(a,b){return b.count-a.count;});
+  return n ? out.slice(0,n) : out;
+}
+function statsBarChart(items, color){
+  if(!items || !items.length){
+    return '<div style="color:var(--muted);font-size:12px;padding:6px 0">Sin datos.</div>';
+  }
+  var max = items.reduce(function(m,it){return Math.max(m,it.count);},0)||1;
+  var c = color || 'var(--teal)';
+  return '<div class="stats-bars">'+ items.map(function(it){
+    var pct = Math.round((it.count/max)*100);
+    return '<div class="stats-bar-row">'+
+      '<div class="stats-bar-label" title="'+esc(it.label)+'">'+esc(it.label)+'</div>'+
+      '<div class="stats-bar-track"><div class="stats-bar-fill" style="width:'+pct+'%;background:'+c+'"></div></div>'+
+      '<div class="stats-bar-val">'+it.count+'</div>'+
+    '</div>';
+  }).join('') + '</div>';
+}
+function statsCard(title, icon, bodyHtml, note){
+  return '<div class="section-card">'+
+    '<h4><span>'+icon+'</span>'+esc(title)+'</h4>'+
+    bodyHtml+
+    (note ? '<div class="stats-note">'+esc(note)+'</div>' : '')+
+  '</div>';
+}
+function statsNoData(note){
+  return '<div class="stats-nodata">Sin datos</div>'+
+    (note ? '<div class="stats-note">'+esc(note)+'</div>' : '');
+}
+function statsBigNum(value, unit){
+  return '<div class="stats-big">'+esc(String(value))+(unit?'<span class="stats-unit">'+esc(unit)+'</span>':'')+'</div>';
+}
+// Semaforo: estado 'green'|'yellow'|'red'|'none'
+function statsSemaforo(estado){
+  var m = { green:'🟢', yellow:'🟡', red:'🔴', none:'⚪' };
+  return m[estado] || m.none;
+}
+
+function renderEstadisticas(){
+  var panel = document.getElementById('panelStats');
+  if(!panel) return;
+  var g = statsGatherPatients();
+  var pts = g.patients.filter(statsIsReal);
+  var scopeCaption = (g.scope==='all')
+    ? 'Estadísticas agregadas de TODOS los centros ('+g.centrosCount+' centro(s) con datos).'
+    : 'Estadísticas del centro actual únicamente.';
+
+  // ---- OCUPACION ----
+  var totalBeds;
+  if(g.scope==='all'){
+    // total de camas = suma de longitudes de patients por centro (o real reales)
+    totalBeds = g.patients.length;
+  } else {
+    totalBeds = (state.patients||[]).length;
+  }
+  var occupied = pts.length;
+  var occPct = totalBeds>0 ? Math.round((occupied/totalBeds)*100) : 0;
+  var occCard = statsCard('Ocupación de camas', '🛏',
+    statsBigNum(occupied+'/'+totalBeds, ' camas')+
+    '<div class="stats-bar-track" style="margin-top:8px"><div class="stats-bar-fill" style="width:'+occPct+'%;background:var(--teal)"></div></div>'+
+    '<div class="stats-note">'+occPct+'% de ocupación</div>');
+
+  // ---- DIAS DE INTERNACION PROMEDIO (desde ingreso) ----
+  var dayVals = [];
+  pts.forEach(function(p){ var d = statsDaysBetween(p.ingreso); if(d!==null) dayVals.push(d); });
+  var diasCard;
+  if(dayVals.length){
+    var avg = dayVals.reduce(function(a,b){return a+b;},0)/dayVals.length;
+    diasCard = statsCard('Días de internación promedio', '📅',
+      statsBigNum(avg.toFixed(1), ' días'),
+      'Calculado desde fecha de ingreso en '+dayVals.length+' paciente(s).');
+  } else {
+    diasCard = statsCard('Días de internación promedio', '📅',
+      statsNoData('(requiere registrar Fecha de ingreso en la ficha)'));
+  }
+
+  // ---- DIAGNOSTICOS TOP 5 ----
+  var dxTop = statsTopCounts(pts.map(function(p){return p.dx;}), 5);
+  var dxCard = statsCard('Diagnósticos más frecuentes (top 5)', '🩺',
+    statsBarChart(dxTop, 'var(--blue)'),
+    dxTop.length ? null : '(requiere registrar Diagnóstico en la ficha)');
+
+  // ---- MORTALIDAD ----
+  var mortCard = statsCard('Mortalidad por período y diagnóstico', '⚰️',
+    statsNoData('(no existe campo de egreso/óbito en el modelo de paciente)'));
+
+  // ---- REINGRESOS ----
+  var reingCard = statsCard('Reingresos', '🔁',
+    statsNoData('(no hay identificador persistente ni historial de admisiones para rastrear reingresos)'));
+
+  var secPacientes =
+    '<div class="stats-section-title">Estadísticas de pacientes</div>'+
+    '<div class="section-grid stats-grid">'+ occCard + diasCard +'</div>'+
+    '<div class="section-grid stats-grid">'+ dxCard + mortCard +'</div>'+
+    '<div class="section-grid stats-grid">'+ reingCard +'</div>';
+
+  // ================= CLINICAS =================
+  // ---- SOFA ingreso vs egreso ----
+  var sofaVals = [];
+  pts.forEach(function(p){ var s = parseInt(p.sofa_total); if(!isNaN(s) && p.sofa_total!=='') sofaVals.push(s); });
+  var sofaCard;
+  if(sofaVals.length){
+    var sofaAvg = sofaVals.reduce(function(a,b){return a+b;},0)/sofaVals.length;
+    var sofaMax = Math.max.apply(null, sofaVals);
+    sofaCard = statsCard('SOFA (actual)', '📈',
+      statsBigNum(sofaAvg.toFixed(1), ' prom.')+
+      '<div class="stats-note">Máximo: '+sofaMax+' · registrado en '+sofaVals.length+' paciente(s)</div>',
+      'El modelo guarda un único SOFA por paciente; no hay SOFA de ingreso vs egreso separados.');
+  } else {
+    sofaCard = statsCard('SOFA ingreso vs egreso', '📈',
+      statsNoData('(requiere registrar SOFA; el modelo no distingue ingreso vs egreso)'));
+  }
+
+  // ---- ARM / modos ventilatorios ----
+  // El modelo tiene fio2/peep/pip/vt/vm pero NO un campo de "modo ventilatorio"
+  // ni fecha de inicio/fin de ARM. Contamos pacientes con parametros ventilatorios.
+  var enARM = pts.filter(function(p){
+    return (p.peep&&String(p.peep).trim()!=='') || (p.vt&&String(p.vt).trim()!=='') ||
+           (p.pip&&String(p.pip).trim()!=='') || (p.vm&&String(p.vm).trim()!=='');
+  }).length;
+  var armCard = statsCard('ARM y modos ventilatorios', '🫁',
+    (enARM>0
+      ? statsBigNum(enARM, ' pac. con parámetros de ARM')+
+        '<div class="stats-note">Detectado por parámetros ventilatorios cargados (PEEP/VT/PIP/VM).</div>'
+      : statsNoData('(sin parámetros ventilatorios cargados)'))+
+    '<div class="stats-note">Modos ventilatorios y días de ARM: sin datos (no hay campo de modo ni fechas de ARM en la ficha).</div>');
+
+  // ---- Infecciones asociadas a dispositivos ----
+  var iaasCard = statsCard('Infecciones asociadas a dispositivos (NAV, bacteriemia CVC, ITU)', '🦠',
+    statsNoData('(el registro de microbiología no clasifica la infección por dispositivo)'));
+
+  // ---- Germenes mas frecuentes (micro Resultado con estado Resultado) ----
+  var germs = [];
+  pts.forEach(function(p){
+    (p.micro||[]).forEach(function(m){
+      if(m && m.resultado && m.resultado.trim()!=='') germs.push(m.resultado);
+    });
+  });
+  var germTop = statsTopCounts(germs, 8);
+  var germCard = statsCard('Gérmenes más frecuentes', '🧫',
+    statsBarChart(germTop, 'var(--purple)'),
+    germTop.length ? 'Desde microbiología (Resultado/Germen).' : '(requiere registrar Resultado/Germen en microbiología)');
+
+  // ---- Resistencias (parse de sens buscando R / Resistente) ----
+  var resList = [];
+  pts.forEach(function(p){
+    (p.micro||[]).forEach(function(m){
+      if(!m || !m.sens) return;
+      var s = m.sens;
+      // tokens tipo "R: cefalosporinas" o palabras con Resistente
+      var re = /resistente\s*a?\s*[:\-]?\s*([a-záéíóúñ ]+)/gi, mm;
+      var found = false;
+      while((mm = re.exec(s))!==null){ resList.push(mm[1].trim()); found=true; }
+      if(!found && /(^|\b)r\b|resist/i.test(s)){
+        // registro genérico de resistencia sin germen parseable
+        resList.push('Resistencia (sin especificar)');
+      }
+    });
+  });
+  var resTop = statsTopCounts(resList, 8);
+  var resCard = statsCard('Resistencias', '⚠️',
+    statsBarChart(resTop, 'var(--red)'),
+    resTop.length ? 'Extraído del campo Sensibilidad de microbiología.' : '(requiere registrar Sensibilidad/Resistencia en microbiología)');
+
+  // ---- Antibioticos top 5 ----
+  var atbs = [];
+  pts.forEach(function(p){
+    (p.atb||[]).forEach(function(a){ if(a && a.atb && a.atb.trim()!=='') atbs.push(a.atb); });
+  });
+  var atbTop = statsTopCounts(atbs, 5);
+  var atbCard = statsCard('Antibióticos más utilizados (top 5)', '💊',
+    statsBarChart(atbTop, 'var(--green)'),
+    atbTop.length ? null : '(requiere registrar antibióticos en la ficha)');
+
+  var secClinicas =
+    '<div class="stats-section-title">Estadísticas clínicas</div>'+
+    '<div class="section-grid stats-grid">'+ sofaCard + armCard +'</div>'+
+    '<div class="section-grid stats-grid">'+ iaasCard + germCard +'</div>'+
+    '<div class="section-grid stats-grid">'+ resCard + atbCard +'</div>';
+
+  // ================= PROCEDIMIENTOS =================
+  // Modelo tiene: vvc_sitio/vvc_fecha (CVC), via_art/art_fecha (linea arterial),
+  // sng, sonda_v, dren. NO tiene traqueostomia ni broncoscopia.
+  var cntVVC = pts.filter(function(p){return (p.vvc_sitio&&p.vvc_sitio.trim()!=='')||(p.vvc_fecha&&p.vvc_fecha.trim()!=='');}).length;
+  var cntArt = pts.filter(function(p){return (p.via_art&&p.via_art.trim()!=='')||(p.art_fecha&&p.art_fecha.trim()!=='');}).length;
+  var cntSng = pts.filter(function(p){return p.sng&&p.sng.trim()!=='';}).length;
+  var cntSv  = pts.filter(function(p){return p.sonda_v&&p.sonda_v.trim()!=='';}).length;
+  var cntDren= pts.filter(function(p){return p.dren&&p.dren.trim()!=='';}).length;
+  var accItems = [
+    {label:'Acceso venoso central (CVC)', count:cntVVC},
+    {label:'Línea arterial', count:cntArt},
+    {label:'Sonda nasogástrica', count:cntSng},
+    {label:'Sonda vesical', count:cntSv},
+    {label:'Drenajes', count:cntDren}
+  ].filter(function(x){return x.count>0;});
+  var accCard = statsCard('Accesos vasculares y dispositivos', '💉',
+    statsBarChart(accItems, 'var(--orange)'),
+    accItems.length ? 'Desde campos de accesos de la ficha.' : '(requiere registrar accesos en la ficha)');
+  var traqCard = statsCard('Traqueostomías y broncoscopías', '🔬',
+    statsNoData('(no existen campos de traqueostomía ni broncoscopía en el modelo)'));
+
+  var secProc =
+    '<div class="stats-section-title">Estadísticas de procedimientos</div>'+
+    '<div class="section-grid stats-grid">'+ accCard + traqCard +'</div>';
+
+  // ================= INDICADORES DE CALIDAD =================
+  // Dias sin infeccion asociada: derivamos "dias desde ultima micro con Resultado".
+  var lastMicro = null;
+  pts.forEach(function(p){
+    (p.micro||[]).forEach(function(m){
+      if(m && m.fecha && (m.estado==='Resultado' || (m.resultado&&m.resultado.trim()!==''))){
+        if(!lastMicro || m.fecha > lastMicro) lastMicro = m.fecha;
+      }
+    });
+  });
+  var qiRows = [];
+  var diasSinInf, diasSinEstado, diasSinBody;
+  if(lastMicro){
+    diasSinInf = statsDaysBetween(lastMicro);
+    diasSinEstado = diasSinInf>=14 ? 'green' : diasSinInf>=7 ? 'yellow' : 'red';
+    diasSinBody = statsBigNum(diasSinInf, ' días')+'<div class="stats-note">Desde último cultivo con resultado ('+esc(lastMicro)+').</div>';
+    qiRows.push({ind:'Días sin cultivo positivo/resultado', val:diasSinInf+' días', estado:diasSinEstado});
+  } else {
+    diasSinEstado = 'none';
+    diasSinBody = statsNoData('(requiere cultivos con Resultado y fecha en microbiología)');
+    qiRows.push({ind:'Días sin infección asociada', val:'Sin datos', estado:'none'});
+  }
+  var diasSinCard = statsCard('Días sin infección asociada '+statsSemaforo(diasSinEstado), '🛡',
+    diasSinBody,
+    'Aproximación: no hay clasificación formal de IAAS en el modelo.');
+
+  var bundlesCard = statsCard('Compliance con bundles '+statsSemaforo('none'), '📋',
+    statsNoData('(no existe campo de checklist/bundles en la ficha)'));
+  qiRows.push({ind:'Compliance con bundles', val:'Sin datos', estado:'none'});
+
+  // Nutricion enteral: modelo tiene nutr_via/nutr_cal... pero no fecha de inicio.
+  var conNutr = pts.filter(function(p){return p.nutr_via&&p.nutr_via.trim()!=='';}).length;
+  var nutrEstado = 'none';
+  var nutrBody = statsNoData('(el modelo no registra la fecha/hora de inicio de nutrición enteral)');
+  var nutrExtra = conNutr>0 ? ('Pacientes con vía nutricional registrada: '+conNutr+'.') : null;
+  var nutrCard = statsCard('Tiempo hasta inicio de nutrición enteral '+statsSemaforo(nutrEstado), '🍽',
+    nutrBody, nutrExtra);
+  qiRows.push({ind:'Tiempo hasta nutrición enteral', val:'Sin datos', estado:'none'});
+
+  var secCalidad =
+    '<div class="stats-section-title">Indicadores de calidad</div>'+
+    '<div class="section-grid stats-grid">'+ diasSinCard + bundlesCard +'</div>'+
+    '<div class="section-grid stats-grid">'+ nutrCard +'</div>';
+
+  // ---- Tabla resumen con semaforo ----
+  var resumenRows = qiRows.map(function(r){
+    return '<tr><td>'+esc(r.ind)+'</td><td>'+esc(r.val)+'</td><td style="text-align:center;font-size:15px">'+statsSemaforo(r.estado)+'</td></tr>';
+  }).join('');
+  var resumenTable =
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>🚦</span>Resumen de indicadores</h4>'+
+      '<table class="mini-tbl"><thead><tr><th>Indicador</th><th>Valor</th><th style="text-align:center">Estado</th></tr></thead><tbody>'+
+      resumenRows +
+      '</tbody></table>'+
+      '<div class="stats-note">🟢 óptimo · 🟡 atención · 🔴 crítico · ⚪ sin datos</div>'+
+    '</div>';
+
+  var header =
+    '<div class="stats-header">'+
+      '<h3 style="margin:0;font-size:16px;color:var(--text)">📊 Estadísticas de la unidad</h3>'+
+      '<div class="stats-caption">'+esc(scopeCaption)+' · '+pts.length+' paciente(s) real(es).</div>'+
+    '</div>';
+
+  panel.innerHTML =
+    '<div class="stats-wrap">'+
+      header +
+      secPacientes +
+      secClinicas +
+      secProc +
+      secCalidad +
+      resumenTable +
+    '</div>';
+}
+
 function showMainTab(tab, btn){
-  ['panelCamas','panelPacientes','panelRefs','panelVade','panelCalc'].forEach(function(id){
+  ['panelCamas','panelPacientes','panelRefs','panelVade','panelCalc','panelStats'].forEach(function(id){
     var el=document.getElementById(id);
     el.style.display='none'; el.style.flexDirection='';
   });
   document.querySelectorAll('.main-tab').forEach(function(b){b.classList.remove('active');});
   if(btn) btn.classList.add('active');
-  var map={camas:'panelCamas',pacientes:'panelPacientes',refs:'panelRefs',vade:'panelVade',calc:'panelCalc'};
+  var map={camas:'panelCamas',pacientes:'panelPacientes',refs:'panelRefs',vade:'panelVade',calc:'panelCalc',stats:'panelStats'};
   var el=document.getElementById(map[tab]);
   if(tab==='pacientes'||tab==='refs'){ el.style.display='flex'; el.style.flexDirection='column'; }
   else { el.style.display='block'; }
@@ -676,6 +1126,7 @@ function showMainTab(tab, btn){
   if(tab==='calc') renderCalc();
   if(tab==='camas') renderBeds();
   if(tab==='pacientes') renderPatientTabs();
+  if(tab==='stats') renderEstadisticas();
 }
 
 // ===== BEDS =====
@@ -737,16 +1188,16 @@ function renderActivePatient(){
   c.innerHTML =
   '<div class="inner-tabs">'+
     '<button class="inner-tab active" onclick="showInner(\'datos\',this)">\uD83D\uDCCB Datos</button>'+
-    '<button class="inner-tab" onclick="showInner(\'hemo\',this)">\u2764\uFE0F Hemo</button>'+
-    '<button class="inner-tab" onclick="showInner(\'labs\',this)">\uD83E\uDDEA Labs</button>'+
-    '<button class="inner-tab" onclick="showInner(\'scores\',this)">\uD83D\uDCCA Scores</button>'+
-    '<button class="inner-tab" onclick="showInner(\'vent\',this)">\uD83D\uDCA8 Ventilacion</button>'+
+    '<button class="inner-tab" onclick="showInner(\'evol\',this)">\uD83D\uDCDD Evoluci\u00F3n</button>'+
+    '<button class="inner-tab" onclick="showInner(\'vent\',this)">\uD83D\uDCA8 Ventilaci\u00F3n</button>'+
+    '<button class="inner-tab" onclick="showInner(\'hemo\',this)">\u2764\uFE0F CV</button>'+
     '<button class="inner-tab" onclick="showInner(\'drugs\',this)">\uD83D\uDC8A Drogas</button>'+
     '<button class="inner-tab" onclick="showInner(\'balance\',this)">\u2696\uFE0F Balance</button>'+
-    '<button class="inner-tab" onclick="showInner(\'nutr\',this)">\uD83E\uDD57 Nutricion</button>'+
     '<button class="inner-tab" onclick="showInner(\'accesos\',this)">\uD83E\uDE7A Accesos</button>'+
-    '<button class="inner-tab" onclick="showInner(\'imagenes\',this)">\uD83D\uDDBC\uFE0F Imagenes</button>'+
-    '<button class="inner-tab" onclick="showInner(\'evol\',this)">\uD83D\uDCDD Evolucion</button>'+
+    '<button class="inner-tab" onclick="showInner(\'nutr\',this)">\uD83E\uDD57 Nutrici\u00F3n</button>'+
+    '<button class="inner-tab" onclick="showInner(\'labs\',this)">\uD83E\uDDEA Labs</button>'+
+    '<button class="inner-tab" onclick="showInner(\'imagenes\',this)">\uD83D\uDDBC\uFE0F Im\u00E1genes</button>'+
+    '<button class="inner-tab" onclick="showInner(\'scores\',this)">\uD83D\uDCCA Scores</button>'+
   '</div>'+
 
   '<div id="inner-datos" class="inner-panel active">'+
@@ -762,7 +1213,9 @@ function renderActivePatient(){
       '</div>'+
       '<div class="section-card">'+
         '<h4><span>\uD83D\uDCCB</span>Antecedentes</h4>'+
-        '<textarea id="f-antecedentes" rows="9" placeholder="HTA, DBT, cirugias previas, alergias...">'+p.antecedentes+'</textarea>'+
+        '<textarea id="f-antecedentes" rows="4" placeholder="HTA, DBT, cirugias previas, alergias...">'+p.antecedentes+'</textarea>'+
+        '<label style="display:block;margin-top:10px;font-size:12px;color:var(--muted)">Ingreso (motivo / resumen HC)</label>'+
+        '<textarea id="f-ingresohc" rows="6" placeholder="Motivo de ingreso, resumen de la historia clinica...">'+esc(p.ingresohc||'')+'</textarea>'+
       '</div>'+
     '</div>'+
     '<div class="btn-row">'+
@@ -972,7 +1425,7 @@ function renderActivePatient(){
       '</div>'+
       '<div class="section-card">'+
         '<h4><span>\u2B07\uFE0F</span>Egresos (mL)</h4>'+
-        '<div class="field-group"><label>Uresis</label><input id="f-eg-ur" type="number" value="'+p.eg_ur+'" oninput="calcBalance()"></div>'+
+        '<div class="field-group"><label>Diuresis</label><input id="f-eg-ur" type="number" value="'+p.eg_ur+'" oninput="calcBalance()"></div>'+
         '<div class="field-group" style="margin-top:8px"><label>SNG/drenajes</label><input id="f-eg-sg" type="number" value="'+p.eg_sg+'" oninput="calcBalance()"></div>'+
         '<div class="field-group" style="margin-top:8px"><label>Otros/perdidas insensibles</label><input id="f-eg-otros" type="number" value="'+p.eg_otros+'" oninput="calcBalance()"></div>'+
       '</div>'+
@@ -1203,7 +1656,7 @@ function readPatientForm(idx){
   var p=state.patients[idx];
   function gv(id){var el=document.getElementById(id);return el?el.value:'';}
   p.name=gv('f-name');p.age=gv('f-age');p.ci=gv('f-ci');p.sex=gv('f-sex');p.weight=gv('f-weight');p.height=gv('f-height');
-  p.dx=gv('f-dx');p.ingreso=gv('f-ingreso');p.antecedentes=gv('f-antecedentes');
+  p.dx=gv('f-dx');p.ingreso=gv('f-ingreso');p.antecedentes=gv('f-antecedentes');p.ingresohc=gv('f-ingresohc');
   p.pas=gv('f-pas');p.pad=gv('f-pad');p.fc=gv('f-fc');p.fr=gv('f-fr');p.temp=gv('f-temp');p.spo2=gv('f-spo2');
   p.hb=gv('f-hb');p.leucos=gv('f-leucos');p.plaquetas=gv('f-plaquetas');
   p.creat=gv('f-creat');p.urea=gv('f-urea');p.na=gv('f-na');p.k=gv('f-k');p.cl=gv('f-cl');p.hco3=gv('f-hco3');
@@ -1690,7 +2143,12 @@ function buildPDF(jsPDF, p){
 
   // ---- pie ----
   ck(10); doc.setFontSize(7.5); doc.setTextColor(muted[0],muted[1],muted[2]);
-  doc.text('UCI Dashboard - Documento de apoyo clinico generado localmente. No reemplaza el juicio medico ni la HC oficial.',M,PH-8);
+  doc.text('UCI - Documento de apoyo clinico generado localmente. No reemplaza el juicio medico ni la HC oficial.',M,PH-8);
+
+  // ---- copyright en todas las paginas ----
+  var _tp=doc.internal.getNumberOfPages(), _cw=doc.internal.pageSize.getWidth();
+  for(var _p=1;_p<=_tp;_p++){ doc.setPage(_p); doc.setFontSize(7); doc.setTextColor(150,150,150);
+    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', _cw/2, PH-3, {align:'center'}); }
 
   var tag=(p.name||('cama'+p.bed)).replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
   doc.save('resumen_'+tag+'_'+now.toISOString().slice(0,10)+'.pdf');
@@ -1736,7 +2194,8 @@ function exportStructuredPDFprint(p){
     sec('Sistemas fisiologicos',sisHtml)+
     sec('Conductas / Gasometria / Paraclinica',cols)+
     sec('Microbiologia / Antibioticos',mAtb)+
-    '<p style="margin-top:20px;font-size:8pt;color:#888;border-top:1px solid #ddd;padding-top:6px">UCI Dashboard - Documento de apoyo clinico. No reemplaza el juicio medico ni la HC oficial.</p>'+
+    '<p style="margin-top:20px;font-size:8pt;color:#888;border-top:1px solid #ddd;padding-top:6px">UCI - Documento de apoyo clinico. No reemplaza el juicio medico ni la HC oficial.</p>'+
+    '<p style="font-size:8pt;color:#aaa;text-align:center;margin-top:4px">© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clínico exclusivo</p>'+
     '<button onclick="window.print()">Imprimir / Guardar PDF</button></body></html>';
   var w=window.open('','_blank');
   if(!w){ alert('Permita ventanas emergentes para generar el PDF.'); return; }
