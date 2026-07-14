@@ -351,13 +351,15 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
   <div class="main-tabs">
     <button class="main-tab active" onclick="showMainTab('camas',this)">🛏 Camas</button>
     <button class="main-tab" onclick="showMainTab('pacientes',this)">👤 Pacientes</button>
+    <button class="main-tab" onclick="showMainTab('alertas',this)">🚨 Alertas <span id="alertBadge" style="display:none;font-weight:800;color:var(--red);margin-left:2px"></span></button>
     <button class="main-tab" onclick="showMainTab('egresados',this)">🗂️ Egresados</button>
-    <button class="main-tab" onclick="showMainTab('refs',this)">📚 Referencias</button>
     <button class="main-tab" onclick="showMainTab('vade',this)">💊 Vademécum</button>
     <button class="main-tab" onclick="showMainTab('calc',this)">🧮 Calculadoras</button>
-    <button class="main-tab" onclick="showMainTab('stats',this)">📊 Estadísticas</button>
-    <button class="main-tab" onclick="showMainTab('costos',this)">💰 Costos</button>
-    <button class="main-tab" onclick="showMainTab('alertas',this)">🚨 Alertas <span id="alertBadge" style="display:none;font-weight:800;color:var(--red);margin-left:2px"></span></button>
+    <button class="main-tab" onclick="showMainTab('refs',this)">📚 Referencias</button>
+    <div style="margin-left:auto;display:flex;gap:0;padding-left:12px;border-left:1px solid var(--border)">
+      <button class="main-tab" onclick="showMainTab('stats',this)">📊 Estadísticas</button>
+      <button class="main-tab" onclick="showMainTab('costos',this)">💰 Costos</button>
+    </div>
   </div>
   <div id="panelCamas" style="display:block">
     <div class="beds-header">
@@ -406,6 +408,11 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <h3 style="flex:1;margin:0">📋 Traspaso de Guardia</h3>
       <button class="btn btn-outline btn-sm" onclick="document.getElementById('modalTraspaso').style.display='none'">Cerrar</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button class="btn btn-sm" id="tmodo-narrativo" onclick="setTraspasoModo('narrativo')">📝 Narrativo</button>
+      <button class="btn btn-sm" id="tmodo-paraclinica" onclick="setTraspasoModo('paraclinica')">🧪 Paraclínica</button>
+      <button class="btn btn-sm" id="tmodo-completo" onclick="setTraspasoModo('completo')">📚 Completo</button>
     </div>
     <div id="traspasoContent" style="font-size:12px;line-height:1.6;max-height:56vh;overflow-y:auto;border:1px solid var(--border);border-radius:var(--rs);padding:12px;background:var(--surface2)"></div>
     <div class="modal-actions">
@@ -695,6 +702,24 @@ function emptyPatient(bed){
     resp_oaf:'', resp_oaf_dias:'', resp_iot_previa:'', resp_traqueo:'', resp_traqueo_fecha:'', resp_fevi:'',
     // Datos infecciosos
     inf_neumo_ag:'', inf_covid:'', inf_ira:'', inf_ira_kdigo:'', inf_vasopresores:'',
+    // === NUEVO P8: gasometria ampliada (fuente unica de iones/EAB) ===
+    be:'', ag_result:'', eab_result:'',
+    // === NUEVO P14: laboratorio ampliado ===
+    ca:'', mg:'', tfg_calc:'',
+    crasis_kptt:'', crasis_inr:'',
+    hierro:'', transferrina:'', ferritina:'', sat_transf:'',
+    tsh:'', t4l:'', pcr:'', ves:'', pct:'', cpk:'', troponina:'',
+    // === NUEVO P10bis: perfusion periferica ===
+    perfusion:'',
+    // === NUEVO P11: ecocardio (historico dia a dia) ===
+    ecocardios:[],       // [{fecha,fevi,vs,ic,gc,rvs,psap,vci,patron,valvulopatias}]
+    // === NUEVO P12: diuresis con hora (ml/h) y drenajes multiples ===
+    diuresis:[],         // [{fecha,hora,vol,mlh}]
+    drenajes:[],         // [{nombre,gasto}]
+    // === NUEVO P13: sedoanalgesia ampliada ===
+    sedo_mg:'', sedo_vol:'',
+    // === NUEVO P16: snapshot diario para gráfico de evolución ===
+    evolHist:{},         // { 'YYYY-MM-DD': {pas,pad,nora,diu,temp,pafi,peep,lac,gcs} }
     // === INDICACIONES DIARIAS ===
     indicaciones:{},
     // === PARACLÍNICA DIARIA (solicitud) ===
@@ -720,26 +745,26 @@ function _seedComorb(base){
 // ===== COMORBILIDADES + CHARLSON =====
 // charlson = peso del índice de comorbilidad de Charlson (0 si no aplica)
 var COMORB = [
-  {k:'erc_dial',    label:'ERC en diálisis',                     charlson:2},
-  {k:'erc_nodial',  label:'ERC sin diálisis',                    charlson:2},
-  {k:'tumor_loco',  label:'Tumor sólido loco-regional',          charlson:2},
-  {k:'tumor_meta',  label:'Tumor sólido con metástasis',         charlson:6},
-  {k:'inmunodef',   label:'Inmunodeficiencia/inmunosupresión',   charlson:0},
-  {k:'vih',         label:'VIH/SIDA',                            charlson:6},
-  {k:'hta',         label:'HTA',                                 charlson:0},
-  {k:'dbt',         label:'Diabetes mellitus',                   charlson:1},
-  {k:'arritmias',   label:'Arritmias',                           charlson:0},
-  {k:'tvp_tep',     label:'TVP/TEP previo',                      charlson:0},
-  {k:'aoc',         label:'Arteriopatía obstructiva crónica',    charlson:1},
-  {k:'alcohol',     label:'Alcoholismo',                         charlson:0},
-  {k:'fa',          label:'Fibrilación auricular',               charlson:0},
-  {k:'psiq',        label:'Patología psiquiátrica',              charlson:0},
-  {k:'obesidad',    label:'Obesidad mórbida (IMC >40)',          charlson:0},
-  {k:'tabaco',      label:'Tabaquismo activo',                   charlson:0},
-  {k:'falla_resp',  label:'Falla respiratoria crónica',          charlson:1},
-  {k:'icc',         label:'Insuficiencia cardíaca crónica',      charlson:1},
-  {k:'hepato',      label:'Hepatopatía crónica',                 charlson:1},
-  {k:'demencia',    label:'Demencia',                            charlson:1}
+  {k:'hta',         label:'HTA',                                 charlson:0, cat:'Cardiovascular'},
+  {k:'arritmias',   label:'Arritmias',                           charlson:0, cat:'Cardiovascular'},
+  {k:'fa',          label:'Fibrilación auricular',               charlson:0, cat:'Cardiovascular'},
+  {k:'icc',         label:'Insuficiencia cardíaca crónica',      charlson:1, cat:'Cardiovascular'},
+  {k:'aoc',         label:'Arteriopatía obstructiva crónica',    charlson:1, cat:'Cardiovascular'},
+  {k:'tvp_tep',     label:'TVP/TEP previo',                      charlson:0, cat:'Cardiovascular'},
+  {k:'falla_resp',  label:'Falla respiratoria crónica',          charlson:1, cat:'Respiratorio'},
+  {k:'erc_dial',    label:'ERC en diálisis',                     charlson:2, cat:'Renal'},
+  {k:'erc_nodial',  label:'ERC sin diálisis',                    charlson:2, cat:'Renal'},
+  {k:'dbt',         label:'Diabetes mellitus',                   charlson:1, cat:'Metabólico / hábitos'},
+  {k:'obesidad',    label:'Obesidad mórbida (IMC >40)',          charlson:0, cat:'Metabólico / hábitos'},
+  {k:'alcohol',     label:'Alcoholismo',                         charlson:0, cat:'Metabólico / hábitos'},
+  {k:'tabaco',      label:'Tabaquismo activo',                   charlson:0, cat:'Metabólico / hábitos'},
+  {k:'tumor_loco',  label:'Tumor sólido loco-regional',          charlson:2, cat:'Oncohematológico / inmune'},
+  {k:'tumor_meta',  label:'Tumor sólido con metástasis',         charlson:6, cat:'Oncohematológico / inmune'},
+  {k:'vih',         label:'VIH/SIDA',                            charlson:6, cat:'Oncohematológico / inmune'},
+  {k:'inmunodef',   label:'Inmunodeficiencia/inmunosupresión',   charlson:0, cat:'Oncohematológico / inmune'},
+  {k:'hepato',      label:'Hepatopatía crónica',                 charlson:1, cat:'Hepatodigestivo'},
+  {k:'demencia',    label:'Demencia',                            charlson:1, cat:'Neuropsiquiátrico'},
+  {k:'psiq',        label:'Patología psiquiátrica',              charlson:0, cat:'Neuropsiquiátrico'}
 ];
 // Puntos por edad (Charlson): 50-59=1,60-69=2,70-79=3,80-89=4,>=90=5
 function charlsonAgePoints(age){
@@ -909,6 +934,26 @@ function exportWord(){
 
   var evol = (p.evolucion && p.evolucion.trim()) ? esc(p.evolucion).replace(/\n/g,'<br>') : '<span class="none">Sin nota de evolucion.</span>';
 
+  // -- P20: estructura común para igualar el PDF --
+  var RD = buildPatientReportData(p);
+  var apacheTxt = hasVal(p.ap_total)?p.ap_total:'-';
+  var charlsonTxt = hasVal(RD.charlson)?RD.charlson:'-';
+  function listRow(title,arr){ return arr.length ? ('<p><b>'+esc(title)+':</b> '+arr.map(function(g){return esc(g[0])+' '+esc(g[1]);}).join(' &nbsp;·&nbsp; ')+'</p>') : ''; }
+  var neuroHtml='';
+  if(hasVal(RD.gcs)||RD.pupilas.length){ neuroHtml='<h2>Neurológico</h2><table>'+row('GCS',hasVal(RD.gcs)?RD.gcs:'-')+row('Pupilas',RD.pupilas.length?RD.pupilas.join(' · '):'-')+'</table>'; }
+  var vhHtml = RD.ventHemo.length ? ('<h2>Estado ventilación / hemodinamia</h2><p>'+esc(RD.ventHemo.join(' · '))+'</p>') : '';
+  var sisHtml = RD.sis.length ? ('<h2>Sistemas fisiológicos</h2><table>'+RD.sis.map(function(s){return row(s[0],s[1]);}).join('')+'</table>') : '';
+  var conductasHtml = hasVal(p.sis_conductas) ? ('<h2>Conductas del día</h2><p>'+esc(p.sis_conductas).replace(/\n/g,'<br>')+'</p>') : '';
+  var gasoHtml = RD.gaso.length ? ('<h2>Gasometría</h2><p>'+RD.gaso.map(function(g){return '<b>'+esc(g[0])+':</b> '+esc(g[1]);}).join(' &nbsp;·&nbsp; ')+'</p>') : '';
+  var labsHtml = RD.labs.length ? ('<h2>Laboratorio del día</h2><p>'+RD.labs.map(function(g){return '<b>'+esc(g[0])+':</b> '+esc(g[1]);}).join(' &nbsp;·&nbsp; ')+'</p>') : '';
+  var ecoHtml = RD.ecocardios.length ? ('<h2>Ecocardio (evolución)</h2><table class="tb"><tr><th>Fecha</th><th>FEVI</th><th>VS</th><th>IC</th><th>GC</th><th>RVS</th><th>PSAP</th><th>VCI</th><th>Patrón</th><th>Valvulopatías</th></tr>'+RD.ecocardios.map(function(e){return '<tr><td>'+esc(e.fecha)+'</td><td>'+esc(e.fevi||'-')+'</td><td>'+esc(e.vs||'-')+'</td><td>'+esc(e.ic||'-')+'</td><td>'+esc(e.gc||'-')+'</td><td>'+esc(e.rvs||'-')+'</td><td>'+esc(e.psap||'-')+'</td><td>'+esc(e.vci||'-')+'</td><td>'+esc(e.patron||'-')+'</td><td>'+esc(e.valvulopatias||'-')+'</td></tr>';}).join('')+'</table>') : '';
+  var atbHtml = RD.atb.length ? ('<h2>Antibióticos</h2><table class="tb"><tr><th>ATB</th><th>Dosis</th><th>Inicio</th><th>Suspensión/Cambio</th><th>Motivo</th></tr>'+RD.atb.map(function(a){return '<tr><td>'+esc(a.atb)+'</td><td>'+esc(a.dosis||'-')+'</td><td>'+esc(a.inicio||'-')+'</td><td>'+esc(a.fin||'-')+'</td><td>'+esc(a.motivo||'-')+'</td></tr>';}).join('')+'</table>') : '';
+  var microHtml = RD.micro.length ? ('<h2>Microbiología</h2><table class="tb"><tr><th>Fecha</th><th>Muestra</th><th>Resultado/Germen</th><th>Sensibilidad</th><th>Estado</th></tr>'+RD.micro.map(function(m){return '<tr><td>'+esc(m.fecha||'-')+'</td><td>'+esc(m.muestra||'-')+'</td><td>'+esc(m.resultado||'-')+'</td><td>'+esc(m.sens||'-')+'</td><td>'+esc(m.estado||'-')+'</td></tr>';}).join('')+'</table>') : '';
+  var paraHtml=''; try{ var pm=paraMatrix(p); if(pm.rows.length){ paraHtml='<h2>Paraclínica — evolución por fechas</h2><table class="tb"><tr><th>Parámetro</th>'+pm.dates.map(function(d){return '<th>'+(d===pm.today?'HOY':esc(d.slice(8,10)+'/'+d.slice(5,7)))+'</th>';}).join('')+'</tr>'+pm.rows.map(function(r){return '<tr><td>'+esc(r.label)+'</td>'+r.values.map(function(v){return '<td>'+esc(v||'')+'</td>';}).join('')+'</tr>';}).join('')+'</table>'; } }catch(e){}
+  var bundleHtml = RD.bundleToday ? ('<h2>Bundle de prevención (hoy)</h2><p>'+RD.bundleToday.map(function(b){return (b.ok?'☑':'☐')+' '+esc(b.label);}).join(' &nbsp; ')+'</p>') : '';
+  var comorbHtml = (RD.comorb.length||hasVal(RD.charlson)) ? ('<h2>Comorbilidades</h2><p>'+(RD.comorb.length?esc(RD.comorb.join(', ')):'-')+'</p><p><b>Índice de Charlson:</b> '+esc(charlsonTxt)+'</p>') : '';
+  var apHc = (hasVal(p.antecedentes)||hasVal(p.ingresohc)) ? ('<h2>Antecedentes e ingreso</h2>'+(hasVal(p.antecedentes)?'<p><b>Antecedentes:</b> '+esc(p.antecedentes).replace(/\n/g,'<br>')+'</p>':'')+(hasVal(p.ingresohc)?'<p><b>Ingreso (motivo/resumen HC):</b> '+esc(p.ingresohc).replace(/\n/g,'<br>')+'</p>':'')) : '';
+
   // -- documento Word --
   var doc = ''+
   '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'+
@@ -932,23 +977,42 @@ function exportWord(){
   '<h2>Datos del paciente</h2>'+
   '<table>'+
   row('Nombre', p.name)+
-  row('Edad', p.age?(p.age+' anios'):'-')+
+  row('Edad', p.age?(p.age+' a\u00F1os'):'-')+
   row('Sexo', sexo)+
   row('Peso real', p.weight?(p.weight+' kg'):'-')+
   row('Talla', p.height?(p.height+' cm'):'-')+
   row('Peso predicho (PBW)', pbwTxt)+
   row('Diagnostico', p.dx)+
   row('Fecha de ingreso', p.ingreso)+
+  (RD.diasInternacion!==''?row('Días de internación', RD.diasInternacion+' d'):'')+
   '</table>'+
+
+  apHc+
 
   '<h2>Scores</h2>'+
   '<table>'+
   row('SOFA', sofa)+
+  row('APACHE II', apacheTxt)+
   row('Padua (TEV)', (padua!=='-'?padua+paduaInterp:'-'))+
+  row('Charlson', charlsonTxt)+
   '</table>'+
+
+  neuroHtml+
+  vhHtml+
+  sisHtml+
+  conductasHtml+
+  gasoHtml+
+  labsHtml+
 
   '<h2>Medicacion activa</h2>'+
   drugsHtml+
+
+  ecoHtml+
+  atbHtml+
+  microHtml+
+  paraHtml+
+  bundleHtml+
+  comorbHtml+
 
   '<h2>Evolucion</h2>'+
   '<p>'+evol+'</p>'+
@@ -1896,13 +1960,20 @@ function renderActivePatient(){
   var p = state.patients[state.activeBed];
   var c = document.getElementById('ptContent');
   var ab = state.activeBed;
+  // Defensa: arrays nuevos que pueden faltar en pacientes guardados antes de esta versión
+  if(!Array.isArray(p.ecocardios)) p.ecocardios=[];
+  if(!Array.isArray(p.diuresis)) p.diuresis=[];
+  if(!Array.isArray(p.drenajes)) p.drenajes=[];
+  if(!p.evolHist || typeof p.evolHist!=='object') p.evolHist={};
+  // Vasopresores: valor auto-detectado por medicación (P6/P10bis)
+  var vasoAuto = detectVasopresores(p);
+  var vasoSel = hasVal(p.inf_vasopresores) ? p.inf_vasopresores : (vasoAuto?'Sí':'');
+  var vasoNote = vasoAuto ? ' <span style="color:var(--teal);font-size:11px">(auto)</span>' : '';
   c.innerHTML =
   '<div class="inner-tabs">'+
     '<button class="inner-tab active" onclick="showInner(\'datos\',this)">\uD83D\uDCCB Datos</button>'+
-    '<button class="inner-tab" onclick="showInner(\'evol\',this)">\uD83D\uDCDD Evoluci\u00F3n</button>'+
     '<button class="inner-tab" onclick="showInner(\'vent\',this)">\uD83D\uDCA8 Ventilaci\u00F3n</button>'+
     '<button class="inner-tab" onclick="showInner(\'hemo\',this)">\u2764\uFE0F CV</button>'+
-    '<button class="inner-tab" onclick="showInner(\'drugs\',this)">\uD83D\uDC8A Drogas</button>'+
     '<button class="inner-tab" onclick="showInner(\'balance\',this)">\u2696\uFE0F Balance</button>'+
     '<button class="inner-tab" onclick="showInner(\'accesos\',this)">\uD83E\uDE7A Accesos</button>'+
     '<button class="inner-tab" onclick="showInner(\'nutr\',this)">\uD83E\uDD57 Nutrici\u00F3n</button>'+
@@ -1910,16 +1981,24 @@ function renderActivePatient(){
     '<button class="inner-tab" onclick="showInner(\'labs\',this)">\uD83E\uDDEA Labs</button>'+
     '<button class="inner-tab" onclick="showInner(\'imagenes\',this)">\uD83D\uDDBC\uFE0F Im\u00E1genes</button>'+
     '<button class="inner-tab" onclick="showInner(\'scores\',this)">\uD83D\uDCCA Scores</button>'+
+    '<button class="inner-tab" onclick="showInner(\'evol\',this)">\uD83D\uDCC9 Evoluci\u00F3n</button>'+
     '<button class="inner-tab" onclick="showInner(\'proced\',this)">\uD83D\uDD27 Procedimientos</button>'+
-    '<button class="inner-tab" onclick="showInner(\'indicaciones\',this)">\uD83D\uDC8A Indicaciones</button>'+
-    '<button class="inner-tab" onclick="showInner(\'paraorden\',this)">\uD83E\uDDEA Paracl\u00EDnica</button>'+
+    '<div style="margin-left:auto;display:flex;gap:4px;padding-left:10px;border-left:1px solid var(--border)">'+
+      '<button class="inner-tab" onclick="showInner(\'indicaciones\',this)">\uD83D\uDC8A Indicaciones</button>'+
+      '<button class="inner-tab" onclick="showInner(\'paraorden\',this)">\uD83E\uDDEA Paracl\u00EDnica</button>'+
+    '</div>'+
   '</div>'+
 
   '<div id="inner-datos" class="inner-panel active">'+
+    '<div class="btn-row" style="justify-content:flex-end;margin-bottom:10px">'+
+      '<button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();renderBeds();alert(\'Guardado.\')">\uD83D\uDCBE Guardar</button>'+
+      '<button class="btn btn-sm" style="background:#0e7c66;color:#fff" onclick="askEgreso('+ab+')">\uD83D\uDEAA Egreso</button>'+
+      '<button class="btn btn-red btn-sm" onclick="askEgreso('+ab+')">\uD83D\uDDD1 Limpiar cama</button>'+
+    '</div>'+
     '<div class="section-grid">'+
       '<div class="section-card">'+
         '<h4><span>\uD83D\uDC64</span>Identificacion</h4>'+
-        '<div class="field-row"><div class="field-group"><label>Nombre completo</label><input id="f-name" value="'+p.name+'"></div><div class="field-group"><label>Edad</label><input id="f-age" value="'+p.age+'" placeholder="anios"></div></div>'+
+        '<div class="field-row"><div class="field-group"><label>Nombre completo</label><input id="f-name" value="'+p.name+'"></div><div class="field-group"><label>Edad</label><input id="f-age" value="'+p.age+'" placeholder="a\u00F1os"></div></div>'+
         '<div class="field-group" style="margin-top:8px"><label>CI</label><input id="f-ci" value="'+esc(p.ci)+'" placeholder="Cedula de identidad"></div>'+
         '<div class="field-row three"><div class="field-group"><label>Sexo</label><select id="f-sex" onchange="calcDerived('+ab+')"><option value="">-</option><option '+(p.sex==='M'?'selected':'')+'>M</option><option '+(p.sex==='F'?'selected':'')+'>F</option></select></div><div class="field-group"><label>Peso real (kg)</label><input id="f-weight" type="number" value="'+p.weight+'" oninput="calcDerived('+ab+')"></div><div class="field-group"><label>Talla (cm)</label><input id="f-height" type="number" value="'+p.height+'" oninput="calcDerived('+ab+')"></div></div>'+
         '<div class="field-group" style="margin-top:8px"><label>Diagnostico principal</label><input id="f-dx" value="'+p.dx+'"></div>'+
@@ -1937,14 +2016,51 @@ function renderActivePatient(){
         '<textarea id="f-antecedentes" rows="4" placeholder="HTA, DBT, cirugias previas, alergias...">'+p.antecedentes+'</textarea>'+
         '<label style="display:block;margin-top:10px;font-size:12px;color:var(--muted)">Ingreso (motivo / resumen HC)</label>'+
         '<textarea id="f-ingresohc" rows="6" placeholder="Motivo de ingreso, resumen de la historia clinica...">'+esc(p.ingresohc||'')+'</textarea>'+
+        '<label style="display:block;margin-top:10px;font-size:12px;color:var(--muted)">\uD83D\uDCDD Evoluci\u00F3n del d\u00EDa</label>'+
+        '<textarea id="f-evolucion" rows="6" placeholder="Evolucion clinica del dia...">'+p.evolucion+'</textarea>'+
       '</div>'+
     '</div>'+
-    comorbSectionHtml(p)+
-    dischargePanelHtml(p)+
-    '<div class="btn-row">'+
-      '<button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();renderBeds();alert(\'Guardado.\')">\uD83D\uDCBE Guardar</button>'+
-      '<button class="btn btn-sm" style="background:#0e7c66;color:#fff" onclick="askEgreso('+ab+')">\uD83D\uDEAA Egreso</button>'+
-      '<button class="btn btn-red btn-sm" onclick="askEgreso('+ab+')">\uD83D\uDDD1 Limpiar cama</button>'+
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>\uD83E\uDDE0</span>Nivel de conciencia</h4>'+
+      '<div class="field-row four">'+
+        '<div class="field-group"><label>Apertura ocular (1-4)</label><input id="f-gcs-o" type="number" min="1" max="4" value="'+esc(p.gcs_o)+'" oninput="calcGCS('+ab+')"></div>'+
+        '<div class="field-group"><label>Respuesta verbal (1-5)</label><input id="f-gcs-v" type="number" min="1" max="5" value="'+esc(p.gcs_v)+'" oninput="calcGCS('+ab+')"></div>'+
+        '<div class="field-group"><label>Respuesta motora (1-6)</label><input id="f-gcs-m" type="number" min="1" max="6" value="'+esc(p.gcs_m)+'" oninput="calcGCS('+ab+')"></div>'+
+        '<div class="field-group"><label>GCS total</label><div class="calc-val" id="cv-gcs">'+(p.gcs_total||'-')+'</div></div>'+
+      '</div>'+
+      '<div class="field-row four" style="margin-top:8px">'+
+        '<div class="field-group"><label>Pupila D - tama\u00F1o (mm)</label><input id="f-pup-d-mm" type="number" value="'+esc(p.pup_d_mm)+'"></div>'+
+        '<div class="field-group"><label>Pupila D - reactividad</label><select id="f-pup-d-react"><option value="">-</option><option '+(p.pup_d_react==='Reactiva'?'selected':'')+'>Reactiva</option><option '+(p.pup_d_react==='Lenta'?'selected':'')+'>Lenta</option><option '+(p.pup_d_react==='Arreactiva'?'selected':'')+'>Arreactiva</option></select></div>'+
+        '<div class="field-group"><label>Pupila I - tama\u00F1o (mm)</label><input id="f-pup-i-mm" type="number" value="'+esc(p.pup_i_mm)+'"></div>'+
+        '<div class="field-group"><label>Pupila I - reactividad</label><select id="f-pup-i-react"><option value="">-</option><option '+(p.pup_i_react==='Reactiva'?'selected':'')+'>Reactiva</option><option '+(p.pup_i_react==='Lenta'?'selected':'')+'>Lenta</option><option '+(p.pup_i_react==='Arreactiva'?'selected':'')+'>Arreactiva</option></select></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>\uD83E\uDDEC</span>Resumen por Sistemas Fisiologicos</h4>'+
+      '<div class="section-grid">'+
+        '<div class="field-group"><label>\uD83E\uDDE0 Neurologico</label><textarea id="f-sis-neuro" rows="3" placeholder="Sedacion, RASS, evolucion neurologica...">'+esc(p.sis_neuro)+'</textarea></div>'+
+        '<div class="field-group"><label>\u2764\uFE0F Hemodinamico + drogas</label><textarea id="f-sis-hemo" rows="3" placeholder="PAM, ritmo, vasoactivos/dosis...">'+esc(p.sis_hemo)+'</textarea></div>'+
+        '<div class="field-group"><label>\uD83D\uDCA8 Respiratorio + ventilador</label><textarea id="f-sis-resp" rows="3" placeholder="Modo VM, FiO2/PEEP, PaFi, destete...">'+esc(p.sis_resp)+'</textarea></div>'+
+        '<div class="field-group"><label>\uD83E\uDDA0 Infeccioso</label><textarea id="f-sis-infec" rows="3" placeholder="Fiebre, leucocitosis, secreciones, foco...">'+esc(p.sis_infec)+'</textarea></div>'+
+        '<div class="field-group"><label>\uD83E\uDE7A Accesos (con fechas)</label><textarea id="f-sis-accesos" rows="3" placeholder="VVC, VA, SV, SNG - fechas de colocacion...">'+esc(p.sis_accesos)+'</textarea></div>'+
+        '<div class="field-group"><label>\uD83E\uDD57 Metabolico / nutricional</label><textarea id="f-sis-metab" rows="3" placeholder="Glucemia, funcion renal, nutricion...">'+esc(p.sis_metab)+'</textarea></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>\u2705</span>Conducta del d\u00EDa</h4>'+
+      '<textarea id="f-sis-conductas" rows="4" placeholder="Plan y conductas del dia...">'+esc(p.sis_conductas)+'</textarea>'+
+    '</div>'+
+    '<div class="section-grid" style="margin-top:12px">'+
+      comorbSectionHtml(p)+
+      respAdmisionSectionHtml(p)+
+    '</div>'+
+    '<div class="section-grid" style="margin-top:12px">'+
+      dischargePanelHtml(p)+
+      '<div class="section-card">'+
+        '<h4><span>\u2705</span>Bundle de prevenci\u00F3n (checklist diario)</h4>'+
+        '<div id="bundleWrap"></div>'+
+        '<div style="font-size:11px;color:var(--muted);margin-top:6px">Toque cada \u00EDtem para alternar \uD83D\uDFE2 cumplido / \uD83D\uDD34 pendiente. Se guarda por fecha.</div>'+
+      '</div>'+
     '</div>'+
   '</div>'+
 
@@ -1963,7 +2079,50 @@ function renderActivePatient(){
         '<div class="field-group"><label>SpO2 (%)</label><input id="f-spo2" type="number" value="'+p.spo2+'"></div>'+
         '<div class="field-group"><label>Shock Index</label><div class="calc-val" id="cv-si">'+(p.shock_index||'-')+'</div></div>'+
       '</div>'+
+      '<div class="field-row three" style="margin-top:8px">'+
+        '<div class="field-group"><label>Lactato (mmol/L) <small style="color:var(--muted)">(auto Gaso)</small></label><div class="calc-val" id="cv-hemo-lac">'+(hasVal(p.lac)?esc(p.lac):'-')+'</div></div>'+
+        '<div class="field-group"><label>Perfusión periférica</label><select id="f-perfusion"><option value="">-</option>'+
+          ['Normal','Livideces','Relleno capilar enlentecido','Frío / moteado'].map(function(o){return '<option'+(p.perfusion===o?' selected':'')+'>'+esc(o)+'</option>';}).join('')+
+        '</select></div>'+
+        '<div class="field-group"><label>Requirió vasopresores'+vasoNote+'</label><select id="f-inf-vasopresores"><option value="">-</option><option'+(vasoSel==='Sí'?' selected':'')+'>Sí</option><option'+(vasoSel==='No'?' selected':'')+'>No</option></select></div>'+
+      '</div>'+
     '</div>'+
+    /* === Drogas vasoactivas (migradas desde la tab Drogas, P10bis) === */
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>💧</span>Calculadora de Infusión (gammas)</h4>'+
+      '<div class="field-row three">'+
+        '<div class="field-group"><label>Droga</label><input id="nd-drug" placeholder="Noradrenalina"></div>'+
+        '<div class="field-group"><label>Masa total (mg)</label><input id="nd-mg" type="number" step="any" placeholder="4" oninput="calcInfusion()"></div>'+
+        '<div class="field-group"><label>Volumen total (mL)</label><input id="nd-ml" type="number" step="any" placeholder="100" oninput="calcInfusion()"></div>'+
+      '</div>'+
+      '<div class="field-row three" style="margin-top:8px">'+
+        '<div class="field-group"><label>Concentracion</label><div class="calc-val" id="nd-conc">-</div></div>'+
+        '<div class="field-group"><label>Peso (kg) <small style="color:var(--muted)">(auto paciente)</small></label><input id="nd-weight" type="number" step="any" value="'+esc(p.weight)+'" placeholder="usa el del paciente" oninput="calcInfusion()"></div>'+
+        '<div class="field-group"><label>.</label><button class="btn btn-outline btn-sm" onclick="saveWeightFromInfusion()" title="Guardar este peso en el paciente">Guardar peso al paciente</button></div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:8px;margin:12px 0 6px">'+
+        '<strong style="font-size:12px;color:var(--muted)">Modo de calculo:</strong>'+
+        '<button class="btn btn-outline btn-sm" id="nd-mode-btn" onclick="toggleInfusionMode()">mL/h -> dosis</button>'+
+      '</div>'+
+      '<div class="field-row" id="nd-input-row">'+
+        '<div class="field-group" id="nd-rate-wrap"><label>Velocidad (mL/h)</label><input id="nd-rate" type="number" step="any" placeholder="5" oninput="calcInfusion()"></div>'+
+        '<div class="field-group" id="nd-dose-wrap" style="display:none"><label>Dosis objetivo (mcg/kg/min)</label><input id="nd-dosetarget" type="number" step="any" placeholder="0.1" oninput="calcInfusion()"></div>'+
+      '</div>'+
+      '<div class="calc-result" style="margin-top:10px">'+
+        '<div class="big" id="nd-result">-</div>'+
+        '<div class="interp" id="nd-result-sub">Complete masa, volumen, peso y velocidad</div>'+
+      '</div>'+
+      '<div class="field-row three" style="margin-top:10px">'+
+        '<div class="field-group"><label>Via</label><select id="nd-route"><option>IV</option><option>SC</option><option>VO</option><option>SNG</option><option>Otros</option></select></div>'+
+        '<div class="field-group"><label>.</label><button class="btn btn-teal" style="margin-top:18px" onclick="addDrug()">+ Agregar a medicacion</button></div>'+
+        '<div class="field-group"></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>💊</span>Medicación Activa</h4>'+
+      '<div id="drugList"></div>'+
+    '</div>'+
+    ecocardioCardHtml(p)+
   '</div>'+
 
   '<div id="inner-labs" class="inner-panel">'+
@@ -1974,35 +2133,78 @@ function renderActivePatient(){
     '</div>'+
     '<div id="labsSub-punt" class="labs-sub">'+
     '<div class="section-grid">'+
+      /* Bloque 1: Hemograma */
       '<div class="section-card">'+
-        '<h4><span>\uD83E\uDE78</span>Hemograma y Coagulacion</h4>'+
+        '<h4><span>\uD83E\uDE78</span>Hemograma</h4>'+
         '<div class="field-row three">'+
           '<div class="field-group"><label>Hb (g/dL)</label><input id="f-hb" type="number" step="0.1" value="'+p.hb+'"></div>'+
           '<div class="field-group"><label>Leucos (x10.3)</label><input id="f-leucos" type="number" step="0.1" value="'+p.leucos+'"></div>'+
           '<div class="field-group"><label>Plaquetas (x10.3)</label><input id="f-plaquetas" type="number" value="'+p.plaquetas+'"></div>'+
         '</div>'+
         '<div class="field-row three" style="margin-top:8px">'+
-          '<div class="field-group"><label>TP (%)</label><input id="f-tp" type="number" value="'+p.tp+'"></div>'+
-          '<div class="field-group"><label>Fibrinogeno (mg/dL)</label><input id="f-fibr" type="number" value="'+p.fibr+'"></div>'+
-          '<div class="field-group"><label>Glucemia</label><input id="f-glu" type="number" value="'+p.glu+'"></div>'+
+          '<div class="field-group"><label>PCR (mg/L)</label><input id="f-pcr" type="number" step="0.1" value="'+esc(p.pcr)+'"></div>'+
+          '<div class="field-group"><label>VES (mm/h)</label><input id="f-ves" type="number" value="'+esc(p.ves)+'"></div>'+
+          '<div class="field-group"><label>Procalcitonina (ng/mL)</label><input id="f-pct" type="number" step="0.01" value="'+esc(p.pct)+'"></div>'+
         '</div>'+
       '</div>'+
+      /* Bloque 2: Funci\u00F3n renal */
       '<div class="section-card">'+
-        '<h4><span>\u2697\uFE0F</span>Funcion Renal y Electrolitos</h4>'+
+        '<h4><span>\u2697\uFE0F</span>Funci\u00F3n renal e ionograma</h4>'+
         '<div class="field-row three">'+
-          '<div class="field-group"><label>Creat (mg/dL)</label><input id="f-creat" type="number" step="0.1" value="'+p.creat+'"></div>'+
+          '<div class="field-group"><label>Creat (mg/dL)</label><input id="f-creat" type="number" step="0.1" value="'+p.creat+'" oninput="calcTFGLab()"></div>'+
           '<div class="field-group"><label>Urea (mg/dL)</label><input id="f-urea" type="number" value="'+p.urea+'"></div>'+
-          '<div class="field-group"><label>Na (mEq/L)</label><input id="f-na" type="number" value="'+p.na+'" oninput="calcSID()"></div>'+
+          '<div class="field-group"><label>Ca (mg/dL)</label><input id="f-ca" type="number" step="0.1" value="'+esc(p.ca)+'"></div>'+
         '</div>'+
         '<div class="field-row three" style="margin-top:8px">'+
-          '<div class="field-group"><label>K (mEq/L)</label><input id="f-k" type="number" step="0.1" value="'+p.k+'" oninput="calcSID()"></div>'+
-          '<div class="field-group"><label>Cl (mEq/L)</label><input id="f-cl" type="number" value="'+p.cl+'" oninput="calcSID()"></div>'+
-          '<div class="field-group"><label>HCO3 (mEq/L)</label><input id="f-hco3" type="number" value="'+p.hco3+'"></div>'+
+          '<div class="field-group"><label>Mg (mg/dL)</label><input id="f-mg" type="number" step="0.1" value="'+esc(p.mg)+'"></div>'+
+          '<div class="field-group"><label>IRA</label><select id="f-inf-ira"><option value="">-</option><option'+(p.inf_ira==='S\u00ED'?' selected':'')+'>S\u00ED</option><option'+(p.inf_ira==='No'?' selected':'')+'>No</option></select></div>'+
+          '<div class="field-group"><label>KDIGO</label><input id="f-inf-ira-kdigo" value="'+esc(p.inf_ira_kdigo||'')+'" placeholder="Estadio..."></div>'+
         '</div>'+
-        '<div style="margin-top:8px">'+
-          '<label>Lactato (mmol/L)</label><input id="f-lac" type="number" step="0.1" value="'+p.lac+'" oninput="calcSID()">'+
+        '<div class="field-row three" style="margin-top:8px">'+
+          '<div class="field-group"><label>Na (mEq/L) <small style="color:var(--muted)">(auto Gaso)</small></label><div class="calc-val">'+(hasVal(p.na)?esc(p.na):'-')+'</div></div>'+
+          '<div class="field-group"><label>K (mEq/L) <small style="color:var(--muted)">(auto Gaso)</small></label><div class="calc-val">'+(hasVal(p.k)?esc(p.k):'-')+'</div></div>'+
+          '<div class="field-group"><label>Cl (mEq/L) <small style="color:var(--muted)">(auto Gaso)</small></label><div class="calc-val">'+(hasVal(p.cl)?esc(p.cl):'-')+'</div></div>'+
         '</div>'+
-        '<div class="calc-val" style="margin-top:8px" id="cv-sid">'+(p.sid_result||'SID = -')+'</div>'+
+        '<div class="calc-val" style="margin-top:8px" id="cv-tfg">'+(p.tfg_calc||'TFG = - (requiere creatinina y edad)')+'</div>'+
+      '</div>'+
+      /* Bloque 3: Hep\u00E1tico */
+      '<div class="section-card">'+
+        '<h4><span>\uD83E\uDEC0</span>Funci\u00F3n y enzimograma hep\u00E1tico</h4>'+
+        '<div class="field-row four">'+
+          '<div class="field-group"><label>Bil total (mg/dL)</label><input id="f-bil" type="number" step="0.1" value="'+p.bil+'"></div>'+
+          '<div class="field-group"><label>GOT/AST</label><input id="f-got" type="number" value="'+p.got+'"></div>'+
+          '<div class="field-group"><label>GPT/ALT</label><input id="f-gpt" type="number" value="'+p.gpt+'"></div>'+
+          '<div class="field-group"><label>Alb\u00FAmina (g/dL)</label><input id="f-albumin" type="number" step="0.1" value="'+p.albumin+'"></div>'+
+        '</div>'+
+        '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:10px 0 4px">Crasis</div>'+
+        '<div class="field-row four">'+
+          '<div class="field-group"><label>TP (%)</label><input id="f-tp" type="number" value="'+p.tp+'"></div>'+
+          '<div class="field-group"><label>KPTT (seg)</label><input id="f-crasis-kptt" type="number" step="0.1" value="'+esc(p.crasis_kptt)+'"></div>'+
+          '<div class="field-group"><label>INR</label><input id="f-crasis-inr" type="number" step="0.01" value="'+esc(p.crasis_inr)+'"></div>'+
+          '<div class="field-group"><label>Fibrin\u00F3geno (mg/dL)</label><input id="f-fibr" type="number" value="'+p.fibr+'"></div>'+
+        '</div>'+
+      '</div>'+
+      /* Bloque 4: Otros */
+      '<div class="section-card">'+
+        '<h4><span>\uD83E\uDDEC</span>Perfil de hierro, tiroideo y otros</h4>'+
+        '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Perfil de hierro</div>'+
+        '<div class="field-row four">'+
+          '<div class="field-group"><label>Hierro (\u00B5g/dL)</label><input id="f-hierro" type="number" value="'+esc(p.hierro)+'"></div>'+
+          '<div class="field-group"><label>Transferrina</label><input id="f-transferrina" type="number" value="'+esc(p.transferrina)+'"></div>'+
+          '<div class="field-group"><label>Ferritina (ng/mL)</label><input id="f-ferritina" type="number" value="'+esc(p.ferritina)+'"></div>'+
+          '<div class="field-group"><label>Sat. transf. (%)</label><input id="f-sat-transf" type="number" step="0.1" value="'+esc(p.sat_transf)+'"></div>'+
+        '</div>'+
+        '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:10px 0 4px">Tiroideo</div>'+
+        '<div class="field-row three">'+
+          '<div class="field-group"><label>TSH</label><input id="f-tsh" type="number" step="0.01" value="'+esc(p.tsh)+'"></div>'+
+          '<div class="field-group"><label>T4 libre</label><input id="f-t4l" type="number" step="0.01" value="'+esc(p.t4l)+'"></div>'+
+        '</div>'+
+        '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:10px 0 4px">Otros</div>'+
+        '<div class="field-row three">'+
+          '<div class="field-group"><label>CPK (U/L)</label><input id="f-cpk" type="number" value="'+esc(p.cpk)+'"></div>'+
+          '<div class="field-group"><label>Troponinas</label><input id="f-troponina" type="number" step="0.001" value="'+esc(p.troponina)+'"></div>'+
+          '<div class="field-group"><label>Glucemia (mg/dL)</label><input id="f-glu" type="number" value="'+p.glu+'"></div>'+
+        '</div>'+
       '</div>'+
     '</div>'+
     '</div>'+/* fin labsSub-punt */
@@ -2015,6 +2217,13 @@ function renderActivePatient(){
     '</div>'+
     '<div id="labsSub-micro" class="labs-sub" style="display:none">'+
       '<div class="section-card">'+
+        '<h4><span>🧫</span>Infectología (ingreso)</h4>'+
+        '<div class="field-row">'+
+          '<div class="field-group"><label>Antígeno neumococo en orina</label><select id="f-inf-neumo-ag"><option value="">-</option><option'+(p.inf_neumo_ag==='Positivo'?' selected':'')+'>Positivo</option><option'+(p.inf_neumo_ag==='Negativo'?' selected':'')+'>Negativo</option><option'+(p.inf_neumo_ag==='No realizado'?' selected':'')+'>No realizado</option></select></div>'+
+          '<div class="field-group"><label>Estado COVID</label><select id="f-inf-covid"><option value="">-</option><option'+(p.inf_covid==='Positivo'?' selected':'')+'>Positivo</option><option'+(p.inf_covid==='Negativo'?' selected':'')+'>Negativo</option><option'+(p.inf_covid==='No testeado'?' selected':'')+'>No testeado</option></select></div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="section-card" style="margin-top:12px">'+
         '<h4><span>🦠</span>Microbiologia</h4>'+
         '<div class="btn-row" style="margin-top:0"><button class="btn btn-teal btn-sm" onclick="addMicro()">➕ Agregar muestra</button></div>'+
         '<div id="microTableWrap"></div>'+
@@ -2103,7 +2312,30 @@ function renderActivePatient(){
 
   '<div id="inner-vent" class="inner-panel">'+
     '<div class="section-card">'+
-      '<h4><span>\uD83D\uDCA8</span>Parametros Ventilatorios</h4>'+
+      '<h4><span>\uD83E\uDE78</span>Gasometr\u00EDa</h4>'+
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Fuente \u00FAnica de iones y equilibrio \u00E1cido-base. PaFi, Ani\u00F3n Gap, SID e interpretaci\u00F3n se calculan autom\u00E1ticamente.</div>'+
+      '<div class="field-row four">'+
+        '<div class="field-group"><label>pH</label><input id="f-ph" type="number" step="0.01" value="'+p.ph+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label>PaCO2 (mmHg)</label><input id="f-pco2" type="number" value="'+p.pco2+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label>PaO2 (mmHg)</label><input id="f-po2" type="number" value="'+p.po2+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label>PaFi <small style="color:var(--muted)">(PaO2/FiO2)</small></label><div class="calc-val" id="cv-pafi">'+(p.pafi_calc||'-')+'</div></div>'+
+      '</div>'+
+      '<div class="field-row four" style="margin-top:8px">'+
+        '<div class="field-group"><label>HCO3 (mEq/L)</label><input id="f-hco3" type="number" step="0.1" value="'+p.hco3+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label>BE (mEq/L)</label><input id="f-be" type="number" step="0.1" value="'+esc(p.be)+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label>Lactato (mmol/L)</label><input id="f-lac" type="number" step="0.1" value="'+p.lac+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label>SID (Stewart)</label><div class="calc-val" id="cv-sid">'+(p.sid_result||'SID = -')+'</div></div>'+
+      '</div>'+
+      '<div class="field-row four" style="margin-top:8px">'+
+        '<div class="field-group"><label>Na (mEq/L)</label><input id="f-na" type="number" value="'+p.na+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label>K (mEq/L)</label><input id="f-k" type="number" step="0.1" value="'+p.k+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label>Cl (mEq/L)</label><input id="f-cl" type="number" value="'+p.cl+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label>Ani\u00F3n Gap <small style="color:var(--muted)">(Na-(Cl+HCO3))</small></label><div class="calc-val" id="cv-ag">'+(p.ag_result||'-')+'</div></div>'+
+      '</div>'+
+      '<div class="alert-box info" id="cv-eab" style="margin-top:10px">'+esc(p.eab_result||'Interpretaci\u00F3n \u00E1cido-base: complete pH, PaCO2 y HCO3.')+'</div>'+
+    '</div>'+
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>💨</span>Ventilación mecánica — parámetros</h4>'+
       '<div class="field-row four">'+
         '<div class="field-group"><label>FiO2 (0.21-1.0)</label><input id="f-fio2" type="number" step="0.01" min="0.21" max="1" value="'+p.fio2+'" oninput="calcDerived('+ab+')"></div>'+
         '<div class="field-group"><label>PEEP (cmH2O)</label><input id="f-peep" type="number" value="'+p.peep+'" oninput="calcDerived('+ab+')"></div>'+
@@ -2112,30 +2344,14 @@ function renderActivePatient(){
       '</div>'+
       '<div class="field-row four" style="margin-top:8px">'+
         '<div class="field-group"><label>VM (L/min)</label><input id="f-vm" type="number" step="0.1" value="'+p.vm+'"></div>'+
-        '<div class="field-group"><label>PaFi</label><div class="calc-val" id="cv-pafi">'+(p.pafi_calc||'-')+'</div></div>'+
         '<div class="field-group"><label>VT/kg PBW</label><div class="calc-val" id="cv-vt">-</div></div>'+
         '<div class="field-group"><label>Driving Pressure</label><div class="calc-val" id="cv-dp">'+(p.drivp_calc||'-')+'</div></div>'+
+        '<div class="field-group"><label>Compliance estática (mL/cmH2O)</label><div class="calc-val" id="cv-cst">'+(p.cst_calc||'-')+'</div></div>'+
       '</div>'+
       '<div class="field-row" style="margin-top:8px">'+
-        '<div class="field-group"><label>Compliance estatica (mL/cmH2O)</label><div class="calc-val" id="cv-cst">'+(p.cst_calc||'-')+'</div></div>'+
         '<div class="field-group"><label>PBW (Devine)</label><div class="calc-val" id="cv-pbw-vent">'+(p.pbw_calc?(p.pbw_calc+' kg'):'-')+'</div></div>'+
       '</div>'+
       '<div class="alert-box info" style="margin-top:8px">VT/kg calculado sobre <strong>peso predicho (PBW)</strong>, no peso real. Objetivo protector: 4-6 mL/kg PBW, Driving pressure <15, Pmeseta <30 cmH2O.</div>'+
-    '</div>'+
-    '<div class="section-card" style="margin-top:12px">'+
-      '<h4><span>🫁</span>Gasometria</h4>'+
-      '<div class="field-row four">'+
-        '<div class="field-group"><label>pH</label><input id="f-ph" type="number" step="0.01" value="'+p.ph+'"></div>'+
-        '<div class="field-group"><label>PaCO2 (mmHg)</label><input id="f-pco2" type="number" value="'+p.pco2+'"></div>'+
-        '<div class="field-group"><label>PaO2 (mmHg)</label><input id="f-po2" type="number" value="'+p.po2+'" oninput="calcDerived('+ab+')"></div>'+
-        '<div class="field-group"><label>Albumina (g/dL)</label><input id="f-albumin" type="number" step="0.1" value="'+p.albumin+'"></div>'+
-      '</div>'+
-      '<div class="field-row four" style="margin-top:8px">'+
-        '<div class="field-group"><label>Bil total</label><input id="f-bil" type="number" step="0.1" value="'+p.bil+'"></div>'+
-        '<div class="field-group"><label>GOT/AST</label><input id="f-got" type="number" value="'+p.got+'"></div>'+
-        '<div class="field-group"><label>GPT/ALT</label><input id="f-gpt" type="number" value="'+p.gpt+'"></div>'+
-        '<div class="field-group"><label></label><div class="calc-val" style="font-size:11px">Lactato en Renal/Elec.</div></div>'+
-      '</div>'+
     '</div>'+
     '<div class="section-card" style="margin-top:12px">'+
       '<h4><span>🫁</span>Vía Aérea</h4>'+
@@ -2177,43 +2393,6 @@ function renderActivePatient(){
     '</div>'+
   '</div>'+
 
-  '<div id="inner-drugs" class="inner-panel">'+
-    '<div class="section-card">'+
-      '<h4><span>\uD83D\uDCA7</span>Calculadora de Infusion (gammas)</h4>'+
-      '<div class="field-row three">'+
-        '<div class="field-group"><label>Droga</label><input id="nd-drug" placeholder="Noradrenalina"></div>'+
-        '<div class="field-group"><label>Masa total (mg)</label><input id="nd-mg" type="number" step="any" placeholder="4" oninput="calcInfusion()"></div>'+
-        '<div class="field-group"><label>Volumen total (mL)</label><input id="nd-ml" type="number" step="any" placeholder="100" oninput="calcInfusion()"></div>'+
-      '</div>'+
-      '<div class="field-row three" style="margin-top:8px">'+
-        '<div class="field-group"><label>Concentracion</label><div class="calc-val" id="nd-conc">-</div></div>'+
-        '<div class="field-group"><label>Peso (kg)</label><input id="nd-weight" type="number" step="any" placeholder="usa el del paciente" oninput="calcInfusion()"></div>'+
-        '<div class="field-group"><label>.</label><button class="btn btn-outline btn-sm" onclick="saveWeightFromInfusion()" title="Guardar este peso en el paciente">Guardar peso al paciente</button></div>'+
-      '</div>'+
-      '<div style="display:flex;align-items:center;gap:8px;margin:12px 0 6px">'+
-        '<strong style="font-size:12px;color:var(--muted)">Modo de calculo:</strong>'+
-        '<button class="btn btn-outline btn-sm" id="nd-mode-btn" onclick="toggleInfusionMode()">mL/h -> dosis</button>'+
-      '</div>'+
-      '<div class="field-row" id="nd-input-row">'+
-        '<div class="field-group" id="nd-rate-wrap"><label>Velocidad (mL/h)</label><input id="nd-rate" type="number" step="any" placeholder="5" oninput="calcInfusion()"></div>'+
-        '<div class="field-group" id="nd-dose-wrap" style="display:none"><label>Dosis objetivo (mcg/kg/min)</label><input id="nd-dosetarget" type="number" step="any" placeholder="0.1" oninput="calcInfusion()"></div>'+
-      '</div>'+
-      '<div class="calc-result" style="margin-top:10px">'+
-        '<div class="big" id="nd-result">-</div>'+
-        '<div class="interp" id="nd-result-sub">Complete masa, volumen, peso y velocidad</div>'+
-      '</div>'+
-      '<div class="field-row three" style="margin-top:10px">'+
-        '<div class="field-group"><label>Via</label><select id="nd-route"><option>IV</option><option>SC</option><option>VO</option><option>SNG</option><option>Otros</option></select></div>'+
-        '<div class="field-group"><label>.</label><button class="btn btn-teal" style="margin-top:18px" onclick="addDrug()">+ Agregar a medicacion</button></div>'+
-        '<div class="field-group"></div>'+
-      '</div>'+
-    '</div>'+
-    '<div class="section-card" style="margin-top:12px">'+
-      '<h4><span>\uD83D\uDC8A</span>Medicacion Activa</h4>'+
-      '<div id="drugList"></div>'+
-    '</div>'+
-  '</div>'+
-
   '<div id="inner-balance" class="inner-panel">'+
     '<div class="section-card">'+
       '<h4><span>\u2696\uFE0F</span>Balance h\u00EDdrico simplificado</h4>'+
@@ -2227,6 +2406,23 @@ function renderActivePatient(){
     '<div class="section-card" style="margin-top:12px">'+
       '<h4><span>\uD83D\uDCC8</span>Evoluci\u00F3n del balance</h4>'+
       '<div id="balanceHistWrap"></div>'+
+    '</div>'+
+    /* P12: Diuresis con hora y c\u00E1lculo de ml/h */
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>\uD83D\uDEBD</span>Diuresis (ml/h autom\u00E1tico)</h4>'+
+      '<div class="field-row three">'+
+        '<div class="field-group"><label>Volumen (mL)</label><input id="diu-vol" type="number" step="any" placeholder="ej. 250"></div>'+
+        '<div class="field-group"><label>Hora del registro</label><input id="diu-hora" type="time"></div>'+
+        '<div class="field-group"><label>.</label><button class="btn btn-teal btn-sm" style="margin-top:18px" onclick="addDiuresis()">\u2795 Registrar diuresis</button></div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px">El ml/h se calcula como volumen \u00F7 horas transcurridas desde el registro anterior.</div>'+
+      '<div id="diuresisTableWrap" style="margin-top:10px;overflow-x:auto"></div>'+
+    '</div>'+
+    /* P12: Drenajes m\u00FAltiples */
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>\uD83E\uDE78</span>Gasto por drenajes</h4>'+
+      '<div class="btn-row" style="margin-top:0"><button class="btn btn-teal btn-sm" onclick="addDrenaje()">\u2795 Agregar drenaje</button></div>'+
+      '<div id="drenajesTableWrap" style="margin-top:10px;overflow-x:auto"></div>'+
     '</div>'+
     /* Campos legados (ocultos) para no romper calcBalance / readPatientForm / PDF */
     '<input type="hidden" id="f-ing-ev" value="'+esc(p.ing_ev)+'">'+
@@ -2265,19 +2461,16 @@ function renderActivePatient(){
           SEDO_DRUGS.map(function(d){return '<option value="'+d.k+'" '+(p.sedo_drug===d.k?'selected':'')+'>'+d.n+'</option>';}).join('')+
         '</select></div>'+
         '<div class="field-group"><label>Objetivo RASS</label><input id="f-sedo-rass" value="'+esc(p.sedo_rass||'-1 a -2')+'"></div>'+
-        '<div class="field-group"><label>Peso (kg)</label><input id="f-sedo-weight" type="number" step="any" value="'+esc(p.sedo_weight)+'" placeholder="usa el del paciente" oninput="calcSedo()"></div>'+
+        '<div class="field-group"><label>Peso (kg) <small style="color:var(--muted)">(auto paciente)</small></label><input id="f-sedo-weight" type="number" step="any" value="'+esc(p.sedo_weight||p.weight)+'" placeholder="usa el del paciente" oninput="calcSedo()"></div>'+
       '</div>'+
-      '<div style="display:flex;align-items:center;gap:8px;margin:12px 0 6px">'+
-        '<strong style="font-size:12px;color:var(--muted)">Modo:</strong>'+
-        '<button class="btn btn-outline btn-sm" id="sedo-mode-btn" onclick="toggleSedoMode()">'+(p.sedo_mode==='rate'?'mL/h → dosis':'dosis → mL/h')+'</button>'+
-      '</div>'+
-      '<div class="field-row">'+
-        '<div class="field-group" id="sedo-dose-wrap"><label id="sedo-dose-label">Dosis objetivo</label><input id="f-sedo-dose" type="number" step="any" value="'+esc(p.sedo_dose)+'" oninput="calcSedo()"></div>'+
-        '<div class="field-group" id="sedo-rate-wrap"><label>Velocidad (mL/h)</label><input id="f-sedo-rate" type="number" step="any" value="'+esc(p.sedo_rate)+'" oninput="calcSedo()"></div>'+
+      '<div class="field-row three" style="margin-top:8px">'+
+        '<div class="field-group"><label>Mg totales de la droga</label><input id="f-sedo-mg" type="number" step="any" value="'+esc(p.sedo_mg)+'" placeholder="mg en la dilución" oninput="calcSedo()"></div>'+
+        '<div class="field-group"><label>Volumen de dilución (mL)</label><input id="f-sedo-vol" type="number" step="any" value="'+esc(p.sedo_vol)+'" placeholder="mL totales" oninput="calcSedo()"></div>'+
+        '<div class="field-group"><label>Velocidad de infusión (mL/h)</label><input id="f-sedo-rate" type="number" step="any" value="'+esc(p.sedo_rate)+'" oninput="calcSedo()"></div>'+
       '</div>'+
       '<div class="calc-result" style="margin-top:10px">'+
         '<div class="big" id="cv-sedo-result">-</div>'+
-        '<div class="interp" id="cv-sedo-sub">Seleccione droga e ingrese peso y valor</div>'+
+        '<div class="interp" id="cv-sedo-sub">Ingrese mg totales, volumen, velocidad y peso</div>'+
       '</div>'+
       '<div id="cv-sedo-info" style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6"></div>'+
     '</div>'+
@@ -2311,29 +2504,19 @@ function renderActivePatient(){
 
   '<div id="inner-evol" class="inner-panel">'+
     '<div class="section-card">'+
-      '<h4><span>\uD83D\uDCDD</span>Nota de Evolucion</h4>'+
-      '<textarea id="f-evolucion" rows="10" placeholder="Evolucion clinica del dia, conducta, plan...">'+p.evolucion+'</textarea>'+
-      '<div class="btn-row">'+
-        '<button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();alert(\'Guardado.\')">\uD83D\uDCBE Guardar nota</button>'+
-      '</div>'+
+      '<h4><span>\uD83D\uDCC9</span>Tendencias temporales</h4>'+
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Series d\u00EDa a d\u00EDa (se registran autom\u00E1ticamente al guardar el paciente). Cada serie est\u00E1 normalizada a su propio rango; la leyenda muestra el \u00FAltimo valor.</div>'+
+      '<div id="evolLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px"></div>'+
+      '<canvas id="evolChartCanvas" width="820" height="320" style="width:100%;max-width:100%;display:none"></canvas>'+
+      '<div id="evolChartEmpty" class="stats-note"></div>'+
     '</div>'+
     '<div class="section-card" style="margin-top:12px">'+
-      '<h4><span>\u2705</span>Bundle de prevenci\u00F3n (checklist diario)</h4>'+
-      '<div id="bundleWrap"></div>'+
-      '<div style="font-size:11px;color:var(--muted);margin-top:6px">Toque cada \u00EDtem para alternar \uD83D\uDFE2 cumplido / \uD83D\uDD34 pendiente. Se guarda por fecha.</div>'+
+      '<h4><span>\uD83D\uDC8A</span>L\u00EDnea de tiempo \u2014 Antibi\u00F3ticos y microbiolog\u00EDa</h4>'+
+      '<div id="evolAtbTimeline"></div>'+
     '</div>'+
     '<div class="section-card" style="margin-top:12px">'+
-      '<h4><span>\uD83E\uDDEC</span>Resumen por Sistemas Fisiologicos</h4>'+
-      '<div class="section-grid">'+
-        '<div class="field-group"><label>\uD83E\uDDE0 Neurologico</label><textarea id="f-sis-neuro" rows="3" placeholder="Sedacion, RASS, pupilas, GCS...">'+esc(p.sis_neuro)+'</textarea></div>'+
-        '<div class="field-group"><label>\u2764\uFE0F Hemodinamico + drogas</label><textarea id="f-sis-hemo" rows="3" placeholder="PAM, ritmo, vasoactivos/dosis...">'+esc(p.sis_hemo)+'</textarea></div>'+
-        '<div class="field-group"><label>\uD83D\uDCA8 Respiratorio + ventilador</label><textarea id="f-sis-resp" rows="3" placeholder="Modo VM, FiO2/PEEP, PaFi, destete...">'+esc(p.sis_resp)+'</textarea></div>'+
-        '<div class="field-group"><label>\uD83E\uDDA0 Infeccioso</label><textarea id="f-sis-infec" rows="3" placeholder="Fiebre, leucocitosis, secreciones, foco...">'+esc(p.sis_infec)+'</textarea></div>'+
-        '<div class="field-group"><label>\uD83E\uDE7A Accesos (con fechas)</label><textarea id="f-sis-accesos" rows="3" placeholder="VVC, VA, SV, SNG - fechas de colocacion...">'+esc(p.sis_accesos)+'</textarea></div>'+
-        '<div class="field-group"><label>\uD83E\uDD57 Metabolico / nutricional</label><textarea id="f-sis-metab" rows="3" placeholder="Glucemia, funcion renal, nutricion...">'+esc(p.sis_metab)+'</textarea></div>'+
-      '</div>'+
-      '<div class="field-group" style="margin-top:8px"><label>\u2705 Conductas del dia</label><textarea id="f-sis-conductas" rows="4" placeholder="Plan y conductas del dia...">'+esc(p.sis_conductas)+'</textarea></div>'+
-      '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();alert(\'Guardado.\')">\uD83D\uDCBE Guardar sistemas</button></div>'+
+      '<h4><span>\uD83E\uDE7A</span>D\u00EDas de accesos vasculares</h4>'+
+      '<div id="evolAccesosTable" style="overflow-x:auto"></div>'+
     '</div>'+
   '</div>'+
 
@@ -2381,11 +2564,13 @@ function renderActivePatient(){
   '</div>';
 
   renderDrugList();
+  try{ renderEcocardioTable(); }catch(e){}
   calcDerived(ab);
   calcPadua();
   calcSOFA();
   calcBalance();
   calcSID();
+  try{ calcAnionGap(); calcEAB(); calcTFGLab(); }catch(e){}
   renderParaTable();
   renderMicroTable();
   renderAtbTable();
@@ -2398,6 +2583,7 @@ function renderActivePatient(){
   renderGlucemiaTable();
   renderBundle();
   renderBalanceSimp();
+  try{ renderDiuresisTable(); renderDrenajesTable(); }catch(e){}
   renderProcedimientos();
   renderIndicaciones();
   renderParaOrden();
@@ -2428,6 +2614,10 @@ function showInner(id, btn){
   if(id==='paraorden'){
     var fp=document.getElementById('para-ord-fecha'); if(fp&&!fp.value) fp.value=hoy;
     renderParaOrden();
+  }
+  if(id==='evol'){
+    try{ readPatientForm(state.activeBed); }catch(e){}
+    renderEvolucion();
   }
 }
 
@@ -2606,6 +2796,197 @@ function bundleStats(pts){
   });
   function avg(a){ return a.length?Math.round(a.reduce(function(x,y){return x+y;},0)/a.length):null; }
   return {dia:avg(dayVals), diaN:dayVals.length, semana:avg(weekVals), semanaN:weekVals.length};
+}
+
+/* ---- P12: Diuresis con hora y ml/h ---- */
+function _diuStamp(reg){
+  // Devuelve timestamp (ms) del registro a partir de fecha (ISO) + hora (HH:MM). Fallback: solo fecha.
+  var f=reg.fecha||isoToday();
+  var h=reg.hora||'00:00';
+  var t=new Date(f+'T'+(h.length===5?h:'00:00')+':00');
+  return isNaN(t.getTime())?null:t.getTime();
+}
+function recalcDiuresisMlh(p){
+  if(!Array.isArray(p.diuresis)) return;
+  // Ordena cronológicamente y recalcula ml/h de cada registro vs el anterior.
+  p.diuresis.sort(function(a,b){ var ta=_diuStamp(a)||0, tb=_diuStamp(b)||0; return ta-tb; });
+  for(var i=0;i<p.diuresis.length;i++){
+    var cur=p.diuresis[i], vol=parseFloat(cur.vol);
+    if(i===0 || isNaN(vol)){ cur.mlh=''; continue; }
+    var t0=_diuStamp(p.diuresis[i-1]), t1=_diuStamp(cur);
+    if(t0==null||t1==null||t1<=t0){ cur.mlh=''; continue; }
+    var hrs=(t1-t0)/3600000;
+    cur.mlh = hrs>0 ? (vol/hrs).toFixed(1) : '';
+  }
+}
+function addDiuresis(){
+  var p=state.patients[state.activeBed];
+  if(!Array.isArray(p.diuresis)) p.diuresis=[];
+  var vol=(document.getElementById('diu-vol')||{}).value;
+  var hora=(document.getElementById('diu-hora')||{}).value;
+  if(!hasVal(vol)){ alert('Ingrese el volumen de diuresis.'); return; }
+  if(!hasVal(hora)){ var n=new Date(); hora=('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2); }
+  p.diuresis.push({fecha:isoToday(), hora:hora, vol:String(vol), mlh:''});
+  recalcDiuresisMlh(p);
+  ['diu-vol','diu-hora'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  save(); renderDiuresisTable();
+}
+function delDiuresis(i){
+  var p=state.patients[state.activeBed];
+  if(Array.isArray(p.diuresis)){ p.diuresis.splice(i,1); recalcDiuresisMlh(p); save(); renderDiuresisTable(); }
+}
+function renderDiuresisTable(){
+  var wrap=document.getElementById('diuresisTableWrap'); if(!wrap) return;
+  var p=state.patients[state.activeBed];
+  var arr=Array.isArray(p.diuresis)?p.diuresis:[];
+  if(!arr.length){ wrap.innerHTML='<div style="color:var(--muted);font-size:12px">Sin registros de diuresis.</div>'; return; }
+  wrap.innerHTML='<table class="drug-table"><thead><tr><th>Fecha</th><th>Hora</th><th>Volumen (mL)</th><th>ml/h</th><th></th></tr></thead><tbody>'+
+    arr.map(function(r,i){return '<tr><td>'+esc(r.fecha)+'</td><td>'+esc(r.hora||'-')+'</td><td>'+esc(r.vol||'-')+'</td><td><strong>'+(hasVal(r.mlh)?esc(r.mlh):'-')+'</strong></td><td><button class="btn btn-red btn-sm" onclick="delDiuresis('+i+')">X</button></td></tr>';}).join('')+
+  '</tbody></table>';
+}
+
+/* ---- P12: Drenajes múltiples ---- */
+function addDrenaje(){
+  var p=state.patients[state.activeBed];
+  if(!Array.isArray(p.drenajes)) p.drenajes=[];
+  p.drenajes.push({nombre:'Drenaje '+(p.drenajes.length+1), gasto:''});
+  save(); renderDrenajesTable();
+}
+function updateDrenaje(i,field,val){
+  var p=state.patients[state.activeBed];
+  if(Array.isArray(p.drenajes)&&p.drenajes[i]){ p.drenajes[i][field]=val; save(); }
+}
+function delDrenaje(i){
+  var p=state.patients[state.activeBed];
+  if(Array.isArray(p.drenajes)){ p.drenajes.splice(i,1); save(); renderDrenajesTable(); }
+}
+function renderDrenajesTable(){
+  var wrap=document.getElementById('drenajesTableWrap'); if(!wrap) return;
+  var p=state.patients[state.activeBed];
+  var arr=Array.isArray(p.drenajes)?p.drenajes:[];
+  if(!arr.length){ wrap.innerHTML='<div style="color:var(--muted);font-size:12px">Sin drenajes registrados.</div>'; return; }
+  wrap.innerHTML='<table class="drug-table"><thead><tr><th>Drenaje</th><th>Gasto (mL/día)</th><th></th></tr></thead><tbody>'+
+    arr.map(function(d,i){return '<tr>'+
+      '<td><input value="'+esc(d.nombre||'')+'" oninput="updateDrenaje('+i+',\'nombre\',this.value)"></td>'+
+      '<td><input type="number" step="any" value="'+esc(d.gasto||'')+'" placeholder="mL" oninput="updateDrenaje('+i+',\'gasto\',this.value)"></td>'+
+      '<td><button class="btn btn-red btn-sm" onclick="delDrenaje('+i+')">X</button></td>'+
+    '</tr>';}).join('')+
+  '</tbody></table>';
+}
+
+/* ==================================================================
+   P16: TAB EVOLUCIÓN — tendencias, línea de tiempo ATB/micro, accesos
+   ================================================================== */
+var EVOL_SERIES=[
+  {k:'pas',  label:'PAS',            color:'#e05252'},
+  {k:'pad',  label:'PAD',            color:'#e08a52'},
+  {k:'nora', label:'Noradrenalina γ',color:'#a259d9'},
+  {k:'diu',  label:'Diuresis (mL)',  color:'#3fa7d6'},
+  {k:'temp', label:'Temp (°C)',      color:'#d94f8a'},
+  {k:'pafi', label:'PAFI',           color:'#2fae7a'},
+  {k:'peep', label:'PEEP',           color:'#6b8f2f'},
+  {k:'lac',  label:'Lactato',        color:'#c0392b'},
+  {k:'gcs',  label:'GCS',            color:'#4a6fd0'}
+];
+var ATB_COLORS=['#2f9e7a','#3f77d6','#d98a2f','#a259d9','#c0392b','#0e9c8a','#8a6d3b','#7a4fd0'];
+function renderEvolucion(){
+  var p=state.patients[state.activeBed]; if(!p) return;
+  var hist=p.evolHist||{};
+  var dates=Object.keys(hist).sort();
+  try{ drawEvolChart(dates,hist); }catch(e){}
+  try{ renderEvolLegend(dates,hist); }catch(e){}
+  try{ renderAtbTimeline(p); }catch(e){}
+  try{ renderEvolAccesos(p); }catch(e){}
+}
+function drawEvolChart(dates,hist){
+  var cv=document.getElementById('evolChartCanvas');
+  var empty=document.getElementById('evolChartEmpty');
+  if(!cv) return;
+  var active=EVOL_SERIES.filter(function(s){ return dates.some(function(d){ return hasVal(hist[d][s.k]); }); });
+  if(dates.length<1 || !active.length){ cv.style.display='none'; if(empty) empty.textContent='Sin datos de evolución todavía. Guarde el paciente en distintos días para construir la tendencia.'; return; }
+  cv.style.display=''; if(empty) empty.textContent='';
+  var ctx=cv.getContext('2d'); var W=cv.width, H=cv.height; ctx.clearRect(0,0,W,H);
+  var padL=38,padR=12,padT=12,padB=42, plotW=W-padL-padR, plotH=H-padT-padB;
+  ctx.strokeStyle='#c9ccd6'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(padL,padT); ctx.lineTo(padL,padT+plotH); ctx.lineTo(padL+plotW,padT+plotH); ctx.stroke();
+  var n=dates.length;
+  function xFor(i){ return padL + (n===1? plotW/2 : (i/(n-1))*plotW); }
+  ctx.fillStyle='#8a90a0'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+  var step=Math.max(1,Math.ceil(n/8));
+  for(var i=0;i<n;i+=step){ var d=dates[i]; ctx.fillText(d.slice(8,10)+'/'+d.slice(5,7), xFor(i), padT+plotH+14); }
+  active.forEach(function(s){
+    var vals=dates.map(function(d){ var v=hist[d][s.k]; return hasVal(v)?parseFloat(v):null; });
+    var nums=vals.filter(function(v){return v!=null && !isNaN(v);});
+    if(!nums.length) return;
+    var mn=Math.min.apply(null,nums), mx=Math.max.apply(null,nums), rng=(mx-mn)||1;
+    ctx.strokeStyle=s.color; ctx.fillStyle=s.color; ctx.lineWidth=2;
+    ctx.beginPath(); var started=false;
+    vals.forEach(function(v,i){ if(v==null||isNaN(v)) return; var x=xFor(i), y=padT+plotH-((v-mn)/rng)*plotH; if(!started){ctx.moveTo(x,y);started=true;} else ctx.lineTo(x,y); });
+    ctx.stroke();
+    vals.forEach(function(v,i){ if(v==null||isNaN(v)) return; var x=xFor(i), y=padT+plotH-((v-mn)/rng)*plotH; ctx.beginPath(); ctx.arc(x,y,2.5,0,2*Math.PI); ctx.fill(); });
+  });
+}
+function renderEvolLegend(dates,hist){
+  var el=document.getElementById('evolLegend'); if(!el) return;
+  var last=dates.length?dates[dates.length-1]:null;
+  el.innerHTML=EVOL_SERIES.map(function(s){
+    var has=dates.some(function(d){return hasVal(hist[d][s.k]);});
+    if(!has) return '';
+    var lv=(last&&hasVal(hist[last][s.k]))?hist[last][s.k]:'-';
+    return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px"><span style="width:12px;height:3px;background:'+s.color+';display:inline-block;border-radius:2px"></span>'+esc(s.label)+': <b>'+esc(lv)+'</b></span>';
+  }).join('');
+}
+function renderAtbTimeline(p){
+  var el=document.getElementById('evolAtbTimeline'); if(!el) return;
+  var atb=(p.atb||[]).filter(function(a){return hasVal(a.atb);});
+  var micro=(p.micro||[]).filter(function(m){return hasVal(m.fecha)&&(hasVal(m.resultado)||hasVal(m.muestra));});
+  if(!atb.length && !micro.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px">Sin antibióticos ni microbiología registrados.</div>'; return; }
+  var allDates=[];
+  atb.forEach(function(a){ if(hasVal(a.inicio))allDates.push(a.inicio); allDates.push(hasVal(a.fin)?a.fin:isoToday()); });
+  micro.forEach(function(m){ allDates.push(m.fecha); });
+  allDates.push(isoToday());
+  allDates=allDates.filter(hasVal).sort();
+  var t0=new Date(allDates[0]+'T00:00:00').getTime();
+  var t1=new Date(allDates[allDates.length-1]+'T00:00:00').getTime();
+  var span=(t1-t0)||1;
+  function pct(dstr){ var t=new Date(dstr+'T00:00:00').getTime(); return isNaN(t)?0:((t-t0)/span)*100; }
+  var html='';
+  if(micro.length){
+    html+='<div style="position:relative;height:28px;margin:0 0 6px 130px;border-bottom:1px dashed var(--border)">';
+    micro.forEach(function(m){
+      var foco=m.muestra||''; var germ=m.resultado||m.estado||'';
+      html+='<span title="'+esc(m.fecha+' '+foco+': '+germ)+'" style="position:absolute;left:'+pct(m.fecha).toFixed(1)+'%;transform:translateX(-50%);font-size:13px;white-space:nowrap;bottom:2px">🦠<span style="font-size:9px;color:var(--muted)"> '+esc(germ.slice(0,12))+(foco?(' · '+esc(foco.slice(0,8))):'')+'</span></span>';
+    });
+    html+='</div>';
+  }
+  atb.forEach(function(a,i){
+    var ini=hasVal(a.inicio)?a.inicio:allDates[0];
+    var fin=hasVal(a.fin)?a.fin:isoToday();
+    var l=pct(ini), r=pct(fin); if(r<l) r=l;
+    var color=ATB_COLORS[i%ATB_COLORS.length];
+    html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'+
+      '<div style="width:124px;font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(a.atb)+'">'+esc(a.atb)+'</div>'+
+      '<div style="position:relative;flex:1;height:16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">'+
+        '<div style="position:absolute;left:'+l.toFixed(1)+'%;width:'+Math.max(2,(r-l)).toFixed(1)+'%;top:0;height:14px;background:'+color+';border-radius:8px" title="'+esc(a.atb+' · '+ini+' → '+(hasVal(a.fin)?a.fin:'actual'))+'"></div>'+
+      '</div>'+
+    '</div>';
+  });
+  html+='<div style="display:flex;justify-content:space-between;margin-left:130px;font-size:10px;color:var(--muted);margin-top:2px"><span>'+esc(allDates[0])+'</span><span>'+esc(allDates[allDates.length-1])+'</span></div>';
+  el.innerHTML=html;
+}
+function renderEvolAccesos(p){
+  var el=document.getElementById('evolAccesosTable'); if(!el) return;
+  function daysSince(f){ if(!hasVal(f)) return '-'; var t=new Date(f+'T00:00:00').getTime(); if(isNaN(t))return '-'; var d=Math.floor((Date.now()-t)/86400000); return d>=0?(d+' d'):'-'; }
+  var rows=[];
+  if(hasVal(p.vvc_sitio)||hasVal(p.vvc_fecha)) rows.push(['VVC',p.vvc_sitio||'-',p.vvc_fecha||'-',daysSince(p.vvc_fecha)]);
+  if(hasVal(p.via_art)||hasVal(p.art_fecha)) rows.push(['Vía arterial',p.via_art||'-',p.art_fecha||'-',daysSince(p.art_fecha)]);
+  if(hasVal(p.va_fint)) rows.push(['Vía aérea (IOT)',p.va_tipo||'-',p.va_fint,daysSince(p.va_fint)]);
+  if(hasVal(p.sng)) rows.push(['SNG/SNY',p.sng,'-','-']);
+  if(hasVal(p.sonda_v)) rows.push(['Sonda vesical',p.sonda_v,'-','-']);
+  if(hasVal(p.dren)) rows.push(['Drenaje',p.dren,'-','-']);
+  if(!rows.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px">Sin accesos registrados (cargar en la tab Accesos).</div>'; return; }
+  el.innerHTML='<table class="drug-table"><thead><tr><th>Acceso</th><th>Detalle</th><th>Fecha</th><th>Días</th></tr></thead><tbody>'+
+    rows.map(function(r){return '<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td><td>'+esc(r[3])+'</td></tr>';}).join('')+'</tbody></table>';
 }
 
 /* ---- 5) Balance hídrico simplificado ---- */
@@ -3092,38 +3473,27 @@ function toggleSedoMode(){
   p.sedo_mode = (p.sedo_mode==='rate') ? 'dose' : 'rate';
   save(); syncSedoMode(); calcSedo();
 }
+// P13: a partir de mg totales + volumen de dilución + velocidad (mL/h) + peso,
+// calcula dosis en mcg/kg/min y en mg/min. (Se eliminó "dosis objetivo").
 function calcSedo(){
   var p=state.patients[state.activeBed]; if(!p) return;
   var d=sedoDrug();
   var w=getSedoWeight();
-  var mode=p.sedo_mode||'dose';
-  var mgPerMl=d.mgPerMl;              // mg/mL
-  var mcgPerMl=mgPerMl*1000;          // mcg/mL
   var res=document.getElementById('cv-sedo-result');
   var sub=document.getElementById('cv-sedo-sub');
   var info=document.getElementById('cv-sedo-info');
   if(info) info.textContent='Dilución estándar: '+d.dil+' · Rango típico: '+d.range;
   if(!res) return;
-  syncSedoMode();
+  var mg=parseFloat((document.getElementById('f-sedo-mg')||{}).value)||0;
+  var vol=parseFloat((document.getElementById('f-sedo-vol')||{}).value)||0;
+  var rate=parseFloat((document.getElementById('f-sedo-rate')||{}).value)||0;
+  var conc=(mg>0&&vol>0)?(mg/vol):d.mgPerMl;   // mg/mL (usa dilución estándar de la droga si no se ingresan mg/vol)
   if(w<=0){ res.textContent='-'; if(sub) sub.textContent='Ingrese peso (kg)'; return; }
-  var unitPerMin = d.unit==='mcgkgmin'; // dosis en mcg/kg/min ; si no, mcg/kg/h
-  if(mode==='dose'){
-    var dose=parseFloat((document.getElementById('f-sedo-dose')||{}).value)||0;
-    if(dose<=0){ res.textContent='-'; if(sub) sub.textContent='Ingrese dosis objetivo'; return; }
-    // mcg/min = dose * w (si /min) ; si /h => mcg/h = dose*w -> mcg/min = dose*w/60
-    var mcgPerMin = unitPerMin ? (dose*w) : (dose*w/60);
-    var mcgPerHr = mcgPerMin*60;
-    var mlPerHr = mcgPerHr/mcgPerMl;
-    res.textContent = (Math.round(mlPerHr*100)/100)+' mL/h';
-    if(sub) sub.textContent = dose+' '+(unitPerMin?'mcg/kg/min':'mcg/kg/h')+' · peso '+w+' kg';
-  } else {
-    var rate=parseFloat((document.getElementById('f-sedo-rate')||{}).value)||0;
-    if(rate<=0){ res.textContent='-'; if(sub) sub.textContent='Ingrese velocidad (mL/h)'; return; }
-    var mcgHr = rate*mcgPerMl;            // mcg/h
-    var doseOut = unitPerMin ? (mcgHr/60/w) : (mcgHr/w);
-    res.textContent = (Math.round(doseOut*1000)/1000)+' '+(unitPerMin?'mcg/kg/min':'mcg/kg/h');
-    if(sub) sub.textContent = rate+' mL/h · peso '+w+' kg';
-  }
+  if(rate<=0){ res.textContent='-'; if(sub) sub.textContent='Ingrese velocidad de infusión (mL/h)'; return; }
+  var mgPerMin=rate*conc/60;              // mg/min
+  var mcgPerKgMin=mgPerMin*1000/w;        // mcg/kg/min
+  res.textContent=(Math.round(mcgPerKgMin*1000)/1000)+' mcg/kg/min';
+  if(sub) sub.textContent=(Math.round(mgPerMin*1000)/1000)+' mg/min · '+rate+' mL/h · conc '+(Math.round(conc*1000)/1000)+' mg/mL · peso '+w+' kg'+((mg>0&&vol>0)?'':' (dilución estándar)');
 }
 
 // ===== F5: control glucemico =====
@@ -3179,6 +3549,13 @@ function renderGlucemiaTable(){
 }
 
 // ===== CALCULOS DERIVADOS =====
+function calcGCS(idx){
+  var o=parseFloat((document.getElementById('f-gcs-o')||{}).value);
+  var v=parseFloat((document.getElementById('f-gcs-v')||{}).value);
+  var m=parseFloat((document.getElementById('f-gcs-m')||{}).value);
+  var out=document.getElementById('cv-gcs');
+  if(out) out.textContent=(!isNaN(o)&&!isNaN(v)&&!isNaN(m)) ? String(o+v+m) : '-';
+}
 function calcDerived(idx){
   var p = state.patients[idx];
   function gv(id, fallback){ var el=document.getElementById(id); return el? (parseFloat(el.value)||0) : (parseFloat(fallback)||0); }
@@ -3310,18 +3687,129 @@ function calcSID(){
   }
 }
 
+// ===== P14: TFG en Laboratorio (CKD-EPI 2021 + Cockcroft-Gault, reusa lógica de calcGFR) =====
+function calcTFGLab(){
+  function num(id){var el=document.getElementById(id);return el?parseFloat(el.value)||0:0;}
+  var cr=num('f-creat'), age=num('f-age'), w=num('f-weight');
+  var sexEl=document.getElementById('f-sex'); var sex=sexEl?sexEl.value:'';
+  var el=document.getElementById('cv-tfg'); if(!el) return;
+  var p=state.patients[state.activeBed];
+  if(cr<=0||age<=0){ el.textContent='TFG = - (requiere creatinina y edad)'; el.className='calc-val'; if(p)p.tfg_calc=''; return; }
+  var k=sex==='F'?0.7:0.9, alpha=sex==='F'?-0.241:-0.302, fem=sex==='F'?1.012:1.0;
+  var ratio=cr/k;
+  var egfr=142*Math.pow(Math.min(ratio,1),alpha)*Math.pow(Math.max(ratio,1),-1.200)*Math.pow(0.9938,age)*fem;
+  var cg=w>0?((140-age)*w*(sex==='F'?0.85:1))/(72*cr):0;
+  var stage=egfr>=90?'G1':egfr>=60?'G2':egfr>=45?'G3a':egfr>=30?'G3b':egfr>=15?'G4':'G5';
+  var txt='CKD-EPI '+egfr.toFixed(0)+' mL/min/1.73 ('+stage+')'+(cg>0?(' · CG '+cg.toFixed(0)+' mL/min'):' · ingrese peso para CG');
+  el.textContent=txt; el.className='calc-val'+(egfr<30?' danger':egfr<60?' warn':'');
+  if(p)p.tfg_calc=txt;
+}
+
+// ===== P8: Anión Gap =====
+function calcAnionGap(){
+  function g(id){var el=document.getElementById(id);return el?parseFloat(el.value):NaN;}
+  var na=g('f-na'),cl=g('f-cl'),hco3=g('f-hco3');
+  var el=document.getElementById('cv-ag');
+  var p=state.patients[state.activeBed];
+  if(!isNaN(na)&&!isNaN(cl)&&!isNaN(hco3)){
+    var ag=na-(cl+hco3);
+    var txt=ag.toFixed(1)+' mEq/L';
+    if(el){ el.textContent=txt; el.className='calc-val'+(ag>16?' danger':ag>12?' warn':''); }
+    p.ag_result=txt;
+    return ag;
+  }
+  if(el){ el.textContent='-'; el.className='calc-val'; }
+  p.ag_result='';
+  return NaN;
+}
+
+// ===== P8: Interpretación ácido-base (función pura) =====
+// Determina trastorno primario, compensación esperada (Winter/reglas) y trastornos mixtos/triples.
+function interpretaEAB(ph, paco2, hco3, be, ag){
+  if(isNaN(ph)||isNaN(paco2)||isNaN(hco3)) return 'Interpretación ácido-base: complete pH, PaCO2 y HCO3.';
+  var out=[];
+  var acidemia = ph<7.35, alcalemia = ph>7.45;
+  var metAcid = hco3<22, metAlc = hco3>26;
+  var respAcid = paco2>45, respAlc = paco2<35;
+  // Trastorno primario según pH
+  var primario='';
+  if(acidemia){
+    primario = metAcid ? 'Acidosis metabólica' : (respAcid ? 'Acidosis respiratoria' : 'Acidemia');
+  } else if(alcalemia){
+    primario = metAlc ? 'Alcalosis metabólica' : (respAlc ? 'Alcalosis respiratoria' : 'Alcalemia');
+  } else {
+    primario = 'pH normal — descartar trastorno mixto compensado';
+  }
+  out.push(primario);
+  // Compensación esperada
+  if(primario.indexOf('Acidosis metabólica')===0){
+    var winter = 1.5*hco3 + 8; // ±2
+    var lo=winter-2, hi=winter+2;
+    if(paco2>hi) out.push('+ acidosis respiratoria asociada (PaCO2 > esperada '+winter.toFixed(0)+'±2)');
+    else if(paco2<lo) out.push('+ alcalosis respiratoria asociada (PaCO2 < esperada '+winter.toFixed(0)+'±2)');
+    else out.push('compensación respiratoria adecuada (Winter '+winter.toFixed(0)+'±2)');
+    // Delta-delta si AG elevado
+    if(!isNaN(ag)&&ag>12){
+      var deltaGap=(ag-12)-(24-hco3);
+      out.push('AG elevado ('+ag.toFixed(0)+')');
+      if(deltaGap>6) out.push('+ alcalosis metabólica concomitante (Δ/Δ)');
+      else if(deltaGap< -6) out.push('+ acidosis metabólica hiperclorémica concomitante (Δ/Δ)');
+    } else if(!isNaN(ag)){
+      out.push('AG normal (hiperclorémica)');
+    }
+  } else if(primario.indexOf('Alcalosis metabólica')===0){
+    var expPaco2 = 0.7*hco3 + 21; // ±2 (aprox compensación)
+    if(paco2<expPaco2-2) out.push('+ alcalosis respiratoria asociada');
+    else if(paco2>expPaco2+2) out.push('+ acidosis respiratoria asociada');
+    else out.push('compensación respiratoria adecuada');
+  } else if(primario.indexOf('Acidosis respiratoria')===0){
+    // Aguda vs crónica según HCO3 esperado
+    out.push(hco3>30?'probable componente crónico/compensado':'aguda');
+  } else if(primario.indexOf('Alcalosis respiratoria')===0){
+    out.push(hco3<20?'probable componente crónico/compensado':'aguda');
+  }
+  if(!isNaN(be)) out.push('BE '+(be>=0?'+':'')+be.toFixed(1));
+  return 'EAB: '+out.join(' · ');
+}
+
+function calcEAB(){
+  function g(id){var el=document.getElementById(id);return el?parseFloat(el.value):NaN;}
+  var ph=g('f-ph'),paco2=g('f-pco2'),hco3=g('f-hco3'),be=g('f-be');
+  var na=g('f-na'),cl=g('f-cl');
+  var ag=(!isNaN(na)&&!isNaN(cl)&&!isNaN(hco3))?(na-(cl+hco3)):NaN;
+  var txt=interpretaEAB(ph,paco2,hco3,be,ag);
+  var el=document.getElementById('cv-eab');
+  if(el) el.textContent=txt;
+  state.patients[state.activeBed].eab_result=txt;
+}
+
+// Recalcula todo lo derivado de la Gasometría de una vez (PaFi, SID, Anión Gap, EAB).
+function gasoRecalc(idx){
+  try{ calcDerived(idx); }catch(e){}
+  try{ calcSID(); }catch(e){}
+  try{ calcAnionGap(); }catch(e){}
+  try{ calcEAB(); }catch(e){}
+}
+
 // ===== READ FORM =====
 function readPatientForm(idx){
   var p=state.patients[idx];
   function gv(id){var el=document.getElementById(id);return el?el.value:'';}
+  // Sticky: si el input no está presente (campo reubicado en otra tab aún no renderizada), conserva el valor previo.
+  function gvs(id,cur){var el=document.getElementById(id);return el?el.value:(cur==null?'':cur);}
   p.name=gv('f-name');p.age=gv('f-age');p.ci=gv('f-ci');p.sex=gv('f-sex');p.weight=gv('f-weight');p.height=gv('f-height');p.cobertura=gv('f-cobertura');
   p.dx=gv('f-dx');p.ingreso=gv('f-ingreso');p.antecedentes=gv('f-antecedentes');p.ingresohc=gv('f-ingresohc');
   p.pas=gv('f-pas');p.pad=gv('f-pad');p.fc=gv('f-fc');p.fr=gv('f-fr');p.temp=gv('f-temp');p.spo2=gv('f-spo2');
   p.hb=gv('f-hb');p.leucos=gv('f-leucos');p.plaquetas=gv('f-plaquetas');
   p.creat=gv('f-creat');p.urea=gv('f-urea');p.na=gv('f-na');p.k=gv('f-k');p.cl=gv('f-cl');p.hco3=gv('f-hco3');
-  p.ph=gv('f-ph');p.pco2=gv('f-pco2');p.po2=gv('f-po2');p.lac=gv('f-lac');
+  p.ph=gv('f-ph');p.pco2=gv('f-pco2');p.po2=gv('f-po2');p.lac=gv('f-lac');p.be=gv('f-be');
   p.bil=gv('f-bil');p.got=gv('f-got');p.gpt=gv('f-gpt');p.albumin=gv('f-albumin');p.glu=gv('f-glu');
   p.tp=gv('f-tp');p.fibr=gv('f-fibr');
+  // P14: laboratorio ampliado
+  p.ca=gv('f-ca');p.mg=gv('f-mg');
+  p.crasis_kptt=gv('f-crasis-kptt');p.crasis_inr=gv('f-crasis-inr');
+  p.hierro=gv('f-hierro');p.transferrina=gv('f-transferrina');p.ferritina=gv('f-ferritina');p.sat_transf=gv('f-sat-transf');
+  p.tsh=gv('f-tsh');p.t4l=gv('f-t4l');p.pcr=gv('f-pcr');p.ves=gv('f-ves');p.pct=gv('f-pct');p.cpk=gv('f-cpk');p.troponina=gv('f-troponina');
   p.fio2=gv('f-fio2');p.peep=gv('f-peep');p.pip=gv('f-pip');p.vt=gv('f-vt');p.vm=gv('f-vm');
   p.ing_ev=gv('f-ing-ev');p.ing_ent=gv('f-ing-ent');p.ing_otros=gv('f-ing-otros');
   p.eg_ur=gv('f-eg-ur');p.eg_sg=gv('f-eg-sg');p.eg_otros=gv('f-eg-otros');
@@ -3331,6 +3819,11 @@ function readPatientForm(idx){
   p.vvc_sitio=gv('f-vvc-sitio');p.vvc_fecha=gv('f-vvc-fecha');p.via_art=gv('f-via-art');p.art_fecha=gv('f-art-fecha');
   p.sng=gv('f-sng');p.sonda_v=gv('f-sonda-v');p.dren=gv('f-dren');
   p.evolucion=gv('f-evolucion');
+  p.gcs_o=gv('f-gcs-o');p.gcs_v=gv('f-gcs-v');p.gcs_m=gv('f-gcs-m');
+  p.pup_d_mm=gv('f-pup-d-mm');p.pup_d_react=gv('f-pup-d-react');
+  p.pup_i_mm=gv('f-pup-i-mm');p.pup_i_react=gv('f-pup-i-react');
+  (function(){ var o=parseFloat(p.gcs_o),v=parseFloat(p.gcs_v),m=parseFloat(p.gcs_m);
+    p.gcs_total = (!isNaN(o)&&!isNaN(v)&&!isNaN(m)) ? String(o+v+m) : ''; })();
   p.sis_neuro=gv('f-sis-neuro');p.sis_hemo=gv('f-sis-hemo');p.sis_resp=gv('f-sis-resp');
   p.sis_infec=gv('f-sis-infec');p.sis_accesos=gv('f-sis-accesos');p.sis_metab=gv('f-sis-metab');p.sis_conductas=gv('f-sis-conductas');
   for(var i=0;i<PADUA_ITEMS.length;i++){var el=document.getElementById('padua-'+i);if(el)p['padua_'+i]=el.checked;}
@@ -3350,7 +3843,7 @@ function readPatientForm(idx){
   p.ap_gcs=gv('f-ap-gcs');p.ap_age=gv('f-ap-age');p.ap_chronic=gv('f-ap-chronic');
   // F4 sedoanalgesia
   p.sedo_drug=gv('f-sedo-drug');p.sedo_rass=gv('f-sedo-rass');p.sedo_weight=gv('f-sedo-weight');
-  p.sedo_dose=gv('f-sedo-dose');p.sedo_rate=gv('f-sedo-rate');
+  p.sedo_mg=gv('f-sedo-mg');p.sedo_vol=gv('f-sedo-vol');p.sedo_rate=gv('f-sedo-rate');
   // F6 comorbilidades y datos clínicos
   COMORB.forEach(function(c){ p['com_'+c.k]=chk('f-com-'+c.k); });
   p.charlson_total=gv('f-charlson-total');
@@ -3358,14 +3851,46 @@ function readPatientForm(idx){
   p.resp_vni=gv('f-resp-vni');p.resp_vni_dias=gv('f-resp-vni-dias');
   p.resp_oaf=gv('f-resp-oaf');p.resp_oaf_dias=gv('f-resp-oaf-dias');
   p.resp_iot_previa=gv('f-resp-iot-previa');p.resp_traqueo=gv('f-resp-traqueo');
-  p.resp_traqueo_fecha=gv('f-resp-traqueo-fecha');p.resp_fevi=gv('f-resp-fevi');
-  p.inf_neumo_ag=gv('f-inf-neumo-ag');p.inf_covid=gv('f-inf-covid');p.inf_ira=gv('f-inf-ira');
-  p.inf_ira_kdigo=gv('f-inf-ira-kdigo');p.inf_vasopresores=gv('f-inf-vasopresores');
+  p.resp_traqueo_fecha=gv('f-resp-traqueo-fecha');p.resp_fevi=gvs('f-resp-fevi',p.resp_fevi);
+  p.inf_neumo_ag=gvs('f-inf-neumo-ag',p.inf_neumo_ag);p.inf_covid=gvs('f-inf-covid',p.inf_covid);p.inf_ira=gvs('f-inf-ira',p.inf_ira);
+  p.inf_ira_kdigo=gvs('f-inf-ira-kdigo',p.inf_ira_kdigo);p.inf_vasopresores=gvs('f-inf-vasopresores',p.inf_vasopresores);
+  p.perfusion=gvs('f-perfusion',p.perfusion);
+  // P16: snapshot diario de tendencias (se registra al guardar)
+  try{ recordEvolSnapshot(p); }catch(e){}
+}
+
+// P16: extrae la dosis de noradrenalina (mcg/kg/min) del listado de drogas, si está.
+function getNoraGamma(p){
+  if(!p||!Array.isArray(p.drugs)) return '';
+  for(var i=0;i<p.drugs.length;i++){
+    var d=p.drugs[i]; if(!d) continue;
+    var n=(d.d||'').toLowerCase();
+    if(n.indexOf('noradrenalina')!==-1||n.indexOf('norepinefrina')!==-1||n.indexOf('nora')!==-1||n.indexOf('levophed')!==-1){
+      var m=String(d.dose||'').match(/([0-9]*\.?[0-9]+)\s*mcg\/kg\/min/);
+      if(m) return m[1];
+    }
+  }
+  return '';
+}
+function sumDiuresisForDate(p, fecha){
+  if(!Array.isArray(p.diuresis)) return '';
+  var tot=0, found=false;
+  p.diuresis.forEach(function(r){ if(r.fecha===fecha && hasVal(r.vol)){ tot+=parseFloat(r.vol)||0; found=true; } });
+  return found?String(tot):'';
+}
+function recordEvolSnapshot(p){
+  if(!p.evolHist) p.evolHist={};
+  var today=isoToday();
+  var snap={ pas:p.pas, pad:p.pad, nora:getNoraGamma(p), diu:sumDiuresisForDate(p,today),
+             temp:p.temp, pafi:p.pafi_calc, peep:p.peep, lac:p.lac, gcs:p.gcs_total };
+  var any=false; for(var kk in snap){ if(hasVal(snap[kk])){ any=true; break; } }
+  if(any) p.evolHist[today]=snap;
 }
 // Detecta si el paciente recibe vasoactivos según p.drugs
 function detectVasopresores(p){
   if(!p||!p.drugs||!p.drugs.length) return false;
-  var vaso=['noradrenalina','adrenalina','dopamina','dobutamina','vasopresina','milrinona'];
+  var vaso=['noradrenalina','norepinefrina','nora','adrenalina','epinefrina','dopamina','dobutamina',
+    'vasopresina','avp','milrinona','levophed','fenilefrina'];
   return p.drugs.some(function(d){
     var n=(d&&d.d?String(d.d):'').toLowerCase();
     return vaso.some(function(v){ return n.indexOf(v)!==-1; });
@@ -3394,58 +3919,60 @@ function computeCharlson(){
 }
 // Renderiza la sección "COMORBILIDADES Y DATOS CLÍNICOS" del tab Datos
 function comorbSectionHtml(p){
-  function sel(id,val,opts){
-    var o='<option value="">-</option>';
-    opts.forEach(function(x){ o+='<option'+(val===x?' selected':'')+'>'+esc(x)+'</option>'; });
-    return '<select id="'+id+'">'+o+'</select>';
-  }
-  function selSN(id,val){ return sel(id,val,['Sí','No']); }
-  // Comorbilidades como checkboxes
-  var comChecks=COMORB.map(function(c){
-    var ck=p['com_'+c.k]?' checked':'';
-    return '<label class="chk" style="display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0">'+
-      '<input type="checkbox" id="f-com-'+c.k+'"'+ck+' onchange="computeCharlson()">'+
-      '<span>'+esc(c.label)+(c.charlson>0?(' <span style="color:var(--muted)">(+'+c.charlson+')</span>'):'')+'</span>'+
-    '</label>';
+  // Comorbilidades como checkboxes, agrupadas por categoría en grilla compacta (P3)
+  var _catOrder=[], _byCat={};
+  COMORB.forEach(function(c){ var ct=c.cat||'Otros'; if(!_byCat[ct]){_byCat[ct]=[];_catOrder.push(ct);} _byCat[ct].push(c); });
+  var comChecks=_catOrder.map(function(ct){
+    var items=_byCat[ct].map(function(c){
+      var ck=p['com_'+c.k]?' checked':'';
+      return '<label class="chk" style="display:flex;align-items:center;gap:6px;font-size:12px;padding:1px 0;cursor:pointer">'+
+        '<input type="checkbox" id="f-com-'+c.k+'"'+ck+' onchange="computeCharlson()" style="width:auto">'+
+        '<span>'+esc(c.label)+(c.charlson>0?(' <span style="color:var(--muted)">(+'+c.charlson+')</span>'):'')+'</span>'+
+      '</label>';
+    }).join('');
+    return '<div style="break-inside:avoid;border:1px solid var(--border);border-radius:8px;padding:6px 9px">'+
+      '<div style="font-size:10px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px">'+esc(ct)+'</div>'+
+      items+
+    '</div>';
   }).join('');
-  // Vasopresores: auto-detección desde p.drugs
-  var autoVaso=detectVasopresores(p);
-  var vasoVal=hasVal(p.inf_vasopresores)?p.inf_vasopresores:(autoVaso?'Sí':'');
-  var vasoNote=autoVaso?' <span style="color:var(--teal);font-size:11px">(auto-detectado por medicación)</span>':'';
-
   var initScore=(function(){
     var s=0; COMORB.forEach(function(c){ if(p['com_'+c.k]) s+=c.charlson; }); s+=charlsonAgePoints(p.age); return s;
   })();
   var initSurv=Math.pow(0.983,Math.exp(initScore*0.9));
   var initMort=Math.round((1-initSurv)*1000)/10;
 
-  return '<div class="section-card" style="margin-top:12px">'+
+  return '<div class="section-card">'+
     '<h4><span>🩺</span>Comorbilidades y datos clínicos</h4>'+
     '<input type="hidden" id="f-charlson-total" value="'+esc(p.charlson_total||'')+'">'+
-    '<div class="section-grid">'+
-      '<div>'+
-        '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Comorbilidades</div>'+
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 14px">'+comChecks+'</div>'+
+    '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px">'+
+      '<div class="calc-result" id="cv-charlson" style="flex:1;min-width:240px;margin:0">'+
+        '<div class="big">'+initScore+'</div>'+
+        '<div class="interp">Supervivencia estimada a 10 años: '+(Math.round(initSurv*1000)/10)+'% · Mortalidad estimada: '+initMort+'%</div>'+
       '</div>'+
-      '<div>'+
-        '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Índice de Charlson</div>'+
-        '<div class="calc-result" id="cv-charlson">'+
-          '<div class="big">'+initScore+'</div>'+
-          '<div class="interp">Supervivencia estimada a 10 años: '+(Math.round(initSurv*1000)/10)+'% · Mortalidad estimada: '+initMort+'%</div>'+
-        '</div>'+
-        '<div class="stats-note" style="margin-top:6px">Incluye puntos por edad. Se recalcula al marcar comorbilidades.</div>'+
-      '</div>'+
+      '<div class="stats-note" style="flex:1;min-width:200px">Índice de Charlson (incluye puntos por edad). Se recalcula en vivo al marcar comorbilidades.</div>'+
     '</div>'+
-    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:14px 0 6px">Datos respiratorios</div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Comorbilidades</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px;align-items:start">'+comChecks+'</div>'+
+  '</div>';
+}
+
+function respAdmisionSectionHtml(p){
+  function sel(id,val,opts){
+    var o='<option value="">-</option>';
+    opts.forEach(function(x){ o+='<option'+(val===x?' selected':'')+'>'+esc(x)+'</option>'; });
+    return '<select id="'+id+'">'+o+'</select>';
+  }
+  function selSN(id,val){ return sel(id,val,['Sí','No']); }
+  return '<div class="section-card">'+
+    '<h4><span>💨</span>Datos respiratorios al ingreso</h4>'+
     '<div class="section-grid">'+
       '<div class="field-group"><label>Tipo de insuficiencia respiratoria</label>'+
         sel('f-resp-tipo',p.resp_tipo,['Hipoxémica (tipo I)','Hipercápnica (tipo II)','Mixta','No aplica'])+'</div>'+
-      '<div class="field-group"><label>FEVI (%)</label><input id="f-resp-fevi" type="number" value="'+esc(p.resp_fevi||'')+'"></div>'+
+      '<div class="field-group"><label>IOT previa al ingreso</label>'+selSN('f-resp-iot-previa',p.resp_iot_previa)+'</div>'+
     '</div>'+
-    '<div class="field-row three" style="margin-top:8px">'+
+    '<div class="field-row" style="margin-top:8px">'+
       '<div class="field-group"><label>ARM</label>'+selSN('f-resp-arm',p.resp_arm)+'</div>'+
       '<div class="field-group"><label>Días ARM</label><input id="f-resp-arm-dias" type="number" value="'+esc(p.resp_arm_dias||'')+'"></div>'+
-      '<div class="field-group"><label>IOT previa al ingreso</label>'+selSN('f-resp-iot-previa',p.resp_iot_previa)+'</div>'+
     '</div>'+
     '<div class="field-row four" style="margin-top:8px">'+
       '<div class="field-group"><label>VNI</label>'+selSN('f-resp-vni',p.resp_vni)+'</div>'+
@@ -3457,18 +3984,7 @@ function comorbSectionHtml(p){
       '<div class="field-group"><label>Traqueostomía</label>'+selSN('f-resp-traqueo',p.resp_traqueo)+'</div>'+
       '<div class="field-group"><label>Fecha traqueostomía</label><input id="f-resp-traqueo-fecha" type="date" value="'+esc(p.resp_traqueo_fecha||'')+'"></div>'+
     '</div>'+
-    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:14px 0 6px">Datos infecciosos</div>'+
-    '<div class="section-grid">'+
-      '<div class="field-group"><label>Antígeno neumococo en orina</label>'+
-        sel('f-inf-neumo-ag',p.inf_neumo_ag,['Positivo','Negativo','No realizado'])+'</div>'+
-      '<div class="field-group"><label>Estado COVID</label>'+
-        sel('f-inf-covid',p.inf_covid,['Positivo','Negativo','No testeado'])+'</div>'+
-    '</div>'+
-    '<div class="field-row three" style="margin-top:8px">'+
-      '<div class="field-group"><label>Insuficiencia renal aguda</label>'+selSN('f-inf-ira',p.inf_ira)+'</div>'+
-      '<div class="field-group"><label>KDIGO (nota, opcional)</label><input id="f-inf-ira-kdigo" value="'+esc(p.inf_ira_kdigo||'')+'" placeholder="Estadio KDIGO..."></div>'+
-      '<div class="field-group"><label>Requirió vasopresores'+vasoNote+'</label>'+selSN('f-inf-vasopresores',vasoVal)+'</div>'+
-    '</div>'+
+    '<div class="stats-note" style="margin-top:12px">FEVI se carga en <b>CV → Ecocardio</b>; vasopresores en <b>CV</b>; función renal (IRA/KDIGO) e infectología (neumococo/COVID) en <b>Labs</b>.</div>'+
   '</div>';
 }
 
@@ -3602,6 +4118,62 @@ function renderDrugList(){
   '</tbody></table>';
 }
 
+// ===== P11: ECOCARDIO (carga diaria con trazabilidad histórica) =====
+var ECO_PATRONES=['Distributivo','Cardiogénico','Hipovolémico','Obstructivo','Mixto','Normal'];
+function ecocardioCardHtml(p){
+  return '<div class="section-card" style="margin-top:12px">'+
+    '<h4><span>🫀</span>Ecocardio (carga diaria)</h4>'+
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Valores del día. Se guardan con fecha para ver evolución en el resumen de egreso.</div>'+
+    '<div class="field-row four">'+
+      '<div class="field-group"><label>FEVI (%)</label><input id="eco-fevi" type="number" step="1"></div>'+
+      '<div class="field-group"><label>Vol. sistólico (mL)</label><input id="eco-vs" type="number" step="0.1"></div>'+
+      '<div class="field-group"><label>Índice cardíaco (L/min/m²)</label><input id="eco-ic" type="number" step="0.1"></div>'+
+      '<div class="field-group"><label>Gasto cardíaco (L/min)</label><input id="eco-gc" type="number" step="0.1"></div>'+
+    '</div>'+
+    '<div class="field-row four" style="margin-top:8px">'+
+      '<div class="field-group"><label>RVS (dyn·s·cm⁻⁵)</label><input id="eco-rvs" type="number"></div>'+
+      '<div class="field-group"><label>PSAP (mmHg)</label><input id="eco-psap" type="number"></div>'+
+      '<div class="field-group"><label>VCI (mm / colapso)</label><input id="eco-vci"></div>'+
+      '<div class="field-group"><label>Patrón hemodinámico</label><select id="eco-patron"><option value="">-</option>'+
+        ECO_PATRONES.map(function(o){return '<option>'+esc(o)+'</option>';}).join('')+'</select></div>'+
+    '</div>'+
+    '<div class="field-group" style="margin-top:8px"><label>Valvulopatías</label><input id="eco-valv" placeholder="texto libre..."></div>'+
+    '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="addEcocardio()">💾 Guardar ecocardio del día</button></div>'+
+    '<div id="ecocardioTableWrap" style="margin-top:10px;overflow-x:auto"></div>'+
+  '</div>';
+}
+function addEcocardio(){
+  var p=state.patients[state.activeBed];
+  if(!Array.isArray(p.ecocardios)) p.ecocardios=[];
+  function v(id){var el=document.getElementById(id);return el?el.value.trim():'';}
+  var e={fecha:isoToday(), fevi:v('eco-fevi'), vs:v('eco-vs'), ic:v('eco-ic'), gc:v('eco-gc'),
+         rvs:v('eco-rvs'), psap:v('eco-psap'), vci:v('eco-vci'), patron:v('eco-patron'), valvulopatias:v('eco-valv')};
+  if(!e.fevi&&!e.vs&&!e.ic&&!e.gc&&!e.rvs&&!e.psap&&!e.vci&&!e.patron&&!e.valvulopatias){ alert('Complete al menos un valor del ecocardio.'); return; }
+  // dedupe por fecha (actualiza el del día si ya existe)
+  var idx=-1; for(var i=0;i<p.ecocardios.length;i++){ if(p.ecocardios[i].fecha===e.fecha){idx=i;break;} }
+  if(idx>=0) p.ecocardios[idx]=e; else p.ecocardios.push(e);
+  p.ecocardios.sort(function(a,b){return (a.fecha<b.fecha)?-1:(a.fecha>b.fecha?1:0);});
+  // sincroniza FEVI "actual" (legado) con el último valor cargado, para exports que usan p.resp_fevi
+  if(hasVal(e.fevi)) p.resp_fevi=e.fevi;
+  ['eco-fevi','eco-vs','eco-ic','eco-gc','eco-rvs','eco-psap','eco-vci','eco-valv'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var ps=document.getElementById('eco-patron'); if(ps)ps.value='';
+  save(); renderEcocardioTable();
+  alert('Ecocardio del '+e.fecha+' guardado.');
+}
+function delEcocardio(i){
+  var p=state.patients[state.activeBed];
+  if(Array.isArray(p.ecocardios)){ p.ecocardios.splice(i,1); save(); renderEcocardioTable(); }
+}
+function renderEcocardioTable(){
+  var el=document.getElementById('ecocardioTableWrap'); if(!el) return;
+  var p=state.patients[state.activeBed];
+  var arr=Array.isArray(p.ecocardios)?p.ecocardios:[];
+  if(!arr.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px">Sin ecocardios registrados</div>'; return; }
+  el.innerHTML='<table class="drug-table"><thead><tr><th>Fecha</th><th>FEVI</th><th>VS</th><th>IC</th><th>GC</th><th>RVS</th><th>PSAP</th><th>VCI</th><th>Patrón</th><th>Valvulopatías</th><th></th></tr></thead><tbody>'+
+    arr.map(function(e,i){return '<tr><td>'+esc(e.fecha)+'</td><td>'+esc(e.fevi||'-')+'</td><td>'+esc(e.vs||'-')+'</td><td>'+esc(e.ic||'-')+'</td><td>'+esc(e.gc||'-')+'</td><td>'+esc(e.rvs||'-')+'</td><td>'+esc(e.psap||'-')+'</td><td>'+esc(e.vci||'-')+'</td><td>'+esc(e.patron||'-')+'</td><td>'+esc(e.valvulopatias||'-')+'</td><td><button class="btn btn-red btn-sm" onclick="delEcocardio('+i+')">X</button></td></tr>';}).join('')+
+  '</tbody></table>';
+}
+
 // ===================================================================
 // ===== NUEVO: PARACLINICA COMPARATIVA POR FECHAS ===================
 // ===================================================================
@@ -3645,6 +4217,13 @@ function paraTodayVal(p, row){
     case 'sao2': return '';                  // no hay campo
     default: return '';
   }
+}
+// Valor efectivo de HOY: si el medico cargo un valor manual en la tabla comparativa
+// para la fecha de hoy, ese manda. Si no, se usa el derivado de Puntuales (como antes).
+function paraTodayEffectiveVal(p, row){
+  var manual = (p.paraVals||{})[pKey(row, paraToday())];
+  if(hasVal(manual)) return manual;
+  return paraTodayVal(p, row);
 }
 
 function addParaDate(){
@@ -3702,7 +4281,7 @@ function openParaChart(key,label){
   var vals=p.paraVals||{};
   var pts=[], labels=[];
   dates.forEach(function(d){
-    var raw = d===today ? paraTodayVal(p,key) : (vals[pKey(key,d)]||'');
+    var raw = d===today ? paraTodayEffectiveVal(p,key) : (vals[pKey(key,d)]||'');
     labels.push(d===today?'HOY':(d.slice(8,10)+'/'+d.slice(5,7)));
     pts.push(paraFirstNum(raw));
   });
@@ -3752,7 +4331,7 @@ function paraMatrix(p){
   var vals=p.paraVals||{};
   var rows=[];
   PARA_ROWS.forEach(function(r){
-    var arr=dates.map(function(d){ return d===today ? (paraTodayVal(p,r[0])||'') : (vals[pKey(r[0],d)]||''); });
+    var arr=dates.map(function(d){ return d===today ? (paraTodayEffectiveVal(p,r[0])||'') : (vals[pKey(r[0],d)]||''); });
     if(arr.some(function(v){return hasVal(v);})) rows.push({label:r[1], values:arr});
   });
   return {dates:dates, rows:rows, today:today};
@@ -3823,8 +4402,8 @@ function renderParaTable(){
       var v=vals[pKey(r[0],d)]||'';
       html+='<td><input value="'+esc(v)+'" oninput="updateParaVal(\''+r[0]+'\',\''+d+'\',this.value)"></td>';
     });
-    var tv=paraTodayVal(p,r[0]);
-    html+='<td class="para-today"><input value="'+esc(tv)+'" readonly title="Se actualiza desde Puntuales"></td>';
+    var tv=paraTodayEffectiveVal(p,r[0]);
+    html+='<td class="para-today"><input value="'+esc(tv)+'" oninput="updateParaVal(\''+r[0]+'\',\''+today+'\',this.value)" title="Autocompleta desde Puntuales; escribi para sobrescribir el valor de hoy"></td>';
     html+='<td style="text-align:center"><button class="para-chart-btn" title="Ver evolución" onclick="openParaChart(\''+r[0]+'\',\''+esc(r[1])+'\')" style="background:none;border:none;cursor:pointer;font-size:16px">📈</button></td>';
     html+='</tr>';
   });
@@ -3985,12 +4564,122 @@ function exportStructuredPDF(){
 
 function hasVal(v){ return v!==null && v!==undefined && String(v).trim()!==''; }
 
+// P20/P21: estructura de datos común consumida por buildPDF, exportWord y el resumen de egresado.
+// Compara el valor de HOY de un parametro de Paraclinica contra el ultimo control anterior registrado.
+// Devuelve {hoy, prev, prevFecha, delta} o null si no hay suficiente dato para comparar.
+function paraTrend(p, key){
+  var hoy = paraTodayEffectiveVal(p, key);
+  if(!hasVal(hoy)) return null;
+  var dates=(p.paraDates||[]).slice().filter(function(d){return d!==paraToday();}).sort();
+  if(!dates.length) return null;
+  var prevDate=dates[dates.length-1];
+  var prev=(p.paraVals||{})[pKey(key,prevDate)];
+  if(!hasVal(prev)) return null;
+  var nHoy=paraFirstNum(hoy), nPrev=paraFirstNum(prev);
+  var delta = (nHoy!=null && nPrev!=null) ? (Math.round((nHoy-nPrev)*100)/100) : null;
+  return { hoy:hoy, prev:prev, prevFecha:prevDate, delta:delta };
+}
+
+function buildPatientReportData(p){
+  function fil(arr){ return arr.filter(function(x){return hasVal(x[1]);}); }
+  var gcs = hasVal(p.gcs_total)?String(p.gcs_total):'';
+  var pupilas=[];
+  if(hasVal(p.pup_d_mm)||hasVal(p.pup_d_react)) pupilas.push('D '+(hasVal(p.pup_d_mm)?p.pup_d_mm+'mm ':'')+(p.pup_d_react||''));
+  if(hasVal(p.pup_i_mm)||hasVal(p.pup_i_react)) pupilas.push('I '+(hasVal(p.pup_i_mm)?p.pup_i_mm+'mm ':'')+(p.pup_i_react||''));
+  var sis=fil([['Neuro',p.sis_neuro],['HD + drogas',p.sis_hemo],['Respiratorio + vent',p.sis_resp],['Infeccioso',p.sis_infec],['Accesos',p.sis_accesos],['Metabólico/nutricional',p.sis_metab]]);
+  var gaso=fil([['pH',p.ph],['PaCO2',p.pco2],['HCO3',p.hco3],['BE',p.be],['PAFI',p.pafi_calc],['PaO2',p.po2],['Lactato',p.lac],['Anión Gap',p.ag_result],['SID',p.sid_result],['EAB',p.eab_result]]);
+  var labs=fil([['Hb',p.hb],['Leucos',p.leucos],['Plaquetas',p.plaquetas],['TP',p.tp],['INR',p.crasis_inr],['Creat',p.creat],['Urea',p.urea],['TFG',p.tfg_calc],['Na',p.na],['K',p.k],['Cl',p.cl],['Ca',p.ca],['Mg',p.mg],['Bil',p.bil],['GOT',p.got],['GPT',p.gpt],['Albúmina',p.albumin],['PCR',p.pcr],['Procalcitonina',p.pct],['Ferritina',p.ferritina],['Troponina',p.troponina],['CPK',p.cpk],['Glucemia',p.glu]]);
+  var vh=[];
+  if(p.resp_arm==='Sí') vh.push('ARM'+(hasVal(p.resp_arm_dias)?' '+p.resp_arm_dias+'d':''));
+  else if(p.resp_vni==='Sí') vh.push('VNI'); else if(p.resp_oaf==='Sí') vh.push('OAF');
+  if(hasVal(p.fio2)) vh.push('FiO2 '+p.fio2);
+  if(hasVal(p.peep)) vh.push('PEEP '+p.peep);
+  if(hasVal(p.pafi_calc)) vh.push('PAFI '+p.pafi_calc);
+  if(hasVal(p.pam_calc)) vh.push('PAM '+p.pam_calc);
+  var _nora=(typeof getNoraGamma==='function')?getNoraGamma(p):'';
+  if(hasVal(_nora)) vh.push('NA '+_nora+' γ'); else if(detectVasopresores(p)) vh.push('vasoactivos');
+  if(hasVal(p.perfusion)) vh.push('Perfusión '+p.perfusion);
+  var eco=Array.isArray(p.ecocardios)?p.ecocardios.slice():[];
+  var drugs=(p.drugs||[]).slice();
+  var atb=(p.atb||[]).filter(function(a){return hasVal(a.atb);});
+  var micro=(p.micro||[]).filter(function(m){return hasVal(m.muestra)||hasVal(m.resultado);});
+  var comorb=(typeof COMORB!=='undefined'?COMORB:[]).filter(function(c){return p['com_'+c.k];}).map(function(c){return c.label;});
+  // bundle de hoy
+  var bundleToday=null;
+  try{ var bt=(p.bundle||{})[isoToday()]; if(bt){ bundleToday=BUNDLE_ITEMS.map(function(it){return {label:it[1], ok:!!bt[it[0]]};}); } }catch(e){}
+  var dias=''; if(hasVal(p.ingreso)){ try{ var dd=Math.floor((new Date()-new Date(p.ingreso))/86400000); if(!isNaN(dd)&&dd>=0) dias=(dd+1); }catch(e){} }
+  var diasARM = hasVal(p.resp_arm_dias) ? p.resp_arm_dias : '';
+
+  // Sedoanalgesia: recalcula mcg/kg/min a partir de mg/vol/velocidad, igual que calcSedo() en pantalla
+  var sedo='';
+  try{
+    if(hasVal(p.sedo_drug)){
+      var _sd=SEDO_DRUGS.find(function(d){return d.k===p.sedo_drug;});
+      var _w=parseFloat(p.sedo_weight)||parseFloat(p.weight)||0;
+      var _mg=parseFloat(p.sedo_mg)||0, _vol=parseFloat(p.sedo_vol)||0, _rate=parseFloat(p.sedo_rate)||0;
+      var _conc=(_mg>0&&_vol>0)?(_mg/_vol):(_sd?_sd.mgPerMl:0);
+      var _txt=(_sd?_sd.n:p.sedo_drug);
+      if(_w>0 && _rate>0 && _conc>0){
+        var _mgMin=_rate*_conc/60, _mcgKgMin=_mgMin*1000/_w;
+        _txt += ' — '+(Math.round(_mcgKgMin*1000)/1000)+' mcg/kg/min ('+(Math.round(_mgMin*1000)/1000)+' mg/min, '+_rate+' mL/h)';
+      } else if(hasVal(p.sedo_rate)){
+        _txt += ' — '+p.sedo_rate+' mL/h';
+      }
+      if(hasVal(p.sedo_rass)) _txt += ' · RASS objetivo '+p.sedo_rass;
+      sedo=_txt;
+    }
+  }catch(e){}
+
+  // Patron hemodinamico y ecocardio mas reciente
+  var ecoLast=(Array.isArray(p.ecocardios)&&p.ecocardios.length)?p.ecocardios[p.ecocardios.length-1]:null;
+
+  // Diuresis de hoy, drenajes, balance
+  var diuresisHoy = (typeof sumDiuresisForDate==='function') ? sumDiuresisForDate(p, isoToday()) : '';
+  var drenTotal=''; try{ if(Array.isArray(p.drenajes)&&p.drenajes.length){ var _s=0,_any=false; p.drenajes.forEach(function(d){ if(hasVal(d.gasto)){_s+=parseFloat(d.gasto)||0;_any=true;} }); if(_any) drenTotal=String(_s); } }catch(e){}
+
+  // Secreciones
+  var secreciones=[];
+  if(hasVal(p.va_sec_color)) secreciones.push(p.va_sec_color);
+  if(hasVal(p.va_sec_cant)) secreciones.push(p.va_sec_cant);
+  if(hasVal(p.va_sec_frec)) secreciones.push('aspiracion '+p.va_sec_frec);
+  var secrecionesTxt = secreciones.length ? secreciones.join(', ') : (hasVal(p.va_sec_color)||hasVal(p.va_sec_cant)?'':'Sin secreciones registradas');
+
+  // Fechas de vias (accesos)
+  var vias=[];
+  if(hasVal(p.vvc_fecha)) vias.push('VVC '+p.vvc_fecha);
+  if(hasVal(p.art_fecha)) vias.push('Via arterial '+p.art_fecha);
+
+  // Nutricion
+  var nutricion=[];
+  if(hasVal(p.nutr_via)) nutricion.push(p.nutr_via);
+  if(hasVal(p.nutr_cal)) nutricion.push(p.nutr_cal+' kcal/dia');
+  if(hasVal(p.nutr_prot)) nutricion.push(p.nutr_prot+' g prot/dia');
+
+  // Fiebre (segun temperatura registrada)
+  var fiebre = hasVal(p.temp) ? (parseFloat(p.temp)>=38 ? 'Si ('+p.temp+' °C)' : 'No ('+p.temp+' °C)') : '';
+
+  // Tendencias vs control anterior (renal y GB)
+  var renalTrend = (typeof paraTrend==='function') ? paraTrend(p,'creat') : null;
+  var gbTrend = (typeof paraTrend==='function') ? paraTrend(p,'gb') : null;
+
+  return {
+    p:p, gcs:gcs, pupilas:pupilas, sis:sis, gaso:gaso, labs:labs, ventHemo:vh,
+    ecocardios:eco, ecoLast:ecoLast, drugs:drugs, atb:atb, micro:micro, comorb:comorb,
+    charlson:(hasVal(p.charlson_total)?p.charlson_total:''), bundleToday:bundleToday, diasInternacion:dias,
+    diasARM:diasARM, sedo:sedo, diuresisHoy:diuresisHoy, drenTotal:drenTotal, balance:(hasVal(p.balance_calc)?p.balance_calc:''),
+    secrecionesTxt:secrecionesTxt, vias:vias, nutricion:nutricion, fiebre:fiebre,
+    renalTrend:renalTrend, gbTrend:gbTrend
+  };
+}
+
 function buildPDF(jsPDF, p){
   var doc=new jsPDF({unit:'mm',format:'a4'});
+  var RD=buildPatientReportData(p);
   var PW=210, PH=297, M=12, y=M;
-  var teal=[0,121,95], muted=[90,98,112], line=[200,205,215], dark=[26,29,39];
+  var teal=[0,121,95], muted=[90,98,112], line=[200,205,215], dark=[26,29,39], navy=[15,39,68];
   function ck(h){ if(y+h>PH-M){ doc.addPage(); y=M; } }
   function h2(t){ ck(10); doc.setFontSize(11); doc.setTextColor(teal[0],teal[1],teal[2]); doc.setFont(undefined,'bold'); doc.text(t,M,y); doc.setDrawColor(line[0],line[1],line[2]); doc.line(M,y+1.5,PW-M,y+1.5); y+=6; doc.setFont(undefined,'normal'); doc.setTextColor(dark[0],dark[1],dark[2]); doc.setFontSize(9.5); }
+  function h3(t){ ck(6); doc.setFontSize(9); doc.setTextColor(teal[0],teal[1],teal[2]); doc.setFont(undefined,'bold'); doc.text(t,M,y); y+=4.6; doc.setFont(undefined,'normal'); doc.setTextColor(dark[0],dark[1],dark[2]); doc.setFontSize(8.7); }
   function para(t){ if(!hasVal(t)) return; var lines=doc.splitTextToSize(String(t),PW-2*M); lines.forEach(function(ln){ ck(5); doc.text(ln,M,y); y+=4.6; }); y+=1.5; }
   function kv(k,v){ if(!hasVal(v)) return; ck(5); doc.setFont(undefined,'bold'); doc.text(k+': ',M,y); var kw=doc.getTextWidth(k+': '); doc.setFont(undefined,'normal'); var lines=doc.splitTextToSize(String(v),PW-2*M-kw); doc.text(lines[0]||'',M+kw,y); y+=4.6; for(var i=1;i<lines.length;i++){ ck(5); doc.text(lines[i],M,y); y+=4.6; } }
 
@@ -3999,72 +4688,110 @@ function buildPDF(jsPDF, p){
   var now=new Date();
   var fecha=now.toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
 
-  // ---- Encabezado ----
-  doc.setFillColor(teal[0],teal[1],teal[2]); doc.rect(0,0,PW,3,'F');
-  doc.setFontSize(15); doc.setTextColor(teal[0],teal[1],teal[2]); doc.setFont(undefined,'bold');
-  doc.text('Resumen de Paciente - UCI',M,y+4); y+=9;
-  doc.setFontSize(9); doc.setTextColor(muted[0],muted[1],muted[2]); doc.setFont(undefined,'normal');
-  var hdr=[];
-  hdr.push('Cama '+(p.bed||'-'));
-  if(hasVal(p.name)) hdr.push(p.name);
-  if(hasVal(p.age)) hdr.push(p.age+' a');
-  if(hasVal(p.ci)) hdr.push('CI '+p.ci);
-  hdr.push(centroName); hdr.push(fecha);
-  doc.text(hdr.join('  |  '),M,y); y+=6;
-  doc.setTextColor(dark[0],dark[1],dark[2]);
+  // ---- Encabezado: Cama + Nombre bien visibles ----
+  doc.setFillColor(navy[0],navy[1],navy[2]); doc.rect(0,0,PW,22,'F');
+  doc.setFontSize(18); doc.setTextColor(255,255,255); doc.setFont(undefined,'bold');
+  doc.text('Cama '+(p.bed||'-')+(hasVal(p.name)?'  ·  '+p.name:''),M,12);
+  doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(220,230,240);
+  var hdr2=[]; if(hasVal(p.age)) hdr2.push(p.age+' a'); if(hasVal(p.ci)) hdr2.push('CI '+p.ci); hdr2.push(centroName); hdr2.push(fecha);
+  doc.text(hdr2.join('  |  '),M,18);
+  y=27; doc.setTextColor(dark[0],dark[1],dark[2]);
+
+  // ---- Dias UCI / dias ARM / diagnostico ----
+  doc.setFontSize(9.5);
+  var topLine=[];
+  if(hasVal(RD.diasInternacion)) topLine.push('Dias en UCI: '+RD.diasInternacion);
+  if(hasVal(RD.diasARM)) topLine.push('Dias ARM: '+RD.diasARM);
+  if(topLine.length){ doc.setFont(undefined,'bold'); doc.text(topLine.join('   ·   '),M,y); y+=5.5; doc.setFont(undefined,'normal'); }
+  if(hasVal(p.dx)) kv('Diagnostico',p.dx);
 
   // ---- AP ----
   if(hasVal(p.antecedentes)){ h2('Antecedentes personales'); para(p.antecedentes); }
 
-  // ---- Tratamientos (drogas) ----
-  if(p.drugs && p.drugs.length){
-    h2('Tratamientos');
-    p.drugs.forEach(function(d){ ck(5); doc.text('- '+d.d+(d.dose&&d.dose!=='-'?': '+d.dose:'')+(d.dil?' ('+d.dil+')':'')+(d.route?' '+d.route:''),M,y); y+=4.6; }); y+=1.5;
-  }
-  if(p.atb && p.atb.some(function(a){return hasVal(a.atb);})){
-    // los ATB tambien mas abajo; aqui no repetir
-  }
-
-  // ---- Resumen historia clinica ----
-  if(hasVal(p.evolucion)){ /* evolucion se maneja abajo */ }
-  if(hasVal(p.dx)){ h2('Resumen historia clinica'); kv('Diagnostico',p.dx); if(hasVal(p.ingreso)) kv('Ingreso',p.ingreso); }
+  // ---- Historia clinica (motivo de ingreso) ----
+  if(hasVal(p.ingresohc)){ h2('Ingreso - Motivo / Resumen HC'); para(p.ingresohc); }
 
   // ---- Evolucion ----
   if(hasVal(p.evolucion)){ h2('Evolucion'); para(p.evolucion); }
 
-  // ---- Sistemas fisiologicos ----
-  var sis=[['🧠 Neuro',p.sis_neuro],['❤ HD + drogas',p.sis_hemo],['💨 Respiratorio + vent',p.sis_resp],['🦠 Infeccioso',p.sis_infec],['🩺 Accesos',p.sis_accesos],['🥗 Metabolico/nutricional',p.sis_metab]];
-  if(sis.some(function(s){return hasVal(s[1]);})){
-    h2('Sistemas fisiologicos');
-    sis.forEach(function(s){ if(hasVal(s[1])) kv(s[0].replace(/[^\x00-\x7F]/g,'').trim(),s[1]); });
-  }
+  // ==================================================================
+  // SISTEMAS FISIOLOGICOS — estructurado, con datos automaticos
+  // ==================================================================
+  h2('Sistemas fisiologicos');
 
-  // ---- 2 columnas: Conductas | Gasometria ----
-  var colTitles=['Conductas del dia','Gasometria'];
-  var gaso=[];
-  [['pH',p.ph],['PaCO2',p.pco2],['HCO3',p.hco3],['BE',p.be],['PAFI',p.pafi_calc],['PaO2',p.po2],['Lactato',p.lac],['SID',p.sid_result]].forEach(function(g){ if(hasVal(g[1])) gaso.push(g[0]+': '+g[1]); });
-  var conductas = hasVal(p.sis_conductas)? String(p.sis_conductas) : '';
-  if(conductas || gaso.length){
-    h2('Conductas / Gasometria');
-    var colW=(PW-2*M-4)/2, colX=[M,M+colW+4];
-    var startY=y;
-    doc.setFont(undefined,'bold'); doc.setFontSize(9);
-    for(var ci=0;ci<2;ci++){ doc.text(colTitles[ci],colX[ci],startY); }
-    doc.setFont(undefined,'normal'); doc.setFontSize(8.5);
-    var cy=startY+5;
-    var col0=doc.splitTextToSize(conductas||'-',colW);
-    var col1=gaso.length?gaso:['-'];
-    var maxRows=Math.max(col0.length,col1.length);
-    for(var r=0;r<maxRows;r++){
-      if(cy>PH-M){ doc.addPage(); cy=M; }
-      if(col0[r]) doc.text(col0[r],colX[0],cy);
-      if(col1[r]) doc.text(col1[r],colX[1],cy);
-      cy+=4.4;
-    }
-    y=cy+3;
-  }
+  // -- Neurologico --
+  var neuroLines=[];
+  if(hasVal(RD.gcs)) neuroLines.push('GCS: '+RD.gcs);
+  if(RD.pupilas.length) neuroLines.push('Pupilas: '+RD.pupilas.join(' · '));
+  if(hasVal(RD.sedo)) neuroLines.push('Sedoanalgesia: '+RD.sedo);
+  var sisNeuroTxt = RD.sis.filter(function(s){return s[0]==='Neuro';}).map(function(s){return s[1];})[0];
+  if(hasVal(sisNeuroTxt)) neuroLines.push('Nota: '+sisNeuroTxt);
+  if(neuroLines.length){ h3('Neurologico'); neuroLines.forEach(function(l){ para(l); }); }
 
-  // ---- Paraclinica: tabla comparativa por fechas (antigua -> HOY) ----
+  // -- Respiratorio --
+  var respLines=[];
+  if(RD.ventHemo.length){ var vmParts=RD.ventHemo.filter(function(v){return v.indexOf('ARM')===0||v.indexOf('VNI')===0||v.indexOf('OAF')===0||v.indexOf('FiO2')===0||v.indexOf('PEEP')===0;}); if(vmParts.length) respLines.push('Ventilacion: '+vmParts.join(' · ')); }
+  var gasoResp=RD.gaso.filter(function(g){return ['pH','PaCO2','PAFI','PaO2'].indexOf(g[0])!==-1;});
+  if(gasoResp.length) respLines.push('Gasometria: '+gasoResp.map(function(g){return g[0]+' '+g[1];}).join(' · '));
+  if(p.va_verif_rx) respLines.push('RxTx: verificada');
+  var sisRespTxt = RD.sis.filter(function(s){return s[0]==='Respiratorio + vent';}).map(function(s){return s[1];})[0];
+  if(hasVal(sisRespTxt)) respLines.push('Nota: '+sisRespTxt);
+  if(respLines.length){ h3('Respiratorio'); respLines.forEach(function(l){ para(l); }); }
+
+  // -- Hemodinamico --
+  var hemoLines=[];
+  var _nora=(typeof getNoraGamma==='function')?getNoraGamma(p):'';
+  if(hasVal(_nora)) hemoLines.push('Noradrenalina: '+_nora+' mcg/kg/min');
+  else if(detectVasopresores(p)) hemoLines.push('Vasoactivos: si (ver Tratamientos)');
+  if(RD.ecoLast){
+    var ep=[]; [['FEVI',RD.ecoLast.fevi],['GC',RD.ecoLast.gc],['IC',RD.ecoLast.ic],['RVS',RD.ecoLast.rvs],['PSAP',RD.ecoLast.psap],['VCI',RD.ecoLast.vci]].forEach(function(g){ if(hasVal(g[1])) ep.push(g[0]+' '+g[1]); });
+    if(ep.length) hemoLines.push('Ecocardio ('+(RD.ecoLast.fecha||'-')+'): '+ep.join(' · '));
+    if(hasVal(RD.ecoLast.patron)) hemoLines.push('Patron hemodinamico: '+RD.ecoLast.patron);
+  }
+  if(hasVal(p.perfusion)) hemoLines.push('Perfusion periferica: '+p.perfusion);
+  if(hasVal(p.lac)) hemoLines.push('Lactato: '+p.lac);
+  if(hasVal(RD.diuresisHoy)) hemoLines.push('Diuresis hoy: '+RD.diuresisHoy+' mL');
+  if(hasVal(RD.drenTotal)) hemoLines.push('Gasto drenajes: '+RD.drenTotal+' mL');
+  if(hasVal(RD.balance)) hemoLines.push('Balance: '+RD.balance+' mL');
+  var sisHemoTxt = RD.sis.filter(function(s){return s[0]==='HD + drogas';}).map(function(s){return s[1];})[0];
+  if(hasVal(sisHemoTxt)) hemoLines.push('Nota: '+sisHemoTxt);
+  if(hemoLines.length){ h3('Hemodinamico'); hemoLines.forEach(function(l){ para(l); }); }
+
+  // -- Renal --
+  var renalLines=[];
+  if(hasVal(p.creat)) renalLines.push('Creatinina: '+p.creat+(RD.renalTrend && RD.renalTrend.delta!=null ? '  ('+(RD.renalTrend.delta>=0?'+':'')+RD.renalTrend.delta+' vs '+RD.renalTrend.prevFecha+')' : ''));
+  if(hasVal(p.urea)) renalLines.push('Urea: '+p.urea);
+  if(hasVal(p.tfg_calc)) renalLines.push('TFG: '+p.tfg_calc);
+  var gasoRenal=RD.gaso.filter(function(g){return ['pH','HCO3','BE','Anión Gap','SID','EAB'].indexOf(g[0])!==-1;});
+  if(gasoRenal.length) renalLines.push('GSA: '+gasoRenal.map(function(g){return g[0]+' '+g[1];}).join(' · '));
+  if(renalLines.length){ h3('Renal'); renalLines.forEach(function(l){ para(l); }); }
+
+  // -- Infeccioso --
+  var infLines=[];
+  if(hasVal(RD.fiebre)) infLines.push('Fiebre: '+RD.fiebre);
+  if(hasVal(p.leucos)) infLines.push('GB: '+p.leucos+(RD.gbTrend && RD.gbTrend.delta!=null ? '  ('+(RD.gbTrend.delta>=0?'+':'')+RD.gbTrend.delta+' vs '+RD.gbTrend.prevFecha+')' : ''));
+  infLines.push('Secreciones: '+(RD.secrecionesTxt||'Sin datos'));
+  if(RD.vias.length) infLines.push('Vias (fecha coloc.): '+RD.vias.join(' · '));
+  var sisInfTxt = RD.sis.filter(function(s){return s[0]==='Infeccioso';}).map(function(s){return s[1];})[0];
+  if(hasVal(sisInfTxt)) infLines.push('Nota: '+sisInfTxt);
+  if(infLines.length){ h3('Infeccioso'); infLines.forEach(function(l){ para(l); }); }
+
+  // -- Nutricional / metabolico --
+  var nutrLines=[];
+  if(RD.nutricion.length) nutrLines.push(RD.nutricion.join(' · '));
+  if(hasVal(p.glu)) nutrLines.push('Glucemia: '+p.glu);
+  var sisMetabTxt = RD.sis.filter(function(s){return s[0]==='Metabólico/nutricional';}).map(function(s){return s[1];})[0];
+  if(hasVal(sisMetabTxt)) nutrLines.push('Nota: '+sisMetabTxt);
+  if(nutrLines.length){ h3('Nutricional / metabolico'); nutrLines.forEach(function(l){ para(l); }); }
+
+  // ---- Conductas del dia ----
+  if(hasVal(p.sis_conductas)){ h2('Conductas del dia'); para(p.sis_conductas); }
+
+  // ==================================================================
+  // Paraclinica + Gasometria + Microbiologia + ATB — tablas, misma altura
+  // ==================================================================
+
+  // -- Paraclinica: tabla comparativa por fechas --
   var pm=paraMatrix(p);
   if(pm.rows.length){
     h2('Paraclinica - evolucion por fechas');
@@ -4083,9 +4810,23 @@ function buildPDF(jsPDF, p){
     y+=3;
   }
 
-  // ---- Microbiologia (izq) + Antibioticos (der) ----
-  var micro=(p.micro||[]).filter(function(m){return hasVal(m.muestra)||hasVal(m.resultado);});
-  var atb=(p.atb||[]).filter(function(a){return hasVal(a.atb);});
+  // -- Gasometria del dia (tabla compacta) --
+  if(RD.gaso.length){
+    h2('Gasometria del dia');
+    var gW=(PW-2*M)/4;
+    var gx=M, gy0=y, gcount=0;
+    doc.setFontSize(8.5);
+    RD.gaso.forEach(function(g){
+      if(gcount>0 && gcount%4===0){ y+=5.5; gx=M; if(y>PH-M){ doc.addPage(); y=M; gy0=y; } }
+      doc.setFont(undefined,'bold'); doc.text(g[0]+':',gx,y);
+      doc.setFont(undefined,'normal'); doc.text(String(g[1]),gx+doc.getTextWidth(g[0]+': ')+1,y);
+      gx+=gW; gcount++;
+    });
+    y+=8;
+  }
+
+  // -- Microbiologia (izq) + Antibioticos (der), misma altura --
+  var micro=RD.micro, atb=RD.atb;
   if(micro.length || atb.length){
     h2('Microbiologia / Antibioticos');
     var halfW=(PW-2*M-6)/2, mX=M, aX=M+halfW+6;
@@ -4109,6 +4850,32 @@ function buildPDF(jsPDF, p){
       cy2+=4.4;
     }
     y=cy2+3;
+  }
+
+  // ---- Tratamientos (drogas) ----
+  if(p.drugs && p.drugs.length){
+    h2('Tratamientos');
+    p.drugs.forEach(function(d){ ck(5); doc.text('- '+d.d+(d.dose&&d.dose!=='-'?': '+d.dose:'')+(d.dil?' ('+d.dil+')':'')+(d.route?' '+d.route:''),M,y); y+=4.6; }); y+=1.5;
+  }
+
+  // ---- Laboratorio (otros valores del dia) ----
+  var labsExtra=RD.labs.filter(function(l){return ['Creat','Urea','Na','K','Cl'].indexOf(l[0])===-1;});
+  if(labsExtra.length){
+    h2('Laboratorio del dia (otros)');
+    para(labsExtra.map(function(l){return l[0]+': '+l[1];}).join('  ·  '));
+  }
+
+  // ---- Bundle de prevencion (hoy) ----
+  if(RD.bundleToday){
+    h2('Bundle de prevencion (hoy)');
+    para(RD.bundleToday.map(function(b){return (b.ok?'[x] ':'[ ] ')+b.label;}).join('   '));
+  }
+
+  // ---- Comorbilidades / Charlson ----
+  if(RD.comorb.length || hasVal(RD.charlson)){
+    h2('Comorbilidades');
+    if(RD.comorb.length) para(RD.comorb.join(', '));
+    if(hasVal(RD.charlson)) kv('Indice de Charlson',RD.charlson);
   }
 
   // ---- pie ----
@@ -4537,6 +5304,45 @@ function exportStructuredPDFprint(p){
 // ===== NUEVO F6: TRASPASO DE GUARDIA ==============================
 // ===================================================================
 // Considera "con datos" = tiene nombre o diagnostico o algun sistema.
+// P20/19: narrativa condensada del traspaso, reutilizando la misma fuente de datos que el PDF individual (RD)
+function traspasoNarrativoLines(p){
+  var RD=buildPatientReportData(p);
+  var out=[];
+  if(hasVal(p.dx)) out.push(['Dx',p.dx]);
+  var diasTxt=[]; if(hasVal(RD.diasInternacion)) diasTxt.push(RD.diasInternacion+'d UCI'); if(hasVal(RD.diasARM)) diasTxt.push(RD.diasARM+'d ARM');
+  if(diasTxt.length) out.push(['Dias',diasTxt.join(' · ')]);
+  if(hasVal(p.evolucion)) out.push(['Evolucion',p.evolucion]);
+  // Neuro
+  var neuro=[]; if(hasVal(RD.gcs)) neuro.push('GCS '+RD.gcs); if(RD.pupilas.length) neuro.push('Pupilas '+RD.pupilas.join('/')); if(hasVal(RD.sedo)) neuro.push(RD.sedo);
+  if(neuro.length) out.push(['Neuro',neuro.join(' · ')]);
+  // Respiratorio
+  var resp=[]; var vmParts=RD.ventHemo.filter(function(v){return v.indexOf('ARM')===0||v.indexOf('VNI')===0||v.indexOf('OAF')===0||v.indexOf('FiO2')===0||v.indexOf('PEEP')===0;});
+  if(vmParts.length) resp.push(vmParts.join(' · '));
+  var gasoResp=RD.gaso.filter(function(g){return ['pH','PaCO2','PAFI'].indexOf(g[0])!==-1;});
+  if(gasoResp.length) resp.push(gasoResp.map(function(g){return g[0]+' '+g[1];}).join(' · '));
+  if(resp.length) out.push(['Respiratorio',resp.join(' · ')]);
+  // Hemodinamico
+  var hemo=[]; var _nora=(typeof getNoraGamma==='function')?getNoraGamma(p):'';
+  if(hasVal(_nora)) hemo.push('NA '+_nora+'γ'); else if(detectVasopresores(p)) hemo.push('vasoactivos');
+  if(RD.ecoLast && hasVal(RD.ecoLast.patron)) hemo.push(RD.ecoLast.patron);
+  if(hasVal(p.lac)) hemo.push('Lactato '+p.lac);
+  if(hasVal(RD.diuresisHoy)) hemo.push('Diuresis '+RD.diuresisHoy+'mL');
+  if(hasVal(RD.balance)) hemo.push('Balance '+RD.balance);
+  if(hemo.length) out.push(['Hemodinamico',hemo.join(' · ')]);
+  // Renal
+  var renal=[]; if(hasVal(p.creat)) renal.push('Creat '+p.creat+(RD.renalTrend && RD.renalTrend.delta!=null ? ' ('+(RD.renalTrend.delta>=0?'+':'')+RD.renalTrend.delta+')' : ''));
+  if(hasVal(p.tfg_calc)) renal.push('TFG '+p.tfg_calc);
+  if(renal.length) out.push(['Renal',renal.join(' · ')]);
+  // Infeccioso
+  var inf=[]; if(hasVal(RD.fiebre)) inf.push(RD.fiebre); if(hasVal(p.leucos)) inf.push('GB '+p.leucos+(RD.gbTrend && RD.gbTrend.delta!=null ? ' ('+(RD.gbTrend.delta>=0?'+':'')+RD.gbTrend.delta+')' : ''));
+  if(hasVal(RD.secrecionesTxt)) inf.push(RD.secrecionesTxt);
+  if(inf.length) out.push(['Infeccioso',inf.join(' · ')]);
+  // Nutricional
+  if(RD.nutricion.length) out.push(['Nutricional',RD.nutricion.join(' · ')]);
+  if(hasVal(p.sis_conductas)) out.push(['Conductas',p.sis_conductas]);
+  return out;
+}
+
 function traspasoPatients(){
   if(document.getElementById('f-name')){ try{ readPatientForm(state.activeBed); }catch(e){} }
   return (state.patients||[]).filter(function(p){
@@ -4553,7 +5359,28 @@ function traspasoBlocks(p){
   var gaso=[['pH',p.ph],['PaCO2',p.pco2],['HCO3',p.hco3],['BE',p.be],['PAFI',p.pafi_calc],['PaO2',p.po2],['Lactato',p.lac],['SID',p.sid_result]]
     .filter(function(g){return hasVal(g[1]);}).map(function(g){return g[0]+' '+g[1];});
   var dias=''; if(hasVal(p.ingreso)){ try{ var d=Math.floor((new Date(paraToday())-new Date(p.ingreso))/86400000); if(!isNaN(d)&&d>=0) dias=(d+1)+' d'; }catch(e){} }
-  return {sis:sis, atb:atb, para:para, gaso:gaso, dias:dias};
+  // P19: estado de ventilación / hemodinamia resumido
+  var vh=[];
+  if(p.resp_arm==='Sí') vh.push('ARM'+(hasVal(p.resp_arm_dias)?' '+p.resp_arm_dias+'d':''));
+  else if(p.resp_vni==='Sí') vh.push('VNI'); else if(p.resp_oaf==='Sí') vh.push('OAF');
+  if(hasVal(p.fio2)) vh.push('FiO2 '+p.fio2);
+  if(hasVal(p.peep)) vh.push('PEEP '+p.peep);
+  if(hasVal(p.pafi_calc)) vh.push('PAFI '+p.pafi_calc);
+  if(hasVal(p.pam_calc)) vh.push('PAM '+p.pam_calc);
+  var _nora=(typeof getNoraGamma==='function')?getNoraGamma(p):'';
+  if(hasVal(_nora)) vh.push('NA '+_nora+' γ');
+  else if(detectVasopresores(p)) vh.push('vasoactivos');
+  if(hasVal(p.lac)) vh.push('Lactato '+p.lac);
+  return {sis:sis, atb:atb, para:para, gaso:gaso, dias:dias, evol:(hasVal(p.evolucion)?String(p.evolucion):''), ventHemo:vh};
+}
+var TRASPASO_MODE = 'completo'; // 'narrativo' | 'paraclinica' | 'completo'
+function setTraspasoModo(m){
+  TRASPASO_MODE = m;
+  ['narrativo','paraclinica','completo'].forEach(function(k){
+    var b=document.getElementById('tmodo-'+k);
+    if(b) b.className = 'btn btn-sm'+(k===m?' btn-teal':' btn-outline');
+  });
+  openTraspaso();
 }
 function openHelp(){ document.getElementById('modalHelp').style.display='flex'; }
 function openTraspaso(){
@@ -4561,19 +5388,27 @@ function openTraspaso(){
   var list=traspasoPatients();
   var c=CENTROS.find(function(x){return x.id===state.centro;});
   var cont=document.getElementById('traspasoContent');
+  ['narrativo','paraclinica','completo'].forEach(function(k){
+    var b=document.getElementById('tmodo-'+k);
+    if(b) b.className = 'btn btn-sm'+(k===TRASPASO_MODE?' btn-teal':' btn-outline');
+  });
   if(!list.length){ cont.innerHTML='<div style="color:var(--muted)">No hay pacientes con datos en este centro.</div>'; document.getElementById('modalTraspaso').style.display='flex'; return; }
   var _med=localStorage.getItem('uci_v5_medico')||'';
   var html='<div style="font-weight:700;color:var(--teal);margin-bottom:10px">'+esc(c?c.name:'')+' · '+list.length+' paciente(s) · '+new Date().toLocaleString('es')+(_med?' · Médico: '+esc(_med):'')+'</div>';
   list.forEach(function(p){
     var b=traspasoBlocks(p);
+    var nar=traspasoNarrativoLines(p);
     html+='<div style="border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:8px;background:var(--surface)">';
     html+='<div style="font-weight:700;color:var(--text)">🛏 Cama '+esc(p.bed||'-')+' — '+esc(p.name||'(sin nombre)')+(hasVal(p.age)?' · '+esc(p.age)+' a':'')+(b.dias?' · '+esc(b.dias)+' internación':'')+'</div>';
-    if(hasVal(p.dx)) html+='<div><strong>Dx:</strong> '+esc(p.dx)+'</div>';
-    b.sis.forEach(function(s){ html+='<div><strong>'+esc(s[0])+':</strong> '+esc(s[1])+'</div>'; });
-    if(b.gaso.length) html+='<div><strong>Gasometría del día:</strong> '+esc(b.gaso.join(' · '))+'</div>';
-    if(b.para.length) html+='<div><strong>Paraclínica del día:</strong> '+esc(b.para.join(' · '))+'</div>';
-    if(b.atb.length) html+='<div><strong>ATB activos:</strong> '+esc(b.atb.join('; '))+'</div>';
-    if(hasVal(p.sis_conductas)) html+='<div><strong>Conductas pendientes:</strong> '+esc(p.sis_conductas)+'</div>';
+    if(TRASPASO_MODE==='narrativo' || TRASPASO_MODE==='completo'){
+      nar.forEach(function(l){ html+='<div><strong>'+esc(l[0])+':</strong> '+esc(l[1])+'</div>'; });
+    }
+    if(TRASPASO_MODE==='paraclinica' || TRASPASO_MODE==='completo'){
+      if(TRASPASO_MODE==='paraclinica' && hasVal(p.dx)) html+='<div><strong>Dx:</strong> '+esc(p.dx)+'</div>';
+      if(b.gaso.length) html+='<div><strong>Gasometría del día:</strong> '+esc(b.gaso.join(' · '))+'</div>';
+      if(b.para.length) html+='<div><strong>Paraclínica del día:</strong> '+esc(b.para.join(' · '))+'</div>';
+      if(b.atb.length) html+='<div><strong>ATB activos:</strong> '+esc(b.atb.join('; '))+'</div>';
+    }
     html+='</div>';
   });
   cont.innerHTML=html;
@@ -4583,16 +5418,20 @@ function traspasoText(){
   var list=traspasoPatients();
   var c=CENTROS.find(function(x){return x.id===state.centro;});
   var _med=localStorage.getItem('uci_v5_medico')||'';
-  var out=['TRASPASO DE GUARDIA — '+(c?c.name:'')+' — '+new Date().toLocaleString('es')+(_med?' — Médico: '+_med:''),''];
+  var out=['TRASPASO DE GUARDIA — '+(c?c.name:'')+' — '+new Date().toLocaleString('es')+(_med?' — Médico: '+_med:'')+' — Modo: '+TRASPASO_MODE,''];
   list.forEach(function(p){
     var b=traspasoBlocks(p);
+    var nar=traspasoNarrativoLines(p);
     out.push('CAMA '+(p.bed||'-')+' — '+(p.name||'(sin nombre)')+(hasVal(p.age)?' · '+p.age+' a':'')+(b.dias?' · '+b.dias+' internacion':''));
-    if(hasVal(p.dx)) out.push('  Dx: '+p.dx);
-    b.sis.forEach(function(s){ out.push('  '+s[0]+': '+s[1]); });
-    if(b.gaso.length) out.push('  Gasometria del dia: '+b.gaso.join(' · '));
-    if(b.para.length) out.push('  Paraclinica del dia: '+b.para.join(' · '));
-    if(b.atb.length) out.push('  ATB activos: '+b.atb.join('; '));
-    if(hasVal(p.sis_conductas)) out.push('  Conductas pendientes: '+p.sis_conductas);
+    if(TRASPASO_MODE==='narrativo' || TRASPASO_MODE==='completo'){
+      nar.forEach(function(l){ out.push('  '+l[0]+': '+l[1]); });
+    }
+    if(TRASPASO_MODE==='paraclinica' || TRASPASO_MODE==='completo'){
+      if(TRASPASO_MODE==='paraclinica' && hasVal(p.dx)) out.push('  Dx: '+p.dx);
+      if(b.gaso.length) out.push('  Gasometria del dia: '+b.gaso.join(' · '));
+      if(b.para.length) out.push('  Paraclinica del dia: '+b.para.join(' · '));
+      if(b.atb.length) out.push('  ATB activos: '+b.atb.join('; '));
+    }
     out.push('');
   });
   return out.join('\n');
@@ -4620,12 +5459,13 @@ function exportTraspasoPDF(){
   var teal=[0,121,95], muted=[90,98,112], line=[200,205,215], dark=[26,29,39];
   function ck(h){ if(y+h>PH-M){ doc.addPage(); y=M; } }
   function para(t,fs){ if(!hasVal(t))return; doc.setFontSize(fs||9); var lines=doc.splitTextToSize(String(t),PW-2*M); lines.forEach(function(ln){ ck(5); doc.text(ln,M,y); y+=4.4; }); }
-  function kv(k,v){ if(!hasVal(v))return; doc.setFontSize(9); var lines=doc.splitTextToSize(k+': '+v,PW-2*M); lines.forEach(function(ln,i){ ck(5); if(i===0){doc.setFont(undefined,'bold');} doc.text(ln,M,y); doc.setFont(undefined,'normal'); y+=4.4; }); }
+  function kv(k,v){ if(!hasVal(v))return; ck(5); doc.setFontSize(9); var lines=doc.splitTextToSize(k+': '+v,PW-2*M); lines.forEach(function(ln,i){ ck(5); if(i===0){doc.setFont(undefined,'bold');} doc.text(ln,M,y); doc.setFont(undefined,'normal'); y+=4.4; }); }
   var c=CENTROS.find(function(x){return x.id===state.centro;});
   var now=new Date();
+  var _modoLbl={narrativo:'Narrativo',paraclinica:'Paraclínica',completo:'Completo'}[TRASPASO_MODE]||'Completo';
   doc.setFillColor(teal[0],teal[1],teal[2]); doc.rect(0,0,PW,3,'F');
   doc.setFontSize(15); doc.setTextColor(teal[0],teal[1],teal[2]); doc.setFont(undefined,'bold');
-  doc.text('Traspaso de Guardia — UCI',M,y+4); y+=9;
+  doc.text('Traspaso de Guardia — UCI ('+_modoLbl+')',M,y+4); y+=9;
   doc.setFontSize(9); doc.setTextColor(muted[0],muted[1],muted[2]); doc.setFont(undefined,'normal');
   var _med=localStorage.getItem('uci_v5_medico')||'';
   doc.text((c?c.name:'-')+'  |  '+list.length+' paciente(s)  |  '+now.toLocaleDateString('es')+' '+now.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}),M,y); y+=5;
@@ -4633,24 +5473,28 @@ function exportTraspasoPDF(){
   doc.setTextColor(dark[0],dark[1],dark[2]);
   list.forEach(function(p){
     var b=traspasoBlocks(p);
+    var nar=traspasoNarrativoLines(p);
     ck(16);
     doc.setFontSize(10.5); doc.setTextColor(teal[0],teal[1],teal[2]); doc.setFont(undefined,'bold');
     doc.text('Cama '+(p.bed||'-')+' — '+(p.name||'(sin nombre)')+(hasVal(p.age)?' · '+p.age+' a':'')+(b.dias?' · '+b.dias+' internación':''),M,y);
     doc.setDrawColor(line[0],line[1],line[2]); doc.line(M,y+1.5,PW-M,y+1.5); y+=6;
     doc.setFont(undefined,'normal'); doc.setTextColor(dark[0],dark[1],dark[2]);
-    kv('Dx',p.dx);
-    b.sis.forEach(function(s){ kv(s[0],s[1]); });
-    if(b.gaso.length) kv('Gasometría del día',b.gaso.join(' · '));
-    if(b.para.length) kv('Paraclínica del día',b.para.join(' · '));
-    if(b.atb.length) kv('ATB activos',b.atb.join('; '));
-    kv('Conductas pendientes',p.sis_conductas);
+    if(TRASPASO_MODE==='narrativo' || TRASPASO_MODE==='completo'){
+      nar.forEach(function(l){ kv(l[0],l[1]); });
+    }
+    if(TRASPASO_MODE==='paraclinica' || TRASPASO_MODE==='completo'){
+      if(TRASPASO_MODE==='paraclinica') kv('Dx',p.dx);
+      if(b.gaso.length) kv('Gasometría del día',b.gaso.join(' · '));
+      if(b.para.length) kv('Paraclínica del día',b.para.join(' · '));
+      if(b.atb.length) kv('ATB activos',b.atb.join('; '));
+    }
     y+=3;
   });
   var _tp=doc.internal.getNumberOfPages(), _cw=doc.internal.pageSize.getWidth();
   for(var _p=1;_p<=_tp;_p++){ doc.setPage(_p); doc.setFontSize(7); doc.setTextColor(150,150,150);
     doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', _cw/2, PH-3, {align:'center'}); }
   var tag=(c?c.name:'centro').replace(/[^a-zA-Z0-9]/g,'_');
-  doc.save('traspaso_'+tag+'_'+now.toISOString().slice(0,10)+'.pdf');
+  doc.save('traspaso_'+TRASPASO_MODE+'_'+tag+'_'+now.toISOString().slice(0,10)+'.pdf');
 }
 </script>
 <script>
@@ -5274,6 +6118,8 @@ function armActivo(p){
 function _dischNum(v){ var n=parseFloat(v); return isNaN(n)?null:n; }
 // GCS estimado: usa el input GCS de APACHE si existe; si no, deriva del SOFA neuro
 function _dischGCS(p){
+  var g0=_dischNum(p.gcs_total);
+  if(g0!==null) return {val:g0, src:'GCS registrado'};
   var g=_dischNum(p.ap_gcs);
   if(g!==null) return {val:g, src:'APACHE'};
   // Mapeo aproximado desde SOFA neuro (rangos): 0->15,1->13,2->10,3->6,4->3
@@ -5313,9 +6159,9 @@ function dischargeCriteria(p){
       met=true;
       detail='No en ARM / extubado. Criterio cumplido.';
     } else {
-      var fio2=_dischNum(p.fio2); // guardado 0.21–1.0 (fracción) o a veces %
+      var fio2=_dischNum(p.fio2); // guardado siempre como fraccion 0.21-1.0
       var peep=_dischNum(p.peep);
-      var fio2ok = fio2!==null && (fio2<=0.4 || fio2<=40);
+      var fio2ok = fio2!==null && fio2<=0.4;
       var peepok = peep!==null && peep<=5;
       met = fio2ok && peepok;
       detail='En ARM. FiO2='+(fio2!==null?fio2:'-')+' (≤0.40/40%), PEEP='+(peep!==null?peep:'-')+' (≤5). '+(met?'Parámetros de destete alcanzados.':'Parámetros aún elevados o incompletos.');
@@ -6555,19 +7401,43 @@ function egresadoVerResumen(id){
   if(!r || !cont) return;
   EGRESO_RESUMEN_ID = id;
   var dias = egresoDias(r);
-  var b = (typeof traspasoBlocks==='function') ? traspasoBlocks(r) : {sis:[],atb:[],para:[],gaso:[],dias:''};
+  // P21: mismo nivel de detalle que el PDF (buildPatientReportData / buildPDF)
+  var RD = (typeof buildPatientReportData==='function') ? buildPatientReportData(r) : null;
+  var b = (typeof traspasoBlocks==='function') ? traspasoBlocks(r) : {sis:[],atb:[],para:[],gaso:[],dias:'',evol:'',ventHemo:[]};
+  function row(k,v){ return hasVal(v) ? ('<div><strong>'+esc(k)+':</strong> '+esc(v)+'</div>') : ''; }
+  function hdr(t){ return '<div style="font-weight:700;color:var(--teal);margin:10px 0 4px;font-size:12px;text-transform:uppercase">'+esc(t)+'</div>'; }
   var html = '<div style="font-weight:700;color:var(--teal);margin-bottom:10px">'+esc(r.centroName||'')+' · Egreso '+esc(r.fecha_egreso||'-')+'</div>';
-  html += '<div style="border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:8px;background:var(--surface)">';
-  html += '<div style="font-weight:700;color:var(--text)">🛏 Cama '+esc(r.bed||'-')+' — '+esc(r.name||'(sin nombre)')+(hasVal(r.age)?' · '+esc(r.age)+' a':'')+(dias!==null?' · '+dias+' días internación':'')+'</div>';
-  if(hasVal(r.dx)) html+='<div><strong>Dx:</strong> '+esc(r.dx)+'</div>';
-  if(hasVal(r.ingreso)) html+='<div><strong>Ingreso:</strong> '+esc(r.ingreso)+'</div>';
-  if(hasVal(r.fecha_egreso)) html+='<div><strong>Egreso:</strong> '+esc(r.fecha_egreso)+'</div>';
-  if(hasVal(r.cobertura)) html+='<div><strong>Cobertura:</strong> '+esc(r.cobertura)+'</div>';
-  (b.sis||[]).forEach(function(s){ html+='<div><strong>'+esc(s[0])+':</strong> '+esc(s[1])+'</div>'; });
-  if((b.gaso||[]).length) html+='<div><strong>Gasometría:</strong> '+esc(b.gaso.join(' · '))+'</div>';
-  if((b.para||[]).length) html+='<div><strong>Paraclínica:</strong> '+esc(b.para.join(' · '))+'</div>';
-  if((b.atb||[]).length) html+='<div><strong>ATB:</strong> '+esc(b.atb.join('; '))+'</div>';
-  if(hasVal(r.sis_conductas)) html+='<div><strong>Conductas:</strong> '+esc(r.sis_conductas)+'</div>';
+  html += '<div style="border:1px solid var(--border);border-radius:var(--rs);padding:12px;background:var(--surface)">';
+  html += '<div style="font-weight:700;font-size:15px;color:var(--text)">🛏 Cama '+esc(r.bed||'-')+' — '+esc(r.name||'(sin nombre)')+(hasVal(r.age)?' · '+esc(r.age)+' a':'')+(dias!==null?' · '+dias+' días internación':'')+'</div>';
+  html += row('Dx',r.dx)+row('Ingreso',r.ingreso)+row('Egreso',r.fecha_egreso)+row('Motivo egreso',r.motivo_egreso)+row('Cobertura',r.cobertura);
+  // Scores
+  html += hdr('Scores')+row('SOFA',r.sofa_total)+row('APACHE II',r.ap_total)+row('Charlson',r.charlson_total);
+  // Antecedentes / ingreso
+  if(hasVal(r.antecedentes)) html+=hdr('Antecedentes')+'<div>'+esc(r.antecedentes)+'</div>';
+  if(hasVal(r.ingresohc)) html+=hdr('Ingreso (motivo/resumen HC)')+'<div>'+esc(r.ingresohc)+'</div>';
+  // Neuro
+  if(RD && (hasVal(RD.gcs)||RD.pupilas.length)){ html+=hdr('Neurológico'); html+=row('GCS',RD.gcs)+row('Pupilas',RD.pupilas.join(' · ')); }
+  // Vent/HD
+  if(b.ventHemo && b.ventHemo.length) html+=hdr('Ventilación / hemodinamia')+'<div>'+esc(b.ventHemo.join(' · '))+'</div>';
+  // Evolución
+  if(hasVal(r.evolucion)) html+=hdr('Evolución')+'<div>'+esc(r.evolucion).replace(/\n/g,'<br>')+'</div>';
+  // Sistemas
+  if((b.sis||[]).length){ html+=hdr('Sistemas fisiológicos'); (b.sis||[]).forEach(function(s){ html+=row(s[0],s[1]); }); }
+  if(hasVal(r.sis_conductas)) html+=hdr('Conductas')+'<div>'+esc(r.sis_conductas)+'</div>';
+  // Gaso / Labs
+  if((b.gaso||[]).length) html+=hdr('Gasometría')+'<div>'+esc(b.gaso.join(' · '))+'</div>';
+  if(RD && RD.labs.length) html+=hdr('Laboratorio')+'<div>'+esc(RD.labs.map(function(l){return l[0]+': '+l[1];}).join(' · '))+'</div>';
+  if((b.para||[]).length) html+=hdr('Paraclínica del día')+'<div>'+esc(b.para.join(' · '))+'</div>';
+  // Ecocardio
+  if(RD && RD.ecocardios.length){ html+=hdr('Ecocardio (evolución)'); RD.ecocardios.forEach(function(e){ var parts=[]; [['FEVI',e.fevi],['VS',e.vs],['IC',e.ic],['GC',e.gc],['RVS',e.rvs],['PSAP',e.psap],['VCI',e.vci],['Patrón',e.patron],['Valv.',e.valvulopatias]].forEach(function(g){if(hasVal(g[1]))parts.push(g[0]+' '+g[1]);}); html+=row(e.fecha,parts.join(' · ')); }); }
+  // Drogas
+  if(RD && RD.drugs.length){ html+=hdr('Medicación activa'); RD.drugs.forEach(function(d){ html+='<div>• <strong>'+esc(d.d)+'</strong> '+esc(d.dose||'')+(d.dil?' ('+esc(d.dil)+')':'')+(d.route?' '+esc(d.route):'')+'</div>'; }); }
+  // ATB / Micro
+  if((b.atb||[]).length) html+=hdr('Antibióticos')+'<div>'+esc(b.atb.join('; '))+'</div>';
+  if(RD && RD.micro.length){ html+=hdr('Microbiología'); RD.micro.forEach(function(m){ html+='<div>'+esc((m.fecha||'')+' '+(m.muestra||'')+': '+(m.resultado||m.estado||''))+(hasVal(m.sens)?' ['+esc(m.sens)+']':'')+'</div>'; }); }
+  // Bundle / comorbilidades
+  if(RD && RD.bundleToday) html+=hdr('Bundle de prevención (hoy)')+'<div>'+RD.bundleToday.map(function(x){return (x.ok?'☑':'☐')+' '+esc(x.label);}).join(' &nbsp; ')+'</div>';
+  if(RD && RD.comorb.length) html+=hdr('Comorbilidades')+'<div>'+esc(RD.comorb.join(', '))+'</div>';
   html += '</div>';
   cont.innerHTML = html;
   document.getElementById('modalEgresoResumen').style.display='flex';
@@ -6632,11 +7502,24 @@ function egresadoRow(r){
   row['FEVI']=r.resp_fevi||'';
   // Infecciosos
   row['Antígeno neumococo']=r.inf_neumo_ag||''; row['COVID']=r.inf_covid||'';
-  row['IRA']=r.inf_ira||'';
+  row['IRA']=r.inf_ira||''; row['KDIGO']=r.inf_ira_kdigo||'';
   row['Vasopresores']=hasVal(r.inf_vasopresores)?r.inf_vasopresores:(detectVasopresores(r)?'Sí':'');
-  // Paraclínica (snapshot)
-  row['pH']=r.ph||''; row['PCO2']=r.pco2||''; row['HCO3']=r.hco3||''; row['Lactato']=r.lac||'';
-  row['Hb']=r.hb||''; row['GB']=r.leucos||''; row['PQT']=r.plaquetas||''; row['Creatinina']=r.creat||'';
+  row['Perfusión periférica']=r.perfusion||'';
+  // FEVI: último ecocardio si existe, si no el legado
+  var _fevi=r.resp_fevi||'';
+  if(Array.isArray(r.ecocardios)&&r.ecocardios.length){ for(var _e=r.ecocardios.length-1;_e>=0;_e--){ if(hasVal(r.ecocardios[_e].fevi)){ _fevi=r.ecocardios[_e].fevi; break; } } }
+  row['FEVI']=_fevi;
+  // Gasometría completa (snapshot)
+  row['pH']=r.ph||''; row['PCO2']=r.pco2||''; row['PaO2']=r.po2||''; row['HCO3']=r.hco3||''; row['BE']=r.be||'';
+  row['PAFI']=r.pafi_calc||''; row['Anión Gap']=r.ag_result||''; row['SID']=r.sid_result||''; row['Lactato']=r.lac||'';
+  row['Na']=r.na||''; row['K']=r.k||''; row['Cl']=r.cl||''; row['Ca']=r.ca||''; row['Mg']=r.mg||'';
+  row['Interpretación EAB']=r.eab_result||'';
+  // Paraclínica / laboratorio (snapshot)
+  row['Hb']=r.hb||''; row['GB']=r.leucos||''; row['PQT']=r.plaquetas||''; row['Creatinina']=r.creat||''; row['Urea']=r.urea||''; row['TFG']=r.tfg_calc||'';
+  row['TP']=r.tp||''; row['INR']=r.crasis_inr||''; row['Fibrinógeno']=r.fibr||'';
+  row['Bilirrubina']=r.bil||''; row['GOT']=r.got||''; row['GPT']=r.gpt||''; row['Albúmina']=r.albumin||'';
+  row['PCR']=r.pcr||''; row['VES']=r.ves||''; row['Procalcitonina']=r.pct||''; row['Ferritina']=r.ferritina||''; row['CPK']=r.cpk||''; row['Troponina']=r.troponina||'';
+  row['Glucemia']=r.glu||''; row['GCS']=r.gcs_total||'';
   // ATB
   row['ATB utilizados']=((r.atb||[]).map(function(a){return a&&a.atb?a.atb:'';}).filter(Boolean).join('; '));
   row['Días totales de ATB']=egresadoAtbDiasTotales(r);
@@ -6665,7 +7548,13 @@ function exportEgresadosExcel(){
   var list=(typeof egresadosFiltered==='function')?egresadosFiltered():getEgresados();
   if(!list.length){ alert('No hay egresados para exportar (según los filtros actuales).'); return; }
   var rows=list.map(egresadoRow);
-  var ws=XLSX.utils.json_to_sheet(rows);
+  // P22: construir el encabezado como UNIÓN de todas las claves y normalizar cada fila,
+  // para que TODAS las columnas (ARM, gasometría, vasopresores, paraclínica) aparezcan
+  // con datos para todos los pacientes, no sólo los primeros.
+  var header=[];
+  rows.forEach(function(o){ Object.keys(o).forEach(function(k){ if(header.indexOf(k)===-1) header.push(k); }); });
+  rows.forEach(function(o){ header.forEach(function(k){ if(!(k in o)) o[k]=''; }); });
+  var ws=XLSX.utils.json_to_sheet(rows, {header:header});
   var wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Egresados');
   XLSX.writeFile(wb, 'egresados_'+isoToday()+'.xlsx');
