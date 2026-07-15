@@ -4726,7 +4726,7 @@ function buildPDF(jsPDF, p){
   if(hasVal(RD.sedo)) neuroLines.push('Sedoanalgesia: '+RD.sedo);
   var sisNeuroTxt = RD.sis.filter(function(s){return s[0]==='Neuro';}).map(function(s){return s[1];})[0];
   if(hasVal(sisNeuroTxt)) neuroLines.push('Nota: '+sisNeuroTxt);
-  if(neuroLines.length){ h3('Neurologico'); neuroLines.forEach(function(l){ para(l); }); }
+  // Neurologico -> se dibuja en la grilla 3x2 de sistemas (mas abajo)
 
   // -- Respiratorio --
   var respLines=[];
@@ -4736,7 +4736,7 @@ function buildPDF(jsPDF, p){
   if(p.va_verif_rx) respLines.push('RxTx: verificada');
   var sisRespTxt = RD.sis.filter(function(s){return s[0]==='Respiratorio + vent';}).map(function(s){return s[1];})[0];
   if(hasVal(sisRespTxt)) respLines.push('Nota: '+sisRespTxt);
-  if(respLines.length){ h3('Respiratorio'); respLines.forEach(function(l){ para(l); }); }
+  // Respiratorio -> grilla 3x2 de sistemas
 
   // -- Hemodinamico --
   var hemoLines=[];
@@ -4755,7 +4755,7 @@ function buildPDF(jsPDF, p){
   if(hasVal(RD.balance)) hemoLines.push('Balance: '+RD.balance+' mL');
   var sisHemoTxt = RD.sis.filter(function(s){return s[0]==='HD + drogas';}).map(function(s){return s[1];})[0];
   if(hasVal(sisHemoTxt)) hemoLines.push('Nota: '+sisHemoTxt);
-  if(hemoLines.length){ h3('Hemodinamico'); hemoLines.forEach(function(l){ para(l); }); }
+  // Hemodinamico -> grilla 3x2 de sistemas
 
   // -- Renal --
   var renalLines=[];
@@ -4764,7 +4764,7 @@ function buildPDF(jsPDF, p){
   if(hasVal(p.tfg_calc)) renalLines.push('TFG: '+p.tfg_calc);
   var gasoRenal=RD.gaso.filter(function(g){return ['pH','HCO3','BE','Anión Gap','SID','EAB'].indexOf(g[0])!==-1;});
   if(gasoRenal.length) renalLines.push('GSA: '+gasoRenal.map(function(g){return g[0]+' '+g[1];}).join(' · '));
-  if(renalLines.length){ h3('Renal'); renalLines.forEach(function(l){ para(l); }); }
+  // Renal -> grilla 3x2 de sistemas
 
   // -- Infeccioso --
   var infLines=[];
@@ -4774,7 +4774,7 @@ function buildPDF(jsPDF, p){
   if(RD.vias.length) infLines.push('Vias (fecha coloc.): '+RD.vias.join(' · '));
   var sisInfTxt = RD.sis.filter(function(s){return s[0]==='Infeccioso';}).map(function(s){return s[1];})[0];
   if(hasVal(sisInfTxt)) infLines.push('Nota: '+sisInfTxt);
-  if(infLines.length){ h3('Infeccioso'); infLines.forEach(function(l){ para(l); }); }
+  // Infeccioso -> grilla 3x2 de sistemas
 
   // -- Nutricional / metabolico --
   var nutrLines=[];
@@ -4782,7 +4782,47 @@ function buildPDF(jsPDF, p){
   if(hasVal(p.glu)) nutrLines.push('Glucemia: '+p.glu);
   var sisMetabTxt = RD.sis.filter(function(s){return s[0]==='Metabólico/nutricional';}).map(function(s){return s[1];})[0];
   if(hasVal(sisMetabTxt)) nutrLines.push('Nota: '+sisMetabTxt);
-  if(nutrLines.length){ h3('Nutricional / metabolico'); nutrLines.forEach(function(l){ para(l); }); }
+  // Nutricional/metabolico -> grilla 3x2 de sistemas
+  // ==================================================================
+  // Sistemas fisiologicos como grilla 3x2 con recuadros
+  // Fila1: Neurologico | Infeccioso   Fila2: Respiratorio | Hemodinamico
+  // Fila3: Renal       | Nutricional/metabolico
+  // ==================================================================
+  (function(){
+    var sysCells=[
+      ['Neurologico', neuroLines],
+      ['Infeccioso', infLines],
+      ['Respiratorio', respLines],
+      ['Hemodinamico', hemoLines],
+      ['Renal', renalLines],
+      ['Nutricional / metabolico', nutrLines]
+    ];
+    var sGap=4, sPad=2, sLineH=3.7, sTitleH=4.8;
+    var sColW=(PW-2*M-sGap)/2;
+    var sCol0=M, sCol1=M+sColW+sGap;
+    doc.setFontSize(7.6);
+    var wrapped=sysCells.map(function(c){
+      var inner=sColW-2*sPad, out=[];
+      (c[1]||[]).forEach(function(l){ doc.splitTextToSize(String(l),inner).forEach(function(w){ out.push(w); }); });
+      return out;
+    });
+    var maxLines=0; wrapped.forEach(function(w){ if(w.length>maxLines) maxLines=w.length; });
+    var cellH=sPad+sTitleH+maxLines*sLineH+sPad;
+    ck(3*cellH+2);
+    var gTop=y;
+    for(var i=0;i<6;i++){
+      var rr=Math.floor(i/2), cc=i%2;
+      var cx=(cc===0)?sCol0:sCol1, cy=gTop+rr*cellH;
+      doc.setDrawColor(line[0],line[1],line[2]); doc.setLineWidth(0.2); doc.rect(cx,cy,sColW,cellH);
+      doc.setFont(undefined,'bold'); doc.setFontSize(8.4); doc.setTextColor(teal[0],teal[1],teal[2]);
+      doc.text(sysCells[i][0],cx+sPad,cy+sPad+3);
+      doc.setFont(undefined,'normal'); doc.setFontSize(7.6); doc.setTextColor(dark[0],dark[1],dark[2]);
+      var ty=cy+sPad+sTitleH+3;
+      wrapped[i].forEach(function(w){ doc.text(w,cx+sPad,ty); ty+=sLineH; });
+    }
+    y=gTop+3*cellH+4;
+  })();
+  doc.setFont(undefined,'normal'); doc.setTextColor(dark[0],dark[1],dark[2]);
 
   // ---- Conductas del dia ----
   if(hasVal(p.sis_conductas)){ h2('Conductas del dia'); para(p.sis_conductas); }
@@ -4796,37 +4836,41 @@ function buildPDF(jsPDF, p){
   //                       Microbiologia        | Antibioticos
   // ==================================================================
   var micro=RD.micro, atb=RD.atb;
-  var _today=paraToday();
-  var hasParaclinica = PARA_ROWS.some(function(r){ return hasVal(paraTodayEffectiveVal(p, r[0])); });
+  var pm=paraMatrix(p);
 
-  if(hasParaclinica || RD.gaso.length || micro.length || atb.length){
+  if(pm.rows.length || RD.gaso.length || micro.length || atb.length){
     ck(14);
-    var colGap=6, colW=(PW-2*M-colGap)/2, subGap=4, subW=(colW-subGap)/2;
+    var colGap=6, colW=(PW-2*M-colGap)/2, subGap=4;
     var col1X=M, col2X=M+colW+colGap;
-    var subX1=col1X, subX2=col1X+subW+subGap;
     var rowStartY=y;
 
-    // ---- Cuadrante 1 (arriba-izq): Paraclinica | Evolucion ----
+    // ---- Cuadrante 1 (arriba-izq): Paraclinica (tabla compacta por fechas) ----
     var yA=rowStartY;
     doc.setFont(undefined,'bold'); doc.setFontSize(9); doc.setTextColor(teal[0],teal[1],teal[2]);
-    doc.text('Paraclinica',subX1,yA); doc.text('Evolucion',subX2,yA);
+    doc.text('Paraclinica',col1X,yA);
     doc.setDrawColor(line[0],line[1],line[2]); doc.line(col1X,yA+1.2,col1X+colW,yA+1.2);
-    yA+=5; doc.setFont(undefined,'normal'); doc.setFontSize(7.8); doc.setTextColor(dark[0],dark[1],dark[2]);
-    var yA1=yA, yA2=yA;
-    PARA_ROWS.forEach(function(r){
-      var key=r[0], label=r[1];
-      var hoy=paraTodayEffectiveVal(p,key);
-      if(!hasVal(hoy)) return;
-      var t1=label+': '+String(hoy).slice(0,16);
-      doc.splitTextToSize(t1,subW).forEach(function(ln){ if(yA1>PH-M){doc.addPage();yA1=M;} doc.text(ln,subX1,yA1); yA1+=4.0; });
-      var tr=paraTrend(p,key);
-      var t2;
-      if(tr && tr.delta!=null) t2=label+': '+(tr.delta>=0?'+':'')+tr.delta+' (vs '+tr.prevFecha.slice(8,10)+'/'+tr.prevFecha.slice(5,7)+')';
-      else if(tr) t2=label+': sin cambio';
-      else t2=label+': s/control previo';
-      doc.splitTextToSize(t2,subW).forEach(function(ln){ if(yA2>PH-M){doc.addPage();yA2=M;} doc.text(ln,subX2,yA2); yA2+=4.0; });
-    });
-    if(!hasParaclinica){ doc.text('Sin paraclinica registrada.',subX1,yA1); yA1+=4.0; yA2=yA1; }
+    yA+=5;
+    if(pm.rows.length){
+      var pLabelW=17, pNcol=pm.dates.length, pcw=(colW-pLabelW)/pNcol;
+      // fila de encabezado: fechas (la fecha va solo aca, no al lado de cada valor)
+      doc.setFont(undefined,'bold'); doc.setFontSize(6.6); doc.setTextColor(muted[0],muted[1],muted[2]);
+      pm.dates.forEach(function(d,ci){
+        var lbl=(d===pm.today)?'HOY':(d.slice(8,10)+'/'+d.slice(5,7));
+        doc.text(lbl,col1X+pLabelW+ci*pcw,yA);
+      });
+      yA+=3.6;
+      // filas: etiqueta + un valor por fecha
+      doc.setFont(undefined,'normal'); doc.setFontSize(7); doc.setTextColor(dark[0],dark[1],dark[2]);
+      pm.rows.forEach(function(row){
+        if(yA>PH-M){ doc.addPage(); yA=M; }
+        doc.text(row.label,col1X,yA);
+        row.values.forEach(function(v,ci){ if(hasVal(v)) doc.text(String(v).slice(0,9),col1X+pLabelW+ci*pcw,yA); });
+        yA+=3.6;
+      });
+    } else {
+      doc.setFont(undefined,'normal'); doc.setFontSize(7.8); doc.setTextColor(dark[0],dark[1],dark[2]);
+      doc.text('Sin paraclinica registrada.',col1X,yA); yA+=4.0;
+    }
 
     // ---- Cuadrante 2 (arriba-der): Gasometria ----
     var yB=rowStartY;
@@ -4844,7 +4888,7 @@ function buildPDF(jsPDF, p){
       yB+=4.0;
     } else { doc.text('Sin gasometria registrada.',col2X,yB); yB+=4.0; }
 
-    var row1Bottom=Math.max(yA1,yA2,yB);
+    var row1Bottom=Math.max(yA,yB);
 
     // ---- Cuadrante 3 (abajo-izq): Microbiologia ----
     var yC=row1Bottom+7;
@@ -4881,18 +4925,8 @@ function buildPDF(jsPDF, p){
     p.drugs.forEach(function(d){ ck(5); doc.text('- '+d.d+(d.dose&&d.dose!=='-'?': '+d.dose:'')+(d.dil?' ('+d.dil+')':'')+(d.route?' '+d.route:''),M,y); y+=4.6; }); y+=1.5;
   }
 
-  // ---- Laboratorio (otros valores del dia) ----
-  var labsExtra=RD.labs.filter(function(l){return ['Creat','Urea','Na','K','Cl'].indexOf(l[0])===-1;});
-  if(labsExtra.length){
-    h2('Laboratorio del dia (otros)');
-    para(labsExtra.map(function(l){return l[0]+': '+l[1];}).join('  ·  '));
-  }
-
-  // ---- Bundle de prevencion (hoy) ----
-  if(RD.bundleToday){
-    h2('Bundle de prevencion (hoy)');
-    para(RD.bundleToday.map(function(b){return (b.ok?'[x] ':'[ ] ')+b.label;}).join('   '));
-  }
+  // Secciones "Laboratorio del dia (otros)" y "Bundle de prevencion" removidas del PDF individual
+  // (los labs ya figuran en la tabla de Paraclinica; el bundle no se requiere en este documento).
 
   // ---- Comorbilidades / Charlson ----
   if(RD.comorb.length || hasVal(RD.charlson)){
