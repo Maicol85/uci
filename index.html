@@ -1986,15 +1986,13 @@ function renderActivePatient(){
     '<div style="margin-left:auto;display:flex;gap:4px;padding-left:10px;border-left:1px solid var(--border)">'+
       '<button class="inner-tab" onclick="showInner(\'indicaciones\',this)">\uD83D\uDC8A Indicaciones</button>'+
       '<button class="inner-tab" onclick="showInner(\'paraorden\',this)">\uD83E\uDDEA Paracl\u00EDnica</button>'+
-    '</div>'+
-  '</div>'+
-
-  '<div id="inner-datos" class="inner-panel active">'+
-    '<div class="btn-row" style="justify-content:flex-end;margin-bottom:10px">'+
       '<button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();renderBeds();alert(\'Guardado.\')">\uD83D\uDCBE Guardar</button>'+
       '<button class="btn btn-sm" style="background:#0e7c66;color:#fff" onclick="askEgreso('+ab+')">\uD83D\uDEAA Egreso</button>'+
       '<button class="btn btn-red btn-sm" onclick="askEgreso('+ab+')">\uD83D\uDDD1 Limpiar cama</button>'+
     '</div>'+
+  '</div>'+
+
+  '<div id="inner-datos" class="inner-panel active">'+
     '<div class="section-grid">'+
       '<div class="section-card">'+
         '<h4><span>\uD83D\uDC64</span>Identificacion</h4>'+
@@ -6217,19 +6215,25 @@ function dischargeCriteria(p){
   })();
 
   // 3. FiO2 ≤40% y PEEP ≤5 si en ARM; o extubado / sin ARM
+  //    Conservador: si hay CUALQUIER parametro ventilatorio (PEEP/VT/PIP/VM via
+  //    armActivo, o FiO2, o modo ventilatorio) se trata como ARM aunque el select
+  //    no diga "Sí". Solo se considera extubado si NO hay parametros ventilatorios
+  //    Y el select ARM esta en "No"/vacio.
   (function(){
-    var enArm = (p.resp_arm==='Sí') || !!p.costArm;
+    var ventData = armActivo(p) || hasVal(p.fio2) || hasVal(p.resp_tipo);
+    var enArm = (p.resp_arm==='Sí') || ventData;
     var met, detail;
     if(!enArm){
       met=true;
-      detail='No en ARM / extubado. Criterio cumplido.';
+      detail='Sin parámetros ventilatorios cargados y ARM en "No"/sin marcar: se considera extubado/sin ARM. Criterio cumplido.';
     } else {
       var fio2=_dischNum(p.fio2); // guardado siempre como fraccion 0.21-1.0
       var peep=_dischNum(p.peep);
       var fio2ok = fio2!==null && fio2<=0.4;
       var peepok = peep!==null && peep<=5;
       met = fio2ok && peepok;
-      detail='En ARM. FiO2='+(fio2!==null?fio2:'-')+' (≤0.40/40%), PEEP='+(peep!==null?peep:'-')+' (≤5). '+(met?'Parámetros de destete alcanzados.':'Parámetros aún elevados o incompletos.');
+      var armSrc = (p.resp_arm==='Sí') ? 'ARM marcada' : 'ARM inferida por parámetros ventilatorios';
+      detail='En ARM ('+armSrc+'). FiO2='+(fio2!==null?fio2:'sin dato')+' (≤0.40), PEEP='+(peep!==null?peep:'sin dato')+' (≤5). '+(met?'Parámetros de destete alcanzados.':'Parámetros aún elevados o falta FiO2/PEEP: criterio no cumplido.');
     }
     out.push({key:'resp', label:'FiO2 ≤40% y PEEP ≤5 (o extubado)', met:met, detail:detail});
   })();
@@ -6239,11 +6243,11 @@ function dischargeCriteria(p){
     var t=_dischNum(p.temp);
     var met, detail;
     if(t===null){
-      met=true;
-      detail='Temperatura no registrada. Se asume afebril (sin dato estructurado de fiebre). (Proxy: sin historial de 24h.)';
+      met=false;
+      detail='Temperatura no registrada — no se puede confirmar afebril. Criterio no cumplido hasta cargar la temperatura.';
     } else {
       met = t<38;
-      detail='Temp actual = '+t+' °C. Criterio: <38 °C. (Proxy: sin historial de 24h, se usa el valor actual.)';
+      detail='Temp actual = '+t+' °C. Criterio: <38 °C. '+(met?'Afebril confirmado.':'Febril.')+' (Proxy: sin historial de 24h, se usa el valor actual.)';
     }
     out.push({key:'febril', label:'Afebril (<38 °C)', met:met, detail:detail});
   })();
@@ -6258,13 +6262,22 @@ function dischargeCriteria(p){
     out.push({key:'nutr', label:'Tolerando nutrición enteral', met:met, detail:detail});
   })();
 
-  // 6. GCS ≥13
+  // 6. GCS ≥13 — conservador: exige GCS real (estructurado O/V/M, o de APACHE).
+  //    Una estimacion derivada de SOFA-neuro NO confirma el criterio (no se puede
+  //    verificar que este actualizada); sin ningun dato tampoco se asume un valor.
   (function(){
     var g=_dischGCS(p);
-    var met = g.val!==null && g.val>=13;
-    var detail = g.val===null
-      ? 'GCS sin registrar (APACHE ni SOFA neuro). Criterio no cumplido.'
-      : 'GCS = '+g.val+' ('+g.src+'). Criterio: ≥13.';
+    var met, detail;
+    if(g.val===null){
+      met=false;
+      detail='GCS sin registrar (ni estructurado O/V/M, ni APACHE, ni SOFA-neuro). Criterio no cumplido — cargar GCS.';
+    } else if(g.src==='SOFA-neuro'){
+      met=false;
+      detail='Sin GCS estructurado ni de APACHE; solo hay estimación desde SOFA-neuro ('+g.val+'), sin poder confirmar que esté actualizada. Criterio no cumplido — registrar GCS (apertura ocular, verbal y motora) para confirmar ≥13.';
+    } else {
+      met = g.val>=13;
+      detail='GCS = '+g.val+' ('+g.src+'). Criterio: ≥13. '+(met?'Confirmado.':'Por debajo del umbral.');
+    }
     out.push({key:'gcs', label:'GCS ≥13 (nivel de conciencia)', met:met, detail:detail});
   })();
 
