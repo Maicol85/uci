@@ -4681,6 +4681,9 @@ function buildPDF(jsPDF, p){
   function h2(t){ ck(10); doc.setFontSize(11); doc.setTextColor(teal[0],teal[1],teal[2]); doc.setFont(undefined,'bold'); doc.text(t,M,y); doc.setDrawColor(line[0],line[1],line[2]); doc.line(M,y+1.5,PW-M,y+1.5); y+=6; doc.setFont(undefined,'normal'); doc.setTextColor(dark[0],dark[1],dark[2]); doc.setFontSize(9.5); }
   function h3(t){ ck(6); doc.setFontSize(9); doc.setTextColor(teal[0],teal[1],teal[2]); doc.setFont(undefined,'bold'); doc.text(t,M,y); y+=4.6; doc.setFont(undefined,'normal'); doc.setTextColor(dark[0],dark[1],dark[2]); doc.setFontSize(8.7); }
   function para(t){ if(!hasVal(t)) return; var lines=doc.splitTextToSize(String(t),PW-2*M); lines.forEach(function(ln){ ck(5); doc.text(ln,M,y); y+=4.6; }); y+=1.5; }
+  // Variante compacta: fuente ~1pt menor e interlineado proporcional. Solo para
+  // secciones de texto libre largo (AP, Ingreso/HC, Evolucion). Restaura 9.5 al salir.
+  function paraSmall(t){ if(!hasVal(t)) return; doc.setFontSize(8.5); var lines=doc.splitTextToSize(String(t),PW-2*M); lines.forEach(function(ln){ ck(4.4); doc.text(ln,M,y); y+=4.1; }); y+=1.5; doc.setFontSize(9.5); }
   function kv(k,v){ if(!hasVal(v)) return; ck(5); doc.setFont(undefined,'bold'); doc.text(k+': ',M,y); var kw=doc.getTextWidth(k+': '); doc.setFont(undefined,'normal'); var lines=doc.splitTextToSize(String(v),PW-2*M-kw); doc.text(lines[0]||'',M+kw,y); y+=4.6; for(var i=1;i<lines.length;i++){ ck(5); doc.text(lines[i],M,y); y+=4.6; } }
 
   var c=CENTROS.find(function(x){return x.id===state.centro;});
@@ -4706,13 +4709,13 @@ function buildPDF(jsPDF, p){
   if(hasVal(p.dx)) kv('Diagnostico',p.dx);
 
   // ---- AP ----
-  if(hasVal(p.antecedentes)){ h2('Antecedentes personales'); para(p.antecedentes); }
+  if(hasVal(p.antecedentes)){ h2('Antecedentes personales'); paraSmall(p.antecedentes); }
 
   // ---- Historia clinica (motivo de ingreso) ----
-  if(hasVal(p.ingresohc)){ h2('Ingreso - Motivo / Resumen HC'); para(p.ingresohc); }
+  if(hasVal(p.ingresohc)){ h2('Ingreso - Motivo / Resumen HC'); paraSmall(p.ingresohc); }
 
   // ---- Evolucion ----
-  if(hasVal(p.evolucion)){ h2('Evolucion'); para(p.evolucion); }
+  if(hasVal(p.evolucion)){ h2('Evolucion'); paraSmall(p.evolucion); }
 
   // ==================================================================
   // SISTEMAS FISIOLOGICOS — estructurado, con datos automaticos
