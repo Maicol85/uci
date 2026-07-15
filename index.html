@@ -4791,65 +4791,88 @@ function buildPDF(jsPDF, p){
   // Paraclinica + Gasometria + Microbiologia + ATB — tablas, misma altura
   // ==================================================================
 
-  // -- Paraclinica: tabla comparativa por fechas --
-  var pm=paraMatrix(p);
-  if(pm.rows.length){
-    h2('Paraclinica - evolucion por fechas');
-    var labelW=30, availW=PW-2*M-labelW, ncol=pm.dates.length, cw=availW/ncol;
-    doc.setFont(undefined,'bold'); doc.setFontSize(7.5); doc.setTextColor(60,60,60);
-    doc.text('Parametro',M,y);
-    pm.dates.forEach(function(d,ci){ var lbl=(d===pm.today)?'HOY':(d.slice(8,10)+'/'+d.slice(5,7)); doc.text(lbl, M+labelW+ci*cw, y); });
-    y+=2; doc.setDrawColor(200,200,200); doc.line(M,y,PW-M,y); y+=3.5;
-    doc.setFont(undefined,'normal'); doc.setFontSize(7.5);
-    pm.rows.forEach(function(row){
-      if(y>PH-M){ doc.addPage(); y=M; }
-      doc.setTextColor(60,60,60); doc.text(row.label,M,y);
-      row.values.forEach(function(v,ci){ if(hasVal(v)) doc.text(String(v).slice(0,14), M+labelW+ci*cw, y); });
-      y+=4.2;
-    });
-    y+=3;
-  }
-
-  // -- Gasometria del dia (tabla compacta) --
-  if(RD.gaso.length){
-    h2('Gasometria del dia');
-    var gW=(PW-2*M)/4;
-    var gx=M, gy0=y, gcount=0;
-    doc.setFontSize(8.5);
-    RD.gaso.forEach(function(g){
-      if(gcount>0 && gcount%4===0){ y+=5.5; gx=M; if(y>PH-M){ doc.addPage(); y=M; gy0=y; } }
-      doc.setFont(undefined,'bold'); doc.text(g[0]+':',gx,y);
-      doc.setFont(undefined,'normal'); doc.text(String(g[1]),gx+doc.getTextWidth(g[0]+': ')+1,y);
-      gx+=gW; gcount++;
-    });
-    y+=8;
-  }
-
-  // -- Microbiologia (izq) + Antibioticos (der), misma altura --
+  // ==================================================================
+  // Grilla 2x2 compacta: Paraclinica+Evolucion | Gasometria
+  //                       Microbiologia        | Antibioticos
+  // ==================================================================
   var micro=RD.micro, atb=RD.atb;
-  if(micro.length || atb.length){
-    h2('Microbiologia / Antibioticos');
-    var halfW=(PW-2*M-6)/2, mX=M, aX=M+halfW+6;
-    var sY=y;
-    doc.setFont(undefined,'bold'); doc.setFontSize(9);
-    doc.text('Microbiologia',mX,sY); doc.text('Antibioticos',aX,sY);
-    doc.setFont(undefined,'normal'); doc.setFontSize(8.5);
-    var mLines=[]; micro.slice().sort(function(a,b){return (a.fecha||'').localeCompare(b.fecha||'');}).forEach(function(m){
-      var t=(m.fecha||'')+' '+(m.muestra||'')+': '+(m.resultado|| (m.estado||'Pendiente'))+(hasVal(m.sens)?' ['+m.sens+']':'')+(m.estado==='Pendiente'?' (pend.)':'');
-      doc.splitTextToSize(t,halfW).forEach(function(l){mLines.push(l);});
+  var _today=paraToday();
+  var hasParaclinica = PARA_ROWS.some(function(r){ return hasVal(paraTodayEffectiveVal(p, r[0])); });
+
+  if(hasParaclinica || RD.gaso.length || micro.length || atb.length){
+    ck(14);
+    var colGap=6, colW=(PW-2*M-colGap)/2, subGap=4, subW=(colW-subGap)/2;
+    var col1X=M, col2X=M+colW+colGap;
+    var subX1=col1X, subX2=col1X+subW+subGap;
+    var rowStartY=y;
+
+    // ---- Cuadrante 1 (arriba-izq): Paraclinica | Evolucion ----
+    var yA=rowStartY;
+    doc.setFont(undefined,'bold'); doc.setFontSize(9); doc.setTextColor(teal[0],teal[1],teal[2]);
+    doc.text('Paraclinica',subX1,yA); doc.text('Evolucion',subX2,yA);
+    doc.setDrawColor(line[0],line[1],line[2]); doc.line(col1X,yA+1.2,col1X+colW,yA+1.2);
+    yA+=5; doc.setFont(undefined,'normal'); doc.setFontSize(7.8); doc.setTextColor(dark[0],dark[1],dark[2]);
+    var yA1=yA, yA2=yA;
+    PARA_ROWS.forEach(function(r){
+      var key=r[0], label=r[1];
+      var hoy=paraTodayEffectiveVal(p,key);
+      if(!hasVal(hoy)) return;
+      var t1=label+': '+String(hoy).slice(0,16);
+      doc.splitTextToSize(t1,subW).forEach(function(ln){ if(yA1>PH-M){doc.addPage();yA1=M;} doc.text(ln,subX1,yA1); yA1+=4.0; });
+      var tr=paraTrend(p,key);
+      var t2;
+      if(tr && tr.delta!=null) t2=label+': '+(tr.delta>=0?'+':'')+tr.delta+' (vs '+tr.prevFecha.slice(8,10)+'/'+tr.prevFecha.slice(5,7)+')';
+      else if(tr) t2=label+': sin cambio';
+      else t2=label+': s/control previo';
+      doc.splitTextToSize(t2,subW).forEach(function(ln){ if(yA2>PH-M){doc.addPage();yA2=M;} doc.text(ln,subX2,yA2); yA2+=4.0; });
     });
-    var aLines=[]; atb.slice().sort(function(a,b){return (a.inicio||'').localeCompare(b.inicio||'');}).forEach(function(a){
-      var t='- '+(a.atb||'')+(hasVal(a.dosis)?' '+a.dosis:'')+(hasVal(a.inicio)?' | ini '+a.inicio:'')+(hasVal(a.fin)?' | fin '+a.fin:'')+(hasVal(a.motivo)?' ('+a.motivo+')':'');
-      doc.splitTextToSize(t,halfW).forEach(function(l){aLines.push(l);});
-    });
-    var cy2=sY+5, mx=Math.max(mLines.length,aLines.length);
-    for(var q=0;q<mx;q++){
-      if(cy2>PH-M){ doc.addPage(); cy2=M; }
-      if(mLines[q]) doc.text(mLines[q],mX,cy2);
-      if(aLines[q]) doc.text(aLines[q],aX,cy2);
-      cy2+=4.4;
-    }
-    y=cy2+3;
+    if(!hasParaclinica){ doc.text('Sin paraclinica registrada.',subX1,yA1); yA1+=4.0; yA2=yA1; }
+
+    // ---- Cuadrante 2 (arriba-der): Gasometria ----
+    var yB=rowStartY;
+    doc.setFont(undefined,'bold'); doc.setFontSize(9); doc.setTextColor(teal[0],teal[1],teal[2]);
+    doc.text('Gasometria',col2X,yB);
+    doc.line(col2X,yB+1.2,col2X+colW,yB+1.2);
+    yB+=5; doc.setFont(undefined,'normal'); doc.setFontSize(7.8); doc.setTextColor(dark[0],dark[1],dark[2]);
+    if(RD.gaso.length){
+      var gSubW=(colW-subGap)/2, gX=col2X, gCount=0;
+      RD.gaso.forEach(function(g){
+        if(gCount>0 && gCount%2===0){ yB+=4.0; gX=col2X; }
+        doc.text(g[0]+': '+String(g[1]),gX,yB);
+        gX+=gSubW+subGap; gCount++;
+      });
+      yB+=4.0;
+    } else { doc.text('Sin gasometria registrada.',col2X,yB); yB+=4.0; }
+
+    var row1Bottom=Math.max(yA1,yA2,yB);
+
+    // ---- Cuadrante 3 (abajo-izq): Microbiologia ----
+    var yC=row1Bottom+7;
+    doc.setFont(undefined,'bold'); doc.setFontSize(9); doc.setTextColor(teal[0],teal[1],teal[2]);
+    doc.text('Microbiologia',col1X,yC);
+    doc.line(col1X,yC+1.2,col1X+colW,yC+1.2);
+    yC+=5; doc.setFont(undefined,'normal'); doc.setFontSize(7.8); doc.setTextColor(dark[0],dark[1],dark[2]);
+    if(micro.length){
+      micro.slice().sort(function(a,b){return (a.fecha||'').localeCompare(b.fecha||'');}).forEach(function(m){
+        var t=(m.fecha||'')+' '+(m.muestra||'')+': '+(m.resultado||(m.estado||'Pendiente'))+(hasVal(m.sens)?' ['+m.sens+']':'')+(m.estado==='Pendiente'?' (pend.)':'');
+        doc.splitTextToSize(t,colW).forEach(function(ln){ if(yC>PH-M){doc.addPage();yC=M;} doc.text(ln,col1X,yC); yC+=4.0; });
+      });
+    } else { doc.text('Sin microbiologia registrada.',col1X,yC); yC+=4.0; }
+
+    // ---- Cuadrante 4 (abajo-der): Antibioticos ----
+    var yD=row1Bottom+7;
+    doc.setFont(undefined,'bold'); doc.setFontSize(9); doc.setTextColor(teal[0],teal[1],teal[2]);
+    doc.text('Antibioticos',col2X,yD);
+    doc.line(col2X,yD+1.2,col2X+colW,yD+1.2);
+    yD+=5; doc.setFont(undefined,'normal'); doc.setFontSize(7.8); doc.setTextColor(dark[0],dark[1],dark[2]);
+    if(atb.length){
+      atb.slice().sort(function(a,b){return (a.inicio||'').localeCompare(b.inicio||'');}).forEach(function(a){
+        var t='- '+(a.atb||'')+(hasVal(a.dosis)?' '+a.dosis:'')+(hasVal(a.inicio)?' | ini '+a.inicio:'')+(hasVal(a.fin)?' | fin '+a.fin:'')+(hasVal(a.motivo)?' ('+a.motivo+')':'');
+        doc.splitTextToSize(t,colW).forEach(function(ln){ if(yD>PH-M){doc.addPage();yD=M;} doc.text(ln,col2X,yD); yD+=4.0; });
+      });
+    } else { doc.text('Sin ATB activos.',col2X,yD); yD+=4.0; }
+
+    y=Math.max(yC,yD)+4;
   }
 
   // ---- Tratamientos (drogas) ----
