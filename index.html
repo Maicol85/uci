@@ -1916,6 +1916,54 @@ function openBedSummary(bed){
   ov.innerHTML=html;
   ov.style.display='flex';
 }
+// Transferir paciente de cama: intercambia el objeto con el slot destino (vacío)
+// y ajusta cada .bed a su slot. Mueve TODOS los datos (mismo objeto); solo cambia bed.
+function _bedOcupada(q){ return !!(q && q.name && String(q.name).trim()!==''); }
+function closeTransferModal(){ var ov=document.getElementById('transferModal'); if(ov) ov.style.display='none'; }
+function openTransferModal(fromIndex){
+  var p=state.patients[fromIndex]; if(!p) return;
+  if(!_bedOcupada(p)){ alert('La cama de origen está libre; no hay paciente para transferir.'); return; }
+  var libres=[];
+  state.patients.forEach(function(q,idx){ if(idx!==fromIndex && !_bedOcupada(q)) libres.push({idx:idx, bed:q.bed}); });
+  var body;
+  if(!libres.length){
+    body='<div style="padding:10px 0;color:var(--red);font-weight:600">No hay camas libres disponibles en este momento. No es posible transferir al paciente.</div>';
+  } else {
+    body='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Elegí la cama destino (solo se muestran camas libres):</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:8px">'+
+      libres.map(function(l){ return '<button class="btn btn-outline btn-sm" style="min-width:84px" onclick="doTransfer('+fromIndex+','+l.idx+')">🛏 Cama '+esc(String(l.bed))+'</button>'; }).join('')+
+      '</div>';
+  }
+  var html='<div style="background:var(--surface);border-radius:var(--r);max-width:460px;width:92%;max-height:85vh;overflow:auto;padding:18px;box-shadow:var(--shadow)" onclick="event.stopPropagation()">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+      '<h3 style="margin:0;font-size:16px">↔ Transferir — Cama '+esc(String(p.bed))+(hasVal(p.name)?' · '+esc(p.name):'')+'</h3>'+
+      '<button class="btn btn-outline btn-sm" onclick="closeTransferModal()">✕ Cerrar</button>'+
+    '</div>'+ body +
+    '<div style="margin-top:14px;text-align:right"><button class="btn btn-outline btn-sm" onclick="closeTransferModal()">Cancelar</button></div>'+
+  '</div>';
+  var ov=document.getElementById('transferModal');
+  if(!ov){ ov=document.createElement('div'); ov.id='transferModal'; ov.onclick=function(){ closeTransferModal(); }; document.body.appendChild(ov); }
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  ov.innerHTML=html;
+  ov.style.display='flex';
+}
+function doTransfer(fromIndex, toIndex){
+  var pj=state.patients;
+  if(!pj[fromIndex]||!pj[toIndex]) return;
+  if(fromIndex===toIndex) return;
+  if(_bedOcupada(pj[toIndex])){ alert('Esa cama ya está ocupada.'); return; }
+  var fromBed=pj[fromIndex].bed, toBed=pj[toIndex].bed;
+  // intercambia los objetos entre slots (mueve TODOS los datos del paciente)
+  var tmp=pj[toIndex]; pj[toIndex]=pj[fromIndex]; pj[fromIndex]=tmp;
+  // cada slot conserva su numero de cama; el paciente adopta la cama destino
+  pj[toIndex].bed=toBed;    // paciente -> cama destino
+  pj[fromIndex].bed=fromBed; // objeto vacio -> cama origen (queda libre)
+  state.activeBed=toIndex;
+  closeTransferModal();
+  save();
+  renderBeds();
+  if(typeof renderPatientTabs==='function') renderPatientTabs();
+}
 function renderBeds(){
   var grid = document.getElementById('bedsGrid');
   var now = new Date();
@@ -1965,6 +2013,7 @@ function renderBeds(){
         '<span class="disch-badge" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid '+st.color+';color:'+st.color+'">'+st.icon+' '+esc(st.label)+' ('+st.score+'/'+st.total+')</span>'+
         '<button class="btn btn-outline btn-sm disch-btn" style="font-size:10px;padding:2px 8px" data-bed="'+i+'">Ver criterios</button>'+
         '<button class="btn btn-outline btn-sm bed-eye-btn" style="font-size:10px;padding:2px 8px" data-bed="'+i+'">👁 Resumen</button>'+
+        '<button class="btn btn-outline btn-sm bed-transfer-btn" style="font-size:10px;padding:2px 8px" data-bed="'+i+'">↔ Transferir</button>'+
       '</div>';
     }
     card.innerHTML=
@@ -1988,6 +2037,10 @@ function renderBeds(){
     var ebtn=card.querySelector('.bed-eye-btn');
     if(ebtn){
       ebtn.onclick=function(ev){ ev.stopPropagation(); openBedSummary(parseInt(this.getAttribute('data-bed'),10)); };
+    }
+    var tbtn=card.querySelector('.bed-transfer-btn');
+    if(tbtn){
+      tbtn.onclick=function(ev){ ev.stopPropagation(); openTransferModal(parseInt(this.getAttribute('data-bed'),10)); };
     }
     grid.appendChild(card);
     var spk=card.querySelector('.sofa-spark');
@@ -2056,6 +2109,7 @@ function renderActivePatient(){
       '<button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();renderBeds();alert(\'Guardado.\')">\uD83D\uDCBE Guardar</button>'+
       '<button class="btn btn-sm" style="background:#0e7c66;color:#fff" onclick="askEgreso('+ab+')">\uD83D\uDEAA Egreso</button>'+
       '<button class="btn btn-red btn-sm" onclick="askEgreso('+ab+')">\uD83D\uDDD1 Limpiar cama</button>'+
+      '<button class="btn btn-outline btn-sm" onclick="openTransferModal('+ab+')">\u2194 Transferir</button>'+
     '</div>'+
   '</div>'+
 
