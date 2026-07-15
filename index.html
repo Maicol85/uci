@@ -1855,6 +1855,67 @@ function showMainTab(tab, btn){
 }
 
 // ===== BEDS =====
+// Resumen rápido del paciente (modal desde la tarjeta de cama). Reutiliza
+// buildPatientReportData (misma fuente que el PDF) para no duplicar lógica.
+function closeBedSummary(){ var ov=document.getElementById('bedSummaryModal'); if(ov) ov.style.display='none'; }
+function openBedSummary(bed){
+  var p=state.patients[bed]; if(!p) return;
+  var RD=buildPatientReportData(p);
+  var today=isoToday();
+  var rows=[];
+  function row(k,v){ if(!hasVal(v)) return; rows.push('<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)"><div style="min-width:150px;font-weight:700;color:var(--text);font-size:12px">'+k+'</div><div style="flex:1;font-size:12px;color:var(--text)">'+v+'</div></div>'); }
+  // Ventilación
+  var vm;
+  if(p.resp_arm==='Sí'){ vm='ARM'+(hasVal(RD.diasARM)?' ('+esc(String(RD.diasARM))+'d)':'')+(hasVal(p.peep)?' · PEEP '+esc(String(p.peep)):'')+(hasVal(p.pafi_calc)?' · PaFi '+esc(String(p.pafi_calc)):''); }
+  else if(p.resp_vni==='Sí') vm='VNI';
+  else if(p.resp_oaf==='Sí') vm='OAF';
+  else vm='No en ARM / sin soporte ventilatorio';
+  // Noradrenalina
+  var nora=(typeof getNoraGamma==='function')?getNoraGamma(p):'';
+  var noraTxt = hasVal(nora) ? ('Sí — '+esc(String(nora))+' γ (mcg/kg/min)') : (detectVasopresores(p)?'Vasoactivos activos (sin dosis de NA registrada)':'No');
+  // Diálisis
+  var dial = p.com_erc_dial ? 'Sí (ERC en diálisis)' : (hasVal(p.inf_ira_kdigo)?('IRA KDIGO '+esc(String(p.inf_ira_kdigo))):'No registrada');
+  // Germen
+  var germenes=(RD.micro||[]).filter(function(m){return hasVal(m.resultado);}).map(function(m){ return (hasVal(m.muestra)?esc(m.muestra)+': ':'')+esc(m.resultado)+(hasVal(m.sens)?' ['+esc(m.sens)+']':''); });
+  var germenTxt = germenes.length ? germenes.join('<br>') : 'Sin germen identificado';
+  // ATB activo con días
+  var atbList=(RD.atb||[]).map(function(a){
+    var activo = !hasVal(a.fin) || a.fin>=today;
+    var dias=''; if(hasVal(a.inicio)){ try{ var d=Math.floor((new Date(today)-new Date(a.inicio))/86400000); if(!isNaN(d)&&d>=0) dias=(d+1)+'d'; }catch(e){} }
+    return esc(a.atb)+(dias?' ('+dias+')':'')+(activo?'':' [suspendido]');
+  });
+  var atbTxt = atbList.length ? atbList.join('<br>') : 'Sin ATB';
+  // Complicaciones (procedimientos con complicación registrada)
+  var compl=(p.procedimientos||[]).filter(function(pr){return pr && hasVal(pr.compl) && pr.compl!=='No';}).map(function(pr){ return esc(pr.tipo||'Procedimiento')+(hasVal(pr.compl_desc)?': '+esc(pr.compl_desc):' (complicación)'); });
+  var complTxt = compl.length ? compl.join('<br>') : 'Sin complicaciones registradas';
+
+  row('Nombre', esc(p.name||'-'));
+  row('Edad', hasVal(p.age)?esc(String(p.age))+' años':'-');
+  row('Fecha de ingreso', hasVal(p.ingreso)?esc(String(p.ingreso)):'-');
+  row('Días de internación', hasVal(RD.diasInternacion)?(RD.diasInternacion+' d'):'-');
+  row('Diagnóstico', esc(p.dx||'-'));
+  row('Ventilación', vm);
+  row('Noradrenalina', noraTxt);
+  row('Fiebre', hasVal(RD.fiebre)?esc(RD.fiebre):'Sin temperatura registrada');
+  row('Diálisis', dial);
+  row('Germen', germenTxt);
+  row('ATB activo', atbTxt);
+  row('Complicaciones', complTxt);
+
+  var html='<div style="background:var(--surface);border-radius:var(--r);max-width:540px;width:92%;max-height:85vh;overflow:auto;padding:18px;box-shadow:var(--shadow)" onclick="event.stopPropagation()">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
+      '<h3 style="margin:0;font-size:16px">👁 Resumen — Cama '+esc(String(p.bed))+(hasVal(p.name)?' · '+esc(p.name):'')+'</h3>'+
+      '<button class="btn btn-outline btn-sm" onclick="closeBedSummary()">✕ Cerrar</button>'+
+    '</div>'+
+    rows.join('')+
+    '<div style="margin-top:14px;text-align:right"><button class="btn btn-teal btn-sm" onclick="closeBedSummary()">Cerrar</button></div>'+
+  '</div>';
+  var ov=document.getElementById('bedSummaryModal');
+  if(!ov){ ov=document.createElement('div'); ov.id='bedSummaryModal'; ov.onclick=function(){ closeBedSummary(); }; document.body.appendChild(ov); }
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  ov.innerHTML=html;
+  ov.style.display='flex';
+}
 function renderBeds(){
   var grid = document.getElementById('bedsGrid');
   var now = new Date();
@@ -1903,12 +1964,14 @@ function renderBeds(){
       dischHtml='<div class="bed-disch" style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+
         '<span class="disch-badge" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid '+st.color+';color:'+st.color+'">'+st.icon+' '+esc(st.label)+' ('+st.score+'/'+st.total+')</span>'+
         '<button class="btn btn-outline btn-sm disch-btn" style="font-size:10px;padding:2px 8px" data-bed="'+i+'">Ver criterios</button>'+
+        '<button class="btn btn-outline btn-sm bed-eye-btn" style="font-size:10px;padding:2px 8px" data-bed="'+i+'">👁 Resumen</button>'+
       '</div>';
     }
     card.innerHTML=
       '<div class="bed-num">Cama '+p.bed+'</div>'+
       '<div class="bed-name">'+(hasPatient?p.name:'- Libre -')+'</div>'+
       '<div class="bed-dx">'+(p.dx||'Sin diagnostico')+'</div>'+
+      (hasPatient && (hasVal(p.age)||hasVal(p.ingreso)) ? '<div class="bed-dx" style="color:var(--muted);font-weight:400">'+(hasVal(p.age)?esc(String(p.age))+' a':'')+(hasVal(p.ingreso)?((hasVal(p.age)?' · ':'')+'Ingreso '+esc(String(p.ingreso))):'')+'</div>' : '')+
       infoHtml+
       (sofa>0?'<div class="bed-sofa">SOFA '+sofa+'</div>':'')+
       sparkHtml+
@@ -1921,6 +1984,10 @@ function renderBeds(){
     var dbtn=card.querySelector('.disch-btn');
     if(dbtn){
       dbtn.onclick=function(ev){ ev.stopPropagation(); openDischargeModal(parseInt(this.getAttribute('data-bed'),10)); };
+    }
+    var ebtn=card.querySelector('.bed-eye-btn');
+    if(ebtn){
+      ebtn.onclick=function(ev){ ev.stopPropagation(); openBedSummary(parseInt(this.getAttribute('data-bed'),10)); };
     }
     grid.appendChild(card);
     var spk=card.querySelector('.sofa-spark');
