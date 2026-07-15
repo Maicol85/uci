@@ -2039,7 +2039,7 @@ function renderActivePatient(){
         '<div class="field-group"><label>\uD83E\uDDE0 Neurologico</label><textarea id="f-sis-neuro" rows="3" placeholder="Sedacion, RASS, evolucion neurologica...">'+esc(p.sis_neuro)+'</textarea></div>'+
         '<div class="field-group"><label>\u2764\uFE0F Hemodinamico + drogas</label><textarea id="f-sis-hemo" rows="3" placeholder="PAM, ritmo, vasoactivos/dosis...">'+esc(p.sis_hemo)+'</textarea></div>'+
         '<div class="field-group"><label>\uD83D\uDCA8 Respiratorio + ventilador</label><textarea id="f-sis-resp" rows="3" placeholder="Modo VM, FiO2/PEEP, PaFi, destete...">'+esc(p.sis_resp)+'</textarea></div>'+
-        '<div class="field-group"><label>\uD83E\uDDA0 Infeccioso</label><textarea id="f-sis-infec" rows="3" placeholder="Fiebre, leucocitosis, secreciones, foco...">'+esc(p.sis_infec)+'</textarea></div>'+
+        '<div class="field-group"><label>\uD83E\uDDA0 Infeccioso</label>'+'<div class="field-group" style="margin-bottom:6px"><label style="font-size:11px;color:var(--muted)">Temperatura (°C)</label><input id="f-temp" type="number" step="0.1" value="'+p.temp+'"></div>'+'<textarea id="f-sis-infec" rows="3" placeholder="Fiebre, leucocitosis, secreciones, foco...">'+esc(p.sis_infec)+'</textarea></div>'+
         '<div class="field-group"><label>\uD83E\uDE7A Accesos (con fechas)</label><textarea id="f-sis-accesos" rows="3" placeholder="VVC, VA, SV, SNG - fechas de colocacion...">'+esc(p.sis_accesos)+'</textarea></div>'+
         '<div class="field-group"><label>\uD83E\uDD57 Metabolico / nutricional</label><textarea id="f-sis-metab" rows="3" placeholder="Glucemia, funcion renal, nutricion...">'+esc(p.sis_metab)+'</textarea></div>'+
       '</div>'+
@@ -2073,7 +2073,6 @@ function renderActivePatient(){
       '</div>'+
       '<div class="field-row four" style="margin-top:8px">'+
         '<div class="field-group"><label>FR (rpm)</label><input id="f-fr" type="number" value="'+p.fr+'"></div>'+
-        '<div class="field-group"><label>Temp (C)</label><input id="f-temp" type="number" step="0.1" value="'+p.temp+'"></div>'+
         '<div class="field-group"><label>SpO2 (%)</label><input id="f-spo2" type="number" value="'+p.spo2+'"></div>'+
         '<div class="field-group"><label>Shock Index</label><div class="calc-val" id="cv-si">'+(p.shock_index||'-')+'</div></div>'+
       '</div>'+
@@ -2309,7 +2308,8 @@ function renderActivePatient(){
   '</div>'+
 
   '<div id="inner-vent" class="inner-panel">'+
-    '<div class="section-card">'+
+    '<div style="display:flex;gap:12px">'+
+    '<div class="section-card" style="flex:1;min-width:0">'+
       '<h4><span>\uD83E\uDE78</span>Gasometr\u00EDa</h4>'+
       '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Fuente \u00FAnica de iones y equilibrio \u00E1cido-base. PaFi, Ani\u00F3n Gap, SID e interpretaci\u00F3n se calculan autom\u00E1ticamente.</div>'+
       '<div class="field-row four">'+
@@ -2332,7 +2332,7 @@ function renderActivePatient(){
       '</div>'+
       '<div class="alert-box info" id="cv-eab" style="margin-top:10px">'+esc(p.eab_result||'Interpretaci\u00F3n \u00E1cido-base: complete pH, PaCO2 y HCO3.')+'</div>'+
     '</div>'+
-    '<div class="section-card" style="margin-top:12px">'+
+    '<div class="section-card" style="flex:1;min-width:0">'+
       '<h4><span>💨</span>Ventilación mecánica — parámetros</h4>'+
       '<div class="field-row four">'+
         '<div class="field-group"><label>FiO2 (0.21-1.0)</label><input id="f-fio2" type="number" step="0.01" min="0.21" max="1" value="'+p.fio2+'" oninput="calcDerived('+ab+')"></div>'+
@@ -2351,7 +2351,9 @@ function renderActivePatient(){
       '</div>'+
       '<div class="alert-box info" style="margin-top:8px">VT/kg calculado sobre <strong>peso predicho (PBW)</strong>, no peso real. Objetivo protector: 4-6 mL/kg PBW, Driving pressure <15, Pmeseta <30 cmH2O.</div>'+
     '</div>'+
-    '<div class="section-card" style="margin-top:12px">'+
+    '</div>'+
+    '<div style="display:flex;gap:12px;margin-top:12px">'+
+    '<div class="section-card" style="flex:1;min-width:0">'+
       '<h4><span>🫁</span>Vía Aérea</h4>'+
       '<div class="field-row four">'+
         '<div class="field-group"><label>Tipo</label><select id="f-va-tipo"><option value="">-</option><option '+(p.va_tipo==='SOT'?'selected':'')+'>SOT</option><option '+(p.va_tipo==='Traqueostomía'?'selected':'')+'>Traqueostomía</option><option '+(p.va_tipo==='Máscara laríngea'?'selected':'')+'>Máscara laríngea</option></select></div>'+
@@ -2378,7 +2380,7 @@ function renderActivePatient(){
         '<div class="field-group"><label>Frec. aspiración</label><input id="f-va-sec-frec" value="'+esc(p.va_sec_frec)+'" placeholder="c/4h..."></div>'+
       '</div>'+
     '</div>'+
-    '<div class="section-card" style="margin-top:12px">'+
+    '<div class="section-card" style="flex:1;min-width:0">'+
       '<h4><span>🚦</span>Checklist Destete / Extubación</h4>'+
       '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Marcar criterios cumplidos:</div>'+
       WEAN_ITEMS.map(function(it){
@@ -2388,6 +2390,7 @@ function renderActivePatient(){
         '</label>';
       }).join('')+
       '<div class="alert-box" id="cv-wean-badge" style="margin-top:8px;text-align:center;font-weight:700">-</div>'+
+    '</div>'+
     '</div>'+
   '</div>'+
 
@@ -2410,10 +2413,10 @@ function renderActivePatient(){
       '<h4><span>\uD83D\uDEBD</span>Diuresis (ml/h autom\u00E1tico)</h4>'+
       '<div class="field-row three">'+
         '<div class="field-group"><label>Volumen (mL)</label><input id="diu-vol" type="number" step="any" placeholder="ej. 250"></div>'+
-        '<div class="field-group"><label>Hora del registro</label><input id="diu-hora" type="time"></div>'+
+        '<div class="field-group"><label>Período</label><select id="diu-periodo"><option value="8">8 horas</option><option value="12">12 horas</option><option value="24" selected>24 horas</option></select></div>'+
         '<div class="field-group"><label>.</label><button class="btn btn-teal btn-sm" style="margin-top:18px" onclick="addDiuresis()">\u2795 Registrar diuresis</button></div>'+
       '</div>'+
-      '<div style="font-size:11px;color:var(--muted);margin-top:4px">El ml/h se calcula como volumen \u00F7 horas transcurridas desde el registro anterior.</div>'+
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px">El ml/h se calcula como volumen \u00F7 las horas del período seleccionado (8, 12 o 24).</div>'+
       '<div id="diuresisTableWrap" style="margin-top:10px;overflow-x:auto"></div>'+
     '</div>'+
     /* P12: Drenajes m\u00FAltiples */
@@ -2806,27 +2809,24 @@ function _diuStamp(reg){
 }
 function recalcDiuresisMlh(p){
   if(!Array.isArray(p.diuresis)) return;
-  // Ordena cronológicamente y recalcula ml/h de cada registro vs el anterior.
+  // Ordena cronológicamente y recalcula ml/h = volumen ÷ período seleccionado (8/12/24 h),
+  // independiente del registro anterior o de las horas transcurridas entre mediciones.
   p.diuresis.sort(function(a,b){ var ta=_diuStamp(a)||0, tb=_diuStamp(b)||0; return ta-tb; });
   for(var i=0;i<p.diuresis.length;i++){
-    var cur=p.diuresis[i], vol=parseFloat(cur.vol);
-    if(i===0 || isNaN(vol)){ cur.mlh=''; continue; }
-    var t0=_diuStamp(p.diuresis[i-1]), t1=_diuStamp(cur);
-    if(t0==null||t1==null||t1<=t0){ cur.mlh=''; continue; }
-    var hrs=(t1-t0)/3600000;
-    cur.mlh = hrs>0 ? (vol/hrs).toFixed(1) : '';
+    var cur=p.diuresis[i], vol=parseFloat(cur.vol), per=parseFloat(cur.periodo);
+    cur.mlh = (!isNaN(vol) && !isNaN(per) && per>0) ? (vol/per).toFixed(1) : '';
   }
 }
 function addDiuresis(){
   var p=state.patients[state.activeBed];
   if(!Array.isArray(p.diuresis)) p.diuresis=[];
   var vol=(document.getElementById('diu-vol')||{}).value;
-  var hora=(document.getElementById('diu-hora')||{}).value;
+  var periodo=(document.getElementById('diu-periodo')||{}).value||'24';
   if(!hasVal(vol)){ alert('Ingrese el volumen de diuresis.'); return; }
-  if(!hasVal(hora)){ var n=new Date(); hora=('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2); }
-  p.diuresis.push({fecha:isoToday(), hora:hora, vol:String(vol), mlh:''});
+  var n=new Date(), hora=('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2);
+  p.diuresis.push({fecha:isoToday(), hora:hora, periodo:String(periodo), vol:String(vol), mlh:''});
   recalcDiuresisMlh(p);
-  ['diu-vol','diu-hora'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var _dv=document.getElementById('diu-vol'); if(_dv) _dv.value='';
   save(); renderDiuresisTable();
 }
 function delDiuresis(i){
@@ -2838,8 +2838,8 @@ function renderDiuresisTable(){
   var p=state.patients[state.activeBed];
   var arr=Array.isArray(p.diuresis)?p.diuresis:[];
   if(!arr.length){ wrap.innerHTML='<div style="color:var(--muted);font-size:12px">Sin registros de diuresis.</div>'; return; }
-  wrap.innerHTML='<table class="drug-table"><thead><tr><th>Fecha</th><th>Hora</th><th>Volumen (mL)</th><th>ml/h</th><th></th></tr></thead><tbody>'+
-    arr.map(function(r,i){return '<tr><td>'+esc(r.fecha)+'</td><td>'+esc(r.hora||'-')+'</td><td>'+esc(r.vol||'-')+'</td><td><strong>'+(hasVal(r.mlh)?esc(r.mlh):'-')+'</strong></td><td><button class="btn btn-red btn-sm" onclick="delDiuresis('+i+')">X</button></td></tr>';}).join('')+
+  wrap.innerHTML='<table class="drug-table"><thead><tr><th>Fecha</th><th>Período</th><th>Volumen (mL)</th><th>ml/h</th><th></th></tr></thead><tbody>'+
+    arr.map(function(r,i){return '<tr><td>'+esc(r.fecha)+'</td><td>'+esc(hasVal(r.periodo)?(r.periodo+' h'):'-')+'</td><td>'+esc(r.vol||'-')+'</td><td><strong>'+(hasVal(r.mlh)?esc(r.mlh):'-')+'</strong></td><td><button class="btn btn-red btn-sm" onclick="delDiuresis('+i+')">X</button></td></tr>';}).join('')+
   '</tbody></table>';
 }
 
