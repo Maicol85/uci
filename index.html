@@ -4500,7 +4500,7 @@ function exportParaPDF(){
   });
   var _tp=doc.internal.getNumberOfPages(), _cw=doc.internal.pageSize.getWidth();
   for(var _p=1;_p<=_tp;_p++){ doc.setPage(_p); doc.setFontSize(7); doc.setTextColor(150,150,150);
-    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', _cw/2, PH-3, {align:'center'}); }
+    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', _cw/2, PH-3, {align:'center'}); doc.setFontSize(5); doc.setTextColor(165,165,165); doc.text('Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. CeiboMed © 2026', _cw/2, PH-6, {align:'center'}); doc.setFontSize(7); }
   var tag=(hasVal(p.name)?p.name:('cama'+(p.bed||''))).replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
   doc.save('paraclinica_'+tag+'_'+now.toISOString().slice(0,10)+'.pdf');
 }
@@ -5074,7 +5074,7 @@ function buildPDF(jsPDF, p){
   // ---- copyright en todas las paginas ----
   var _tp=doc.internal.getNumberOfPages(), _cw=doc.internal.pageSize.getWidth();
   for(var _p=1;_p<=_tp;_p++){ doc.setPage(_p); doc.setFontSize(7); doc.setTextColor(150,150,150);
-    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', _cw/2, PH-3, {align:'center'}); }
+    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', _cw/2, PH-3, {align:'center'}); doc.setFontSize(5); doc.setTextColor(165,165,165); doc.text('Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. CeiboMed © 2026', _cw/2, PH-6, {align:'center'}); doc.setFontSize(7); }
 
   var tag=(p.name||('cama'+p.bed)).replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
   doc.save('resumen_'+tag+'_'+now.toISOString().slice(0,10)+'.pdf');
@@ -5218,7 +5218,7 @@ function buildStatsPDF(jsPDF, d){
   // ---- copyright en todas las paginas ----
   var _tp=doc.internal.getNumberOfPages();
   for(var _p=1;_p<=_tp;_p++){ doc.setPage(_p); doc.setFontSize(7); doc.setTextColor(150,150,150);
-    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', PW/2, PH-3, {align:'center'}); }
+    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', PW/2, PH-3, {align:'center'}); doc.setFontSize(5); doc.setTextColor(165,165,165); doc.text('Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. CeiboMed © 2026', PW/2, PH-6, {align:'center'}); doc.setFontSize(7); }
 
   var tag=centroName.replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
   doc.save('estadisticas_'+tag+'_'+now.toISOString().slice(0,10)+'.pdf');
@@ -5354,7 +5354,7 @@ function buildPoblacionPDF(jsPDF, pobs, from, to){
 
   var _tp=doc.internal.getNumberOfPages();
   for(var _p=1;_p<=_tp;_p++){ doc.setPage(_p); doc.setFontSize(7); doc.setTextColor(150,150,150);
-    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', PW/2, PH-3, {align:'center'}); }
+    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', PW/2, PH-3, {align:'center'}); doc.setFontSize(5); doc.setTextColor(165,165,165); doc.text('Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. CeiboMed © 2026', PW/2, PH-6, {align:'center'}); doc.setFontSize(7); }
 
   var tag=poblaNames.replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
   doc.save('poblacion_'+tag+'_'+now.toISOString().slice(0,10)+'.pdf');
@@ -5681,7 +5681,7 @@ function exportTraspasoPDF(){
   });
   var _tp=doc.internal.getNumberOfPages(), _cw=doc.internal.pageSize.getWidth();
   for(var _p=1;_p<=_tp;_p++){ doc.setPage(_p); doc.setFontSize(7); doc.setTextColor(150,150,150);
-    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', _cw/2, PH-3, {align:'center'}); }
+    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', _cw/2, PH-3, {align:'center'}); doc.setFontSize(5); doc.setTextColor(165,165,165); doc.text('Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. CeiboMed © 2026', _cw/2, PH-6, {align:'center'}); doc.setFontSize(7); }
   var tag=(c?c.name:'centro').replace(/[^a-zA-Z0-9]/g,'_');
   doc.save('traspaso_'+TRASPASO_MODE+'_'+tag+'_'+now.toISOString().slice(0,10)+'.pdf');
 }
@@ -7073,7 +7073,7 @@ function buildCostosDiarioPDF(jsPDF, g){
   doc.text('UCI - Reporte de costos generado localmente. Estimación basada en el régimen vigente; no reemplaza la contabilidad oficial.',M,PH-8);
   var _tp=doc.internal.getNumberOfPages(), _cw=doc.internal.pageSize.getWidth();
   for(var _p=1;_p<=_tp;_p++){ doc.setPage(_p); doc.setFontSize(7); doc.setTextColor(150,150,150);
-    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', _cw/2, PH-3, {align:'center'}); }
+    doc.text('© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clinico exclusivo', _cw/2, PH-3, {align:'center'}); doc.setFontSize(5); doc.setTextColor(165,165,165); doc.text('Esta herramienta es de apoyo clínico. No reemplaza el juicio médico ni constituye una recomendación diagnóstica o terapéutica. CeiboMed © 2026', _cw/2, PH-6, {align:'center'}); doc.setFontSize(7); }
   doc.save('costos_diario_'+now.toISOString().slice(0,10)+'.pdf');
 }
 function exportCostosDiarioPDFprint(g){
@@ -7874,5 +7874,28 @@ if(typeof renderCostos==='function'){
   var _origRenderCostos = renderCostos;
   renderCostos = function(){ _origRenderCostos.apply(this, arguments); try{ egresadosInjectCostosToggle(); }catch(e){} };
 }
-</script></body>
+</script>
+<script>
+/* Aviso de datos locales (primer inicio) */
+(function(){
+  var KEY="uci_aviso_datos_visto";
+  function show(){
+    try{ if(localStorage.getItem(KEY)==='1') return; }catch(e){}
+    var ov=document.createElement('div');
+    ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true'); ov.setAttribute('aria-label','Aviso sobre datos locales');
+    ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+    var box=document.createElement('div');
+    box.style.cssText='background:#fff;color:#1a2a3a;max-width:440px;width:100%;border-radius:14px;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.4);font-family:system-ui,Segoe UI,sans-serif';
+    box.innerHTML='<div style="font-size:15px;font-weight:700;margin-bottom:10px">Aviso importante</div><div style="font-size:13.5px;line-height:1.6;color:#374151">⚠️ Los datos se guardan localmente en este navegador. Si borrás el navegador o cambiás de dispositivo, los datos se pierden. Exportá tu backup regularmente.</div>';
+    var btn=document.createElement('button');
+    btn.type='button'; btn.textContent='Entendido';
+    btn.style.cssText='margin-top:16px;width:100%;padding:11px;background:var(--teal,#00795f);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;min-height:44px';
+    btn.onclick=function(){ try{localStorage.setItem(KEY,'1');}catch(e){} if(ov.parentNode)ov.parentNode.removeChild(ov); };
+    box.appendChild(btn); ov.appendChild(box); document.body.appendChild(ov);
+    setTimeout(function(){ try{btn.focus();}catch(e){} },40);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',show); else show();
+})();
+</script>
+</body>
 </html>
