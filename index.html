@@ -247,7 +247,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 </style>
 </head>
 <body>
-<div id="modal-login" style="position:fixed;inset:0;z-index:10000;background:radial-gradient(1200px 600px at 50% 22%,#24503a 0%,#1a3a2a 52%,#0e2018 100%);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px">
+<div id="modal-login" role="dialog" aria-modal="true" aria-label="Acceso" style="position:fixed;inset:0;z-index:10000;background:radial-gradient(1200px 600px at 50% 22%,#24503a 0%,#1a3a2a 52%,#0e2018 100%);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px">
   <div style="background:rgba(255,255,255,.055);border:1px solid rgba(94,234,212,.28);border-radius:18px;padding:30px 34px;max-width:400px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(10px)">
     <div style="text-align:center;margin-bottom:16px">
       <svg width="132" height="112" viewBox="0 0 132 116" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 10px;filter:drop-shadow(0 4px 14px rgba(45,212,191,.35))">
@@ -338,10 +338,10 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 <div id="app">
   <div class="topbar">
     <div class="logo">UCI</div>
-    <div class="centro-badge" id="centroBadge" onclick="showCentroSelect()">— Centro —</div>
+    <div role="button" tabindex="0" onkeydown="uiKey(event)" class="centro-badge" id="centroBadge" onclick="showCentroSelect()">— Centro —</div>
     <div class="centro-badge" id="medicoBadge" style="display:none;cursor:default"></div>
     <div class="spacer"></div>
-    <span class="backup-badge" id="backupBadge">💾 Sin guardado</span>
+    <span class="backup-badge" id="backupBadge" role="status" aria-live="polite">💾 Sin guardado</span>
     <button class="topbtn" onclick="exportData()">⬇ Exportar</button>
     <button class="topbtn" onclick="importData()">⬆ Importar</button>
     <button class="topbtn" onclick="showCentroSelect()">🏥 Centro</button>
@@ -396,7 +396,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 </div>
 <div id="app-footer" style="text-align:center;padding:14px 16px;color:var(--muted);font-size:11px;border-top:1px solid var(--border)">© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clínico exclusivo</div>
 <div id="easymed-corner" style="position:fixed;bottom:12px;right:16px;font-size:12px;color:var(--muted);opacity:.55;font-weight:400;z-index:50;pointer-events:none">EasyMed</div>
-<div id="modalParaChart" class="modal" style="display:none">
+<div id="modalParaChart" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box" style="max-width:640px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <h3 id="paraChartTitle" style="flex:1;margin:0">Evolución</h3>
@@ -406,7 +406,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
     <div id="paraChartEmpty" style="display:none;color:var(--muted);font-size:12px;padding:12px 0">Sin valores numéricos suficientes para graficar.</div>
   </div>
 </div>
-<div id="modalTraspaso" class="modal" style="display:none">
+<div id="modalTraspaso" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box" style="max-width:760px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <h3 style="flex:1;margin:0">📋 Traspaso de Guardia</h3>
@@ -424,7 +424,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
     </div>
   </div>
 </div>
-<div id="modalHelp" class="modal" style="display:none">
+<div id="modalHelp" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box" style="max-width:640px;max-height:88vh;overflow:auto">
     <h3>❔ Ayuda — UCI</h3>
     <div style="font-size:12px;line-height:1.7;color:var(--muted)">
@@ -459,7 +459,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
   </div>
 </div>
 
-<div id="modalImport" class="modal" style="display:none">
+<div id="modalImport" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box">
     <h3>Importar datos</h3>
     <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Pegar JSON exportado. <strong style="color:var(--red)">Reemplaza todos los datos actuales.</strong></p>
@@ -470,7 +470,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
     </div>
   </div>
 </div>
-<div id="modalEgreso" class="modal" style="display:none">
+<div id="modalEgreso" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box">
     <h3 id="modalEgresoTitle">🚪 Dar de alta al paciente</h3>
     <p id="modalEgresoMsg" style="font-size:12px;color:var(--muted);margin-bottom:10px">Sus datos quedarán guardados en el archivo de egresados y la cama quedará libre.</p>
@@ -489,7 +489,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
     </div>
   </div>
 </div>
-<div id="modalEgresoResumen" class="modal" style="display:none">
+<div id="modalEgresoResumen" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box" style="max-width:760px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <h3 style="flex:1;margin:0">🗂️ Resumen de egresado</h3>
@@ -892,6 +892,8 @@ function exportData(){
 function importData(){ document.getElementById('modalImport').style.display='flex'; }
 
 // ===== EXPORTAR A WORD (.doc via HTML, paciente activo) =====
+function uiKey(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); (e.currentTarget||e.target).click(); } }
+window.uiKey=uiKey;
 function esc(s){
   if(s===null||s===undefined) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1905,7 +1907,7 @@ function openBedSummary(bed){
   row('ATB activo', atbTxt);
   row('Complicaciones', complTxt);
 
-  var html='<div style="background:var(--surface);border-radius:var(--r);max-width:540px;width:92%;max-height:85vh;overflow:auto;padding:18px;box-shadow:var(--shadow)" onclick="event.stopPropagation()">'+
+  var html='<div role="dialog" aria-modal="true" style="background:var(--surface);border-radius:var(--r);max-width:540px;width:92%;max-height:85vh;overflow:auto;padding:18px;box-shadow:var(--shadow)" onclick="event.stopPropagation()">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
       '<h3 style="margin:0;font-size:16px">👁 Resumen — Cama '+esc(String(p.bed))+(hasVal(p.name)?' · '+esc(p.name):'')+'</h3>'+
       '<button class="btn btn-outline btn-sm" onclick="closeBedSummary()">✕ Cerrar</button>'+
@@ -1937,7 +1939,7 @@ function openTransferModal(fromIndex){
       libres.map(function(l){ return '<button class="btn btn-outline btn-sm" style="min-width:84px" onclick="doTransfer('+fromIndex+','+l.idx+')">🛏 Cama '+esc(String(l.bed))+'</button>'; }).join('')+
       '</div>';
   }
-  var html='<div style="background:var(--surface);border-radius:var(--r);max-width:460px;width:92%;max-height:85vh;overflow:auto;padding:18px;box-shadow:var(--shadow)" onclick="event.stopPropagation()">'+
+  var html='<div role="dialog" aria-modal="true" style="background:var(--surface);border-radius:var(--r);max-width:460px;width:92%;max-height:85vh;overflow:auto;padding:18px;box-shadow:var(--shadow)" onclick="event.stopPropagation()">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
       '<h3 style="margin:0;font-size:16px">↔ Transferir — Cama '+esc(String(p.bed))+(hasVal(p.name)?' · '+esc(p.name):'')+'</h3>'+
       '<button class="btn btn-outline btn-sm" onclick="closeTransferModal()">✕ Cerrar</button>'+
@@ -2621,7 +2623,7 @@ function renderActivePatient(){
   '<div id="inner-imagenes" class="inner-panel">'+
     '<div class="section-card">'+
       '<h4><span>\uD83D\uDDBC\uFE0F</span>Imagenes (RxTx, TAC, ECO...)</h4>'+
-      '<div class="img-drop" id="imgDrop" onclick="document.getElementById(\'imgFile\').click()" tabindex="0" onpaste="handleImgPaste(event)">\uD83D\uDCCE Clic para subir imagen(es) o pegar (Ctrl+V) aqui</div>'+
+      '<div role="button" tabindex="0" onkeydown="uiKey(event)" class="img-drop" id="imgDrop" onclick="document.getElementById(\'imgFile\').click()" tabindex="0" onpaste="handleImgPaste(event)">\uD83D\uDCCE Clic para subir imagen(es) o pegar (Ctrl+V) aqui</div>'+
       '<input type="file" id="imgFile" accept="image/*" multiple style="display:none" onchange="handleImgFile(event)">'+
       '<div id="imgGrid" class="img-grid"></div>'+
     '</div>'+
@@ -2892,7 +2894,7 @@ function renderBundle(){
     var on=!!day[it[0]];
     var col=on?'var(--green)':'var(--red)';
     var mark=on?'🟢':'🔴';
-    return '<div onclick="bundleToggle(\''+it[0]+'\')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid '+col+';border-radius:var(--rs);margin-bottom:6px;cursor:pointer">'+
+    return '<div role="button" tabindex="0" onkeydown="uiKey(event)" onclick="bundleToggle(\''+it[0]+'\')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid '+col+';border-radius:var(--rs);margin-bottom:6px;cursor:pointer">'+
       '<span style="font-size:16px">'+mark+'</span>'+
       '<span style="flex:1;font-size:12px;color:var(--text)">'+esc(it[1])+'</span>'+
       '<span style="font-size:11px;font-weight:700;color:'+col+'">'+(on?'Cumplido':'Pendiente')+'</span>'+
@@ -6107,7 +6109,7 @@ function renderRefFichas(cat, filterList){
   el.innerHTML = fichas.map(function(f,i){
     var srcHtml = f.src ? '<span class="src">Referencia: '+f.src+'</span>' : '';
     return '<div class="ref-fiche" id="fiche-'+i+'">'+
-      '<div class="ref-fiche-head" onclick="toggleFiche('+i+')"><h4>'+f.t+'</h4><span class="arrow">v</span></div>'+
+      '<div role="button" tabindex="0" onkeydown="uiKey(event)" class="ref-fiche-head" onclick="toggleFiche('+i+')"><h4>'+f.t+'</h4><span class="arrow">v</span></div>'+
       '<div class="ref-fiche-body">'+f.h+srcHtml+'</div>'+
     '</div>';
   }).join('');
@@ -6484,6 +6486,7 @@ function openDischargeModal(bedIdx){
     m=document.createElement('div');
     m.id='modalDischarge';
     m.className='modal';
+    m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true');
     m.style.display='none';
     document.body.appendChild(m);
   }
