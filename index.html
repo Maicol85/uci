@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>UCI</title>
+<title>UCI/CTI — Gestión de pacientes críticos</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -241,6 +241,9 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .img-card input{margin-top:6px;font-size:11px;padding:4px 6px}
 .img-drop{border:2px dashed var(--border);border-radius:var(--r);padding:18px;text-align:center;color:var(--muted);font-size:12px;cursor:pointer;transition:all .15s}
 .img-drop:hover{border-color:var(--teal);color:var(--teal)}
+/* === Accesibilidad (auditoria UX/a11y P1/P2) === */
+:focus-visible{outline:3px solid var(--teal,#38bdf8)!important;outline-offset:2px!important;border-radius:4px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
@@ -473,10 +476,10 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
     <p id="modalEgresoMsg" style="font-size:12px;color:var(--muted);margin-bottom:10px">Sus datos quedarán guardados en el archivo de egresados y la cama quedará libre.</p>
     <div id="modalEgresoForm">
       <div class="field-row">
-        <div class="field-group"><label>Fecha de egreso</label><input type="date" id="egreso-fecha"></div>
-        <div class="field-group"><label>Motivo de egreso</label><select id="egreso-motivo" onchange="egresoMotivoToggle()"><option>Alta médica</option><option>Traslado</option><option>Fallecimiento</option><option>Otro</option></select></div>
+        <div class="field-group"><label for="egreso-fecha">Fecha de egreso</label><input type="date" id="egreso-fecha"></div>
+        <div class="field-group"><label for="egreso-motivo">Motivo de egreso</label><select id="egreso-motivo" onchange="egresoMotivoToggle()"><option>Alta médica</option><option>Traslado</option><option>Fallecimiento</option><option>Otro</option></select></div>
       </div>
-      <div class="field-group" id="egreso-motivo-otro-wrap" style="display:none;margin-top:6px"><label>Detalle del motivo</label><input type="text" id="egreso-motivo-otro" placeholder="Especificar motivo"></div>
+      <div class="field-group" id="egreso-motivo-otro-wrap" style="display:none;margin-top:6px"><label for="egreso-motivo-otro">Detalle del motivo</label><input type="text" id="egreso-motivo-otro" placeholder="Especificar motivo"></div>
       <div id="egreso-resumen" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-top:10px;font-size:12px;color:var(--text);line-height:1.6"></div>
     </div>
     <div class="modal-actions" style="flex-wrap:wrap;margin-top:12px">
@@ -1590,10 +1593,10 @@ function poblaSectionHtml(){
     '<div class="section-card">'+
       '<h4><span>👥</span>Análisis por población</h4>'+
       '<div class="stats-ctrl-row" style="flex-wrap:wrap;gap:8px;align-items:flex-end">'+
-        '<div class="stats-ctrl"><label>Etiqueta 1</label><select id="poblaL1">'+optsFor(POBLA_STATE.l1)+'</select></div>'+
-        '<div class="stats-ctrl"><label>Etiqueta 2 (comparar)</label><select id="poblaL2">'+optsFor(POBLA_STATE.l2)+'</select></div>'+
-        '<div class="stats-ctrl"><label>Desde</label><input type="date" id="poblaFrom" value="'+esc(POBLA_STATE.from||'')+'"></div>'+
-        '<div class="stats-ctrl"><label>Hasta</label><input type="date" id="poblaTo" value="'+esc(POBLA_STATE.to||'')+'"></div>'+
+        '<div class="stats-ctrl"><label for="poblaL1">Etiqueta 1</label><select id="poblaL1">'+optsFor(POBLA_STATE.l1)+'</select></div>'+
+        '<div class="stats-ctrl"><label for="poblaL2">Etiqueta 2 (comparar)</label><select id="poblaL2">'+optsFor(POBLA_STATE.l2)+'</select></div>'+
+        '<div class="stats-ctrl"><label for="poblaFrom">Desde</label><input type="date" id="poblaFrom" value="'+esc(POBLA_STATE.from||'')+'"></div>'+
+        '<div class="stats-ctrl"><label for="poblaTo">Hasta</label><input type="date" id="poblaTo" value="'+esc(POBLA_STATE.to||'')+'"></div>'+
         '<button class="btn btn-teal btn-sm" onclick="poblaAnalizar()">Analizar</button>'+
         (POBLA_STATE.done?'<button class="btn btn-outline btn-sm" onclick="exportPoblacionPDF()">📄 Exportar PDF</button>':'')+
       '</div>';
@@ -1798,8 +1801,8 @@ function renderEstadisticas(){
         '<div class="stats-ctrl"><label>Centro</label>'+
           '<select id="statsCentro">'+centroOpts+'</select></div>'+
         '<div id="statsCustomRange" class="stats-ctrl-row" style="display:'+(f.period==='custom'?'flex':'none')+';gap:8px;flex:0 0 auto">'+
-          '<div class="stats-ctrl"><label>Desde</label><input type="date" id="statsFrom" value="'+esc(f.from||'')+'"></div>'+
-          '<div class="stats-ctrl"><label>Hasta</label><input type="date" id="statsTo" value="'+esc(f.to||'')+'"></div>'+
+          '<div class="stats-ctrl"><label for="statsFrom">Desde</label><input type="date" id="statsFrom" value="'+esc(f.from||'')+'"></div>'+
+          '<div class="stats-ctrl"><label for="statsTo">Hasta</label><input type="date" id="statsTo" value="'+esc(f.to||'')+'"></div>'+
         '</div>'+
         '<button class="btn btn-teal btn-sm" style="align-self:flex-end" onclick="statsApplyFilters()">Aplicar filtros</button>'+
       '</div>'+
@@ -2117,11 +2120,11 @@ function renderActivePatient(){
     '<div class="section-grid">'+
       '<div class="section-card">'+
         '<h4><span>\uD83D\uDC64</span>Identificacion</h4>'+
-        '<div class="field-row"><div class="field-group"><label>Nombre completo</label><input id="f-name" value="'+p.name+'"></div><div class="field-group"><label>Edad</label><input id="f-age" value="'+p.age+'" placeholder="a\u00F1os"></div></div>'+
-        '<div class="field-group" style="margin-top:8px"><label>CI</label><input id="f-ci" value="'+esc(p.ci)+'" placeholder="Cedula de identidad"></div>'+
-        '<div class="field-row three"><div class="field-group"><label>Sexo</label><select id="f-sex" onchange="calcDerived('+ab+')"><option value="">-</option><option '+(p.sex==='M'?'selected':'')+'>M</option><option '+(p.sex==='F'?'selected':'')+'>F</option></select></div><div class="field-group"><label>Peso real (kg)</label><input id="f-weight" type="number" value="'+p.weight+'" oninput="calcDerived('+ab+')"></div><div class="field-group"><label>Talla (cm)</label><input id="f-height" type="number" value="'+p.height+'" oninput="calcDerived('+ab+')"></div></div>'+
-        '<div class="field-group" style="margin-top:8px"><label>Diagnostico principal</label><input id="f-dx" value="'+p.dx+'"></div>'+
-        '<div class="field-group" style="margin-top:8px"><label>Fecha ingreso</label><input id="f-ingreso" type="date" value="'+p.ingreso+'"></div>'+
+        '<div class="field-row"><div class="field-group"><label for="f-name">Nombre completo</label><input id="f-name" value="'+p.name+'"></div><div class="field-group"><label for="f-age">Edad</label><input id="f-age" value="'+p.age+'" placeholder="a\u00F1os"></div></div>'+
+        '<div class="field-group" style="margin-top:8px"><label for="f-ci">CI</label><input id="f-ci" value="'+esc(p.ci)+'" placeholder="Cedula de identidad"></div>'+
+        '<div class="field-row three"><div class="field-group"><label for="f-sex">Sexo</label><select id="f-sex" onchange="calcDerived('+ab+')"><option value="">-</option><option '+(p.sex==='M'?'selected':'')+'>M</option><option '+(p.sex==='F'?'selected':'')+'>F</option></select></div><div class="field-group"><label for="f-weight">Peso real (kg)</label><input id="f-weight" type="number" value="'+p.weight+'" oninput="calcDerived('+ab+')"></div><div class="field-group"><label for="f-height">Talla (cm)</label><input id="f-height" type="number" value="'+p.height+'" oninput="calcDerived('+ab+')"></div></div>'+
+        '<div class="field-group" style="margin-top:8px"><label for="f-dx">Diagnostico principal</label><input id="f-dx" value="'+p.dx+'"></div>'+
+        '<div class="field-group" style="margin-top:8px"><label for="f-ingreso">Fecha ingreso</label><input id="f-ingreso" type="date" value="'+p.ingreso+'"></div>'+
         '<div class="field-group" style="margin-top:8px"><label>Cobertura / Etiqueta</label>'+
           '<div style="display:flex;gap:6px;align-items:center">'+
             '<select id="f-cobertura" style="flex:1">'+coberturaOptionsHtml(p.cobertura||'')+'</select>'+
@@ -2142,27 +2145,27 @@ function renderActivePatient(){
     '<div class="section-card" style="margin-top:12px">'+
       '<h4><span>\uD83E\uDDE0</span>Nivel de conciencia</h4>'+
       '<div class="field-row four">'+
-        '<div class="field-group"><label>Apertura ocular (1-4)</label><input id="f-gcs-o" type="number" min="1" max="4" value="'+esc(p.gcs_o)+'" oninput="calcGCS('+ab+')"></div>'+
-        '<div class="field-group"><label>Respuesta verbal (1-5)</label><input id="f-gcs-v" type="number" min="1" max="5" value="'+esc(p.gcs_v)+'" oninput="calcGCS('+ab+')"></div>'+
-        '<div class="field-group"><label>Respuesta motora (1-6)</label><input id="f-gcs-m" type="number" min="1" max="6" value="'+esc(p.gcs_m)+'" oninput="calcGCS('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-gcs-o">Apertura ocular (1-4)</label><input id="f-gcs-o" type="number" min="1" max="4" value="'+esc(p.gcs_o)+'" oninput="calcGCS('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-gcs-v">Respuesta verbal (1-5)</label><input id="f-gcs-v" type="number" min="1" max="5" value="'+esc(p.gcs_v)+'" oninput="calcGCS('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-gcs-m">Respuesta motora (1-6)</label><input id="f-gcs-m" type="number" min="1" max="6" value="'+esc(p.gcs_m)+'" oninput="calcGCS('+ab+')"></div>'+
         '<div class="field-group"><label>GCS total</label><div class="calc-val" id="cv-gcs">'+(p.gcs_total||'-')+'</div></div>'+
       '</div>'+
       '<div class="field-row four" style="margin-top:8px">'+
-        '<div class="field-group"><label>Pupila D - tama\u00F1o (mm)</label><input id="f-pup-d-mm" type="number" value="'+esc(p.pup_d_mm)+'"></div>'+
-        '<div class="field-group"><label>Pupila D - reactividad</label><select id="f-pup-d-react"><option value="">-</option><option '+(p.pup_d_react==='Reactiva'?'selected':'')+'>Reactiva</option><option '+(p.pup_d_react==='Lenta'?'selected':'')+'>Lenta</option><option '+(p.pup_d_react==='Arreactiva'?'selected':'')+'>Arreactiva</option></select></div>'+
-        '<div class="field-group"><label>Pupila I - tama\u00F1o (mm)</label><input id="f-pup-i-mm" type="number" value="'+esc(p.pup_i_mm)+'"></div>'+
-        '<div class="field-group"><label>Pupila I - reactividad</label><select id="f-pup-i-react"><option value="">-</option><option '+(p.pup_i_react==='Reactiva'?'selected':'')+'>Reactiva</option><option '+(p.pup_i_react==='Lenta'?'selected':'')+'>Lenta</option><option '+(p.pup_i_react==='Arreactiva'?'selected':'')+'>Arreactiva</option></select></div>'+
+        '<div class="field-group"><label for="f-pup-d-mm">Pupila D - tama\u00F1o (mm)</label><input id="f-pup-d-mm" type="number" value="'+esc(p.pup_d_mm)+'"></div>'+
+        '<div class="field-group"><label for="f-pup-d-react">Pupila D - reactividad</label><select id="f-pup-d-react"><option value="">-</option><option '+(p.pup_d_react==='Reactiva'?'selected':'')+'>Reactiva</option><option '+(p.pup_d_react==='Lenta'?'selected':'')+'>Lenta</option><option '+(p.pup_d_react==='Arreactiva'?'selected':'')+'>Arreactiva</option></select></div>'+
+        '<div class="field-group"><label for="f-pup-i-mm">Pupila I - tama\u00F1o (mm)</label><input id="f-pup-i-mm" type="number" value="'+esc(p.pup_i_mm)+'"></div>'+
+        '<div class="field-group"><label for="f-pup-i-react">Pupila I - reactividad</label><select id="f-pup-i-react"><option value="">-</option><option '+(p.pup_i_react==='Reactiva'?'selected':'')+'>Reactiva</option><option '+(p.pup_i_react==='Lenta'?'selected':'')+'>Lenta</option><option '+(p.pup_i_react==='Arreactiva'?'selected':'')+'>Arreactiva</option></select></div>'+
       '</div>'+
     '</div>'+
     '<div class="section-card" style="margin-top:12px">'+
       '<h4><span>\uD83E\uDDEC</span>Resumen por Sistemas Fisiologicos</h4>'+
       '<div class="section-grid">'+
-        '<div class="field-group"><label>\uD83E\uDDE0 Neurologico</label><textarea id="f-sis-neuro" rows="3" placeholder="Sedacion, RASS, evolucion neurologica...">'+esc(p.sis_neuro)+'</textarea></div>'+
-        '<div class="field-group"><label>\u2764\uFE0F Hemodinamico + drogas</label><textarea id="f-sis-hemo" rows="3" placeholder="PAM, ritmo, vasoactivos/dosis...">'+esc(p.sis_hemo)+'</textarea></div>'+
-        '<div class="field-group"><label>\uD83D\uDCA8 Respiratorio + ventilador</label><textarea id="f-sis-resp" rows="3" placeholder="Modo VM, FiO2/PEEP, PaFi, destete...">'+esc(p.sis_resp)+'</textarea></div>'+
-        '<div class="field-group"><label>\uD83E\uDDA0 Infeccioso</label>'+'<div class="field-group" style="margin-bottom:6px"><label style="font-size:11px;color:var(--muted)">Temperatura (°C)</label><input id="f-temp" type="number" step="0.1" value="'+p.temp+'"></div>'+'<textarea id="f-sis-infec" rows="3" placeholder="Fiebre, leucocitosis, secreciones, foco...">'+esc(p.sis_infec)+'</textarea></div>'+
-        '<div class="field-group"><label>\uD83E\uDE7A Accesos (con fechas)</label><textarea id="f-sis-accesos" rows="3" placeholder="VVC, VA, SV, SNG - fechas de colocacion...">'+esc(p.sis_accesos)+'</textarea></div>'+
-        '<div class="field-group"><label>\uD83E\uDD57 Metabolico / nutricional</label><textarea id="f-sis-metab" rows="3" placeholder="Glucemia, funcion renal, nutricion...">'+esc(p.sis_metab)+'</textarea></div>'+
+        '<div class="field-group"><label for="f-sis-neuro">\uD83E\uDDE0 Neurologico</label><textarea id="f-sis-neuro" rows="3" placeholder="Sedacion, RASS, evolucion neurologica...">'+esc(p.sis_neuro)+'</textarea></div>'+
+        '<div class="field-group"><label for="f-sis-hemo">\u2764\uFE0F Hemodinamico + drogas</label><textarea id="f-sis-hemo" rows="3" placeholder="PAM, ritmo, vasoactivos/dosis...">'+esc(p.sis_hemo)+'</textarea></div>'+
+        '<div class="field-group"><label for="f-sis-resp">\uD83D\uDCA8 Respiratorio + ventilador</label><textarea id="f-sis-resp" rows="3" placeholder="Modo VM, FiO2/PEEP, PaFi, destete...">'+esc(p.sis_resp)+'</textarea></div>'+
+        '<div class="field-group"><label>\uD83E\uDDA0 Infeccioso</label>'+'<div class="field-group" style="margin-bottom:6px"><label for="f-temp" style="font-size:11px;color:var(--muted)">Temperatura (°C)</label><input id="f-temp" type="number" step="0.1" value="'+p.temp+'"></div>'+'<textarea id="f-sis-infec" rows="3" placeholder="Fiebre, leucocitosis, secreciones, foco...">'+esc(p.sis_infec)+'</textarea></div>'+
+        '<div class="field-group"><label for="f-sis-accesos">\uD83E\uDE7A Accesos (con fechas)</label><textarea id="f-sis-accesos" rows="3" placeholder="VVC, VA, SV, SNG - fechas de colocacion...">'+esc(p.sis_accesos)+'</textarea></div>'+
+        '<div class="field-group"><label for="f-sis-metab">\uD83E\uDD57 Metabolico / nutricional</label><textarea id="f-sis-metab" rows="3" placeholder="Glucemia, funcion renal, nutricion...">'+esc(p.sis_metab)+'</textarea></div>'+
       '</div>'+
     '</div>'+
     '<div class="section-card" style="margin-top:12px">'+
@@ -2187,35 +2190,35 @@ function renderActivePatient(){
     '<div class="section-card">'+
       '<h4><span>\u2764\uFE0F</span>Hemodinamia y Signos Vitales</h4>'+
       '<div class="field-row four">'+
-        '<div class="field-group"><label>PAS (mmHg)</label><input id="f-pas" type="number" value="'+p.pas+'" oninput="calcDerived('+ab+')"></div>'+
-        '<div class="field-group"><label>PAD (mmHg)</label><input id="f-pad" type="number" value="'+p.pad+'" oninput="calcDerived('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-pas">PAS (mmHg)</label><input id="f-pas" type="number" value="'+p.pas+'" oninput="calcDerived('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-pad">PAD (mmHg)</label><input id="f-pad" type="number" value="'+p.pad+'" oninput="calcDerived('+ab+')"></div>'+
         '<div class="field-group"><label>PAM calc.</label><div class="calc-val" id="cv-pam">'+(p.pam_calc||'-')+'</div></div>'+
-        '<div class="field-group"><label>FC (lpm)</label><input id="f-fc" type="number" value="'+p.fc+'" oninput="calcDerived('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-fc">FC (lpm)</label><input id="f-fc" type="number" value="'+p.fc+'" oninput="calcDerived('+ab+')"></div>'+
       '</div>'+
       '<div class="field-row four" style="margin-top:8px">'+
-        '<div class="field-group"><label>FR (rpm)</label><input id="f-fr" type="number" value="'+p.fr+'"></div>'+
-        '<div class="field-group"><label>SpO2 (%)</label><input id="f-spo2" type="number" value="'+p.spo2+'"></div>'+
+        '<div class="field-group"><label for="f-fr">FR (rpm)</label><input id="f-fr" type="number" value="'+p.fr+'"></div>'+
+        '<div class="field-group"><label for="f-spo2">SpO2 (%)</label><input id="f-spo2" type="number" value="'+p.spo2+'"></div>'+
         '<div class="field-group"><label>Shock Index</label><div class="calc-val" id="cv-si">'+(p.shock_index||'-')+'</div></div>'+
       '</div>'+
       '<div class="field-row three" style="margin-top:8px">'+
         '<div class="field-group"><label>Lactato (mmol/L) <small style="color:var(--muted)">(auto Gaso)</small></label><div class="calc-val" id="cv-hemo-lac">'+(hasVal(p.lac)?esc(p.lac):'-')+'</div></div>'+
-        '<div class="field-group"><label>Perfusión periférica</label><select id="f-perfusion"><option value="">-</option>'+
+        '<div class="field-group"><label for="f-perfusion">Perfusión periférica</label><select id="f-perfusion"><option value="">-</option>'+
           ['Normal','Livideces','Relleno capilar enlentecido','Frío / moteado'].map(function(o){return '<option'+(p.perfusion===o?' selected':'')+'>'+esc(o)+'</option>';}).join('')+
         '</select></div>'+
-        '<div class="field-group"><label>Requirió vasopresores'+vasoNote+'</label><select id="f-inf-vasopresores"><option value="">-</option><option'+(vasoSel==='Sí'?' selected':'')+'>Sí</option><option'+(vasoSel==='No'?' selected':'')+'>No</option></select></div>'+
+        '<div class="field-group"><label for="f-inf-vasopresores">Requirió vasopresores'+vasoNote+'</label><select id="f-inf-vasopresores"><option value="">-</option><option'+(vasoSel==='Sí'?' selected':'')+'>Sí</option><option'+(vasoSel==='No'?' selected':'')+'>No</option></select></div>'+
       '</div>'+
     '</div>'+
     /* === Drogas vasoactivas (migradas desde la tab Drogas, P10bis) === */
     '<div class="section-card" style="margin-top:12px">'+
       '<h4><span>💧</span>Calculadora de Infusión (gammas)</h4>'+
       '<div class="field-row three">'+
-        '<div class="field-group"><label>Droga</label><input id="nd-drug" placeholder="Noradrenalina"></div>'+
-        '<div class="field-group"><label>Masa total (mg)</label><input id="nd-mg" type="number" step="any" placeholder="4" oninput="calcInfusion()"></div>'+
-        '<div class="field-group"><label>Volumen total (mL)</label><input id="nd-ml" type="number" step="any" placeholder="100" oninput="calcInfusion()"></div>'+
+        '<div class="field-group"><label for="nd-drug">Droga</label><input id="nd-drug" placeholder="Noradrenalina"></div>'+
+        '<div class="field-group"><label for="nd-mg">Masa total (mg)</label><input id="nd-mg" type="number" step="any" placeholder="4" oninput="calcInfusion()"></div>'+
+        '<div class="field-group"><label for="nd-ml">Volumen total (mL)</label><input id="nd-ml" type="number" step="any" placeholder="100" oninput="calcInfusion()"></div>'+
       '</div>'+
       '<div class="field-row three" style="margin-top:8px">'+
         '<div class="field-group"><label>Concentracion</label><div class="calc-val" id="nd-conc">-</div></div>'+
-        '<div class="field-group"><label>Peso (kg) <small style="color:var(--muted)">(auto paciente)</small></label><input id="nd-weight" type="number" step="any" value="'+esc(p.weight)+'" placeholder="usa el del paciente" oninput="calcInfusion()"></div>'+
+        '<div class="field-group"><label for="nd-weight">Peso (kg) <small style="color:var(--muted)">(auto paciente)</small></label><input id="nd-weight" type="number" step="any" value="'+esc(p.weight)+'" placeholder="usa el del paciente" oninput="calcInfusion()"></div>'+
         '<div class="field-group"><label>.</label><button class="btn btn-outline btn-sm" onclick="saveWeightFromInfusion()" title="Guardar este peso en el paciente">Guardar peso al paciente</button></div>'+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:8px;margin:12px 0 6px">'+
@@ -2223,15 +2226,15 @@ function renderActivePatient(){
         '<button class="btn btn-outline btn-sm" id="nd-mode-btn" onclick="toggleInfusionMode()">mL/h -> dosis</button>'+
       '</div>'+
       '<div class="field-row" id="nd-input-row">'+
-        '<div class="field-group" id="nd-rate-wrap"><label>Velocidad (mL/h)</label><input id="nd-rate" type="number" step="any" placeholder="5" oninput="calcInfusion()"></div>'+
-        '<div class="field-group" id="nd-dose-wrap" style="display:none"><label>Dosis objetivo (mcg/kg/min)</label><input id="nd-dosetarget" type="number" step="any" placeholder="0.1" oninput="calcInfusion()"></div>'+
+        '<div class="field-group" id="nd-rate-wrap"><label for="nd-rate">Velocidad (mL/h)</label><input id="nd-rate" type="number" step="any" placeholder="5" oninput="calcInfusion()"></div>'+
+        '<div class="field-group" id="nd-dose-wrap" style="display:none"><label for="nd-dosetarget">Dosis objetivo (mcg/kg/min)</label><input id="nd-dosetarget" type="number" step="any" placeholder="0.1" oninput="calcInfusion()"></div>'+
       '</div>'+
       '<div class="calc-result" style="margin-top:10px">'+
         '<div class="big" id="nd-result">-</div>'+
         '<div class="interp" id="nd-result-sub">Complete masa, volumen, peso y velocidad</div>'+
       '</div>'+
       '<div class="field-row three" style="margin-top:10px">'+
-        '<div class="field-group"><label>Via</label><select id="nd-route"><option>IV</option><option>SC</option><option>VO</option><option>SNG</option><option>Otros</option></select></div>'+
+        '<div class="field-group"><label for="nd-route">Via</label><select id="nd-route"><option>IV</option><option>SC</option><option>VO</option><option>SNG</option><option>Otros</option></select></div>'+
         '<div class="field-group"><label>.</label><button class="btn btn-teal" style="margin-top:18px" onclick="addDrug()">+ Agregar a medicacion</button></div>'+
         '<div class="field-group"></div>'+
       '</div>'+
@@ -2255,28 +2258,28 @@ function renderActivePatient(){
       '<div class="section-card">'+
         '<h4><span>\uD83E\uDE78</span>Hemograma</h4>'+
         '<div class="field-row three">'+
-          '<div class="field-group"><label>Hb (g/dL)</label><input id="f-hb" type="number" step="0.1" value="'+p.hb+'"></div>'+
-          '<div class="field-group"><label>Leucos (x10.3)</label><input id="f-leucos" type="number" step="0.1" value="'+p.leucos+'"></div>'+
-          '<div class="field-group"><label>Plaquetas (x10.3)</label><input id="f-plaquetas" type="number" value="'+p.plaquetas+'"></div>'+
+          '<div class="field-group"><label for="f-hb">Hb (g/dL)</label><input id="f-hb" type="number" step="0.1" value="'+p.hb+'"></div>'+
+          '<div class="field-group"><label for="f-leucos">Leucos (x10.3)</label><input id="f-leucos" type="number" step="0.1" value="'+p.leucos+'"></div>'+
+          '<div class="field-group"><label for="f-plaquetas">Plaquetas (x10.3)</label><input id="f-plaquetas" type="number" value="'+p.plaquetas+'"></div>'+
         '</div>'+
         '<div class="field-row three" style="margin-top:8px">'+
-          '<div class="field-group"><label>PCR (mg/L)</label><input id="f-pcr" type="number" step="0.1" value="'+esc(p.pcr)+'"></div>'+
-          '<div class="field-group"><label>VES (mm/h)</label><input id="f-ves" type="number" value="'+esc(p.ves)+'"></div>'+
-          '<div class="field-group"><label>Procalcitonina (ng/mL)</label><input id="f-pct" type="number" step="0.01" value="'+esc(p.pct)+'"></div>'+
+          '<div class="field-group"><label for="f-pcr">PCR (mg/L)</label><input id="f-pcr" type="number" step="0.1" value="'+esc(p.pcr)+'"></div>'+
+          '<div class="field-group"><label for="f-ves">VES (mm/h)</label><input id="f-ves" type="number" value="'+esc(p.ves)+'"></div>'+
+          '<div class="field-group"><label for="f-pct">Procalcitonina (ng/mL)</label><input id="f-pct" type="number" step="0.01" value="'+esc(p.pct)+'"></div>'+
         '</div>'+
       '</div>'+
       /* Bloque 2: Funci\u00F3n renal */
       '<div class="section-card">'+
         '<h4><span>\u2697\uFE0F</span>Funci\u00F3n renal e ionograma</h4>'+
         '<div class="field-row three">'+
-          '<div class="field-group"><label>Creat (mg/dL)</label><input id="f-creat" type="number" step="0.1" value="'+p.creat+'" oninput="calcTFGLab()"></div>'+
-          '<div class="field-group"><label>Urea (mg/dL)</label><input id="f-urea" type="number" value="'+p.urea+'"></div>'+
-          '<div class="field-group"><label>Ca (mg/dL)</label><input id="f-ca" type="number" step="0.1" value="'+esc(p.ca)+'"></div>'+
+          '<div class="field-group"><label for="f-creat">Creat (mg/dL)</label><input id="f-creat" type="number" step="0.1" value="'+p.creat+'" oninput="calcTFGLab()"></div>'+
+          '<div class="field-group"><label for="f-urea">Urea (mg/dL)</label><input id="f-urea" type="number" value="'+p.urea+'"></div>'+
+          '<div class="field-group"><label for="f-ca">Ca (mg/dL)</label><input id="f-ca" type="number" step="0.1" value="'+esc(p.ca)+'"></div>'+
         '</div>'+
         '<div class="field-row three" style="margin-top:8px">'+
-          '<div class="field-group"><label>Mg (mg/dL)</label><input id="f-mg" type="number" step="0.1" value="'+esc(p.mg)+'"></div>'+
-          '<div class="field-group"><label>IRA</label><select id="f-inf-ira"><option value="">-</option><option'+(p.inf_ira==='S\u00ED'?' selected':'')+'>S\u00ED</option><option'+(p.inf_ira==='No'?' selected':'')+'>No</option></select></div>'+
-          '<div class="field-group"><label>KDIGO</label><input id="f-inf-ira-kdigo" value="'+esc(p.inf_ira_kdigo||'')+'" placeholder="Estadio..."></div>'+
+          '<div class="field-group"><label for="f-mg">Mg (mg/dL)</label><input id="f-mg" type="number" step="0.1" value="'+esc(p.mg)+'"></div>'+
+          '<div class="field-group"><label for="f-inf-ira">IRA</label><select id="f-inf-ira"><option value="">-</option><option'+(p.inf_ira==='S\u00ED'?' selected':'')+'>S\u00ED</option><option'+(p.inf_ira==='No'?' selected':'')+'>No</option></select></div>'+
+          '<div class="field-group"><label for="f-inf-ira-kdigo">KDIGO</label><input id="f-inf-ira-kdigo" value="'+esc(p.inf_ira_kdigo||'')+'" placeholder="Estadio..."></div>'+
         '</div>'+
         '<div class="field-row three" style="margin-top:8px">'+
           '<div class="field-group"><label>Na (mEq/L) <small style="color:var(--muted)">(auto Gaso)</small></label><div class="calc-val">'+(hasVal(p.na)?esc(p.na):'-')+'</div></div>'+
@@ -2289,17 +2292,17 @@ function renderActivePatient(){
       '<div class="section-card">'+
         '<h4><span>\uD83E\uDEC0</span>Funci\u00F3n y enzimograma hep\u00E1tico</h4>'+
         '<div class="field-row four">'+
-          '<div class="field-group"><label>Bil total (mg/dL)</label><input id="f-bil" type="number" step="0.1" value="'+p.bil+'"></div>'+
-          '<div class="field-group"><label>GOT/AST</label><input id="f-got" type="number" value="'+p.got+'"></div>'+
-          '<div class="field-group"><label>GPT/ALT</label><input id="f-gpt" type="number" value="'+p.gpt+'"></div>'+
-          '<div class="field-group"><label>Alb\u00FAmina (g/dL)</label><input id="f-albumin" type="number" step="0.1" value="'+p.albumin+'"></div>'+
+          '<div class="field-group"><label for="f-bil">Bil total (mg/dL)</label><input id="f-bil" type="number" step="0.1" value="'+p.bil+'"></div>'+
+          '<div class="field-group"><label for="f-got">GOT/AST</label><input id="f-got" type="number" value="'+p.got+'"></div>'+
+          '<div class="field-group"><label for="f-gpt">GPT/ALT</label><input id="f-gpt" type="number" value="'+p.gpt+'"></div>'+
+          '<div class="field-group"><label for="f-albumin">Alb\u00FAmina (g/dL)</label><input id="f-albumin" type="number" step="0.1" value="'+p.albumin+'"></div>'+
         '</div>'+
         '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:10px 0 4px">Crasis</div>'+
         '<div class="field-row four">'+
-          '<div class="field-group"><label>TP (%)</label><input id="f-tp" type="number" value="'+p.tp+'"></div>'+
-          '<div class="field-group"><label>KPTT (seg)</label><input id="f-crasis-kptt" type="number" step="0.1" value="'+esc(p.crasis_kptt)+'"></div>'+
-          '<div class="field-group"><label>INR</label><input id="f-crasis-inr" type="number" step="0.01" value="'+esc(p.crasis_inr)+'"></div>'+
-          '<div class="field-group"><label>Fibrin\u00F3geno (mg/dL)</label><input id="f-fibr" type="number" value="'+p.fibr+'"></div>'+
+          '<div class="field-group"><label for="f-tp">TP (%)</label><input id="f-tp" type="number" value="'+p.tp+'"></div>'+
+          '<div class="field-group"><label for="f-crasis-kptt">KPTT (seg)</label><input id="f-crasis-kptt" type="number" step="0.1" value="'+esc(p.crasis_kptt)+'"></div>'+
+          '<div class="field-group"><label for="f-crasis-inr">INR</label><input id="f-crasis-inr" type="number" step="0.01" value="'+esc(p.crasis_inr)+'"></div>'+
+          '<div class="field-group"><label for="f-fibr">Fibrin\u00F3geno (mg/dL)</label><input id="f-fibr" type="number" value="'+p.fibr+'"></div>'+
         '</div>'+
       '</div>'+
       /* Bloque 4: Otros */
@@ -2307,21 +2310,21 @@ function renderActivePatient(){
         '<h4><span>\uD83E\uDDEC</span>Perfil de hierro, tiroideo y otros</h4>'+
         '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Perfil de hierro</div>'+
         '<div class="field-row four">'+
-          '<div class="field-group"><label>Hierro (\u00B5g/dL)</label><input id="f-hierro" type="number" value="'+esc(p.hierro)+'"></div>'+
-          '<div class="field-group"><label>Transferrina</label><input id="f-transferrina" type="number" value="'+esc(p.transferrina)+'"></div>'+
-          '<div class="field-group"><label>Ferritina (ng/mL)</label><input id="f-ferritina" type="number" value="'+esc(p.ferritina)+'"></div>'+
-          '<div class="field-group"><label>Sat. transf. (%)</label><input id="f-sat-transf" type="number" step="0.1" value="'+esc(p.sat_transf)+'"></div>'+
+          '<div class="field-group"><label for="f-hierro">Hierro (\u00B5g/dL)</label><input id="f-hierro" type="number" value="'+esc(p.hierro)+'"></div>'+
+          '<div class="field-group"><label for="f-transferrina">Transferrina</label><input id="f-transferrina" type="number" value="'+esc(p.transferrina)+'"></div>'+
+          '<div class="field-group"><label for="f-ferritina">Ferritina (ng/mL)</label><input id="f-ferritina" type="number" value="'+esc(p.ferritina)+'"></div>'+
+          '<div class="field-group"><label for="f-sat-transf">Sat. transf. (%)</label><input id="f-sat-transf" type="number" step="0.1" value="'+esc(p.sat_transf)+'"></div>'+
         '</div>'+
         '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:10px 0 4px">Tiroideo</div>'+
         '<div class="field-row three">'+
-          '<div class="field-group"><label>TSH</label><input id="f-tsh" type="number" step="0.01" value="'+esc(p.tsh)+'"></div>'+
-          '<div class="field-group"><label>T4 libre</label><input id="f-t4l" type="number" step="0.01" value="'+esc(p.t4l)+'"></div>'+
+          '<div class="field-group"><label for="f-tsh">TSH</label><input id="f-tsh" type="number" step="0.01" value="'+esc(p.tsh)+'"></div>'+
+          '<div class="field-group"><label for="f-t4l">T4 libre</label><input id="f-t4l" type="number" step="0.01" value="'+esc(p.t4l)+'"></div>'+
         '</div>'+
         '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:10px 0 4px">Otros</div>'+
         '<div class="field-row three">'+
-          '<div class="field-group"><label>CPK (U/L)</label><input id="f-cpk" type="number" value="'+esc(p.cpk)+'"></div>'+
-          '<div class="field-group"><label>Troponinas</label><input id="f-troponina" type="number" step="0.001" value="'+esc(p.troponina)+'"></div>'+
-          '<div class="field-group"><label>Glucemia (mg/dL)</label><input id="f-glu" type="number" value="'+p.glu+'"></div>'+
+          '<div class="field-group"><label for="f-cpk">CPK (U/L)</label><input id="f-cpk" type="number" value="'+esc(p.cpk)+'"></div>'+
+          '<div class="field-group"><label for="f-troponina">Troponinas</label><input id="f-troponina" type="number" step="0.001" value="'+esc(p.troponina)+'"></div>'+
+          '<div class="field-group"><label for="f-glu">Glucemia (mg/dL)</label><input id="f-glu" type="number" value="'+p.glu+'"></div>'+
         '</div>'+
       '</div>'+
     '</div>'+
@@ -2337,8 +2340,8 @@ function renderActivePatient(){
       '<div class="section-card">'+
         '<h4><span>🧫</span>Infectología (ingreso)</h4>'+
         '<div class="field-row">'+
-          '<div class="field-group"><label>Antígeno neumococo en orina</label><select id="f-inf-neumo-ag"><option value="">-</option><option'+(p.inf_neumo_ag==='Positivo'?' selected':'')+'>Positivo</option><option'+(p.inf_neumo_ag==='Negativo'?' selected':'')+'>Negativo</option><option'+(p.inf_neumo_ag==='No realizado'?' selected':'')+'>No realizado</option></select></div>'+
-          '<div class="field-group"><label>Estado COVID</label><select id="f-inf-covid"><option value="">-</option><option'+(p.inf_covid==='Positivo'?' selected':'')+'>Positivo</option><option'+(p.inf_covid==='Negativo'?' selected':'')+'>Negativo</option><option'+(p.inf_covid==='No testeado'?' selected':'')+'>No testeado</option></select></div>'+
+          '<div class="field-group"><label for="f-inf-neumo-ag">Antígeno neumococo en orina</label><select id="f-inf-neumo-ag"><option value="">-</option><option'+(p.inf_neumo_ag==='Positivo'?' selected':'')+'>Positivo</option><option'+(p.inf_neumo_ag==='Negativo'?' selected':'')+'>Negativo</option><option'+(p.inf_neumo_ag==='No realizado'?' selected':'')+'>No realizado</option></select></div>'+
+          '<div class="field-group"><label for="f-inf-covid">Estado COVID</label><select id="f-inf-covid"><option value="">-</option><option'+(p.inf_covid==='Positivo'?' selected':'')+'>Positivo</option><option'+(p.inf_covid==='Negativo'?' selected':'')+'>Negativo</option><option'+(p.inf_covid==='No testeado'?' selected':'')+'>No testeado</option></select></div>'+
         '</div>'+
       '</div>'+
       '<div class="section-card" style="margin-top:12px">'+
@@ -2359,14 +2362,14 @@ function renderActivePatient(){
       '<div class="section-card">'+
         '<h4><span>\uD83D\uDCCA</span>SOFA Score</h4>'+
         '<div class="field-row three">'+
-          '<div class="field-group"><label>Resp (PaFi)</label><select id="f-sofa-resp" onchange="calcSOFA()"><option value="0" '+(p.sofa_resp==='0'?'selected':'')+'>0 - >=400</option><option value="1" '+(p.sofa_resp==='1'?'selected':'')+'>1 - 300-399</option><option value="2" '+(p.sofa_resp==='2'?'selected':'')+'>2 - 200-299</option><option value="3" '+(p.sofa_resp==='3'?'selected':'')+'>3 - 100-199 VM</option><option value="4" '+(p.sofa_resp==='4'?'selected':'')+'>4 - <100 VM</option></select></div>'+
-          '<div class="field-group"><label>Neuro (GCS)</label><select id="f-sofa-neuro" onchange="calcSOFA()"><option value="0" '+(p.sofa_neuro==='0'?'selected':'')+'>0 - 15</option><option value="1" '+(p.sofa_neuro==='1'?'selected':'')+'>1 - 13-14</option><option value="2" '+(p.sofa_neuro==='2'?'selected':'')+'>2 - 10-12</option><option value="3" '+(p.sofa_neuro==='3'?'selected':'')+'>3 - 6-9</option><option value="4" '+(p.sofa_neuro==='4'?'selected':'')+'>4 - <6</option></select></div>'+
-          '<div class="field-group"><label>Cardiovasc</label><select id="f-sofa-cv" onchange="calcSOFA()"><option value="0" '+(p.sofa_cv==='0'?'selected':'')+'>0 - PAM>=70</option><option value="1" '+(p.sofa_cv==='1'?'selected':'')+'>1 - PAM<70</option><option value="2" '+(p.sofa_cv==='2'?'selected':'')+'>2 - Dopa<=5/Dobu</option><option value="3" '+(p.sofa_cv==='3'?'selected':'')+'>3 - Dopa>5/NA<=0.1</option><option value="4" '+(p.sofa_cv==='4'?'selected':'')+'>4 - NA>0.1</option></select></div>'+
+          '<div class="field-group"><label for="f-sofa-resp">Resp (PaFi)</label><select id="f-sofa-resp" onchange="calcSOFA()"><option value="0" '+(p.sofa_resp==='0'?'selected':'')+'>0 - >=400</option><option value="1" '+(p.sofa_resp==='1'?'selected':'')+'>1 - 300-399</option><option value="2" '+(p.sofa_resp==='2'?'selected':'')+'>2 - 200-299</option><option value="3" '+(p.sofa_resp==='3'?'selected':'')+'>3 - 100-199 VM</option><option value="4" '+(p.sofa_resp==='4'?'selected':'')+'>4 - <100 VM</option></select></div>'+
+          '<div class="field-group"><label for="f-sofa-neuro">Neuro (GCS)</label><select id="f-sofa-neuro" onchange="calcSOFA()"><option value="0" '+(p.sofa_neuro==='0'?'selected':'')+'>0 - 15</option><option value="1" '+(p.sofa_neuro==='1'?'selected':'')+'>1 - 13-14</option><option value="2" '+(p.sofa_neuro==='2'?'selected':'')+'>2 - 10-12</option><option value="3" '+(p.sofa_neuro==='3'?'selected':'')+'>3 - 6-9</option><option value="4" '+(p.sofa_neuro==='4'?'selected':'')+'>4 - <6</option></select></div>'+
+          '<div class="field-group"><label for="f-sofa-cv">Cardiovasc</label><select id="f-sofa-cv" onchange="calcSOFA()"><option value="0" '+(p.sofa_cv==='0'?'selected':'')+'>0 - PAM>=70</option><option value="1" '+(p.sofa_cv==='1'?'selected':'')+'>1 - PAM<70</option><option value="2" '+(p.sofa_cv==='2'?'selected':'')+'>2 - Dopa<=5/Dobu</option><option value="3" '+(p.sofa_cv==='3'?'selected':'')+'>3 - Dopa>5/NA<=0.1</option><option value="4" '+(p.sofa_cv==='4'?'selected':'')+'>4 - NA>0.1</option></select></div>'+
         '</div>'+
         '<div class="field-row three" style="margin-top:8px">'+
-          '<div class="field-group"><label>Hepatico (Bil)</label><select id="f-sofa-hepat" onchange="calcSOFA()"><option value="0" '+(p.sofa_hepat==='0'?'selected':'')+'>0 - <1.2</option><option value="1" '+(p.sofa_hepat==='1'?'selected':'')+'>1 - 1.2-1.9</option><option value="2" '+(p.sofa_hepat==='2'?'selected':'')+'>2 - 2.0-5.9</option><option value="3" '+(p.sofa_hepat==='3'?'selected':'')+'>3 - 6.0-11.9</option><option value="4" '+(p.sofa_hepat==='4'?'selected':'')+'>4 - >=12</option></select></div>'+
-          '<div class="field-group"><label>Coagulacion (Plaq)</label><select id="f-sofa-coag" onchange="calcSOFA()"><option value="0" '+(p.sofa_coag==='0'?'selected':'')+'>0 - >=150</option><option value="1" '+(p.sofa_coag==='1'?'selected':'')+'>1 - 100-149</option><option value="2" '+(p.sofa_coag==='2'?'selected':'')+'>2 - 50-99</option><option value="3" '+(p.sofa_coag==='3'?'selected':'')+'>3 - 20-49</option><option value="4" '+(p.sofa_coag==='4'?'selected':'')+'>4 - <20</option></select></div>'+
-          '<div class="field-group"><label>Renal (Creat)</label><select id="f-sofa-renal" onchange="calcSOFA()"><option value="0" '+(p.sofa_renal==='0'?'selected':'')+'>0 - <1.2</option><option value="1" '+(p.sofa_renal==='1'?'selected':'')+'>1 - 1.2-1.9</option><option value="2" '+(p.sofa_renal==='2'?'selected':'')+'>2 - 2.0-3.4</option><option value="3" '+(p.sofa_renal==='3'?'selected':'')+'>3 - 3.5-4.9</option><option value="4" '+(p.sofa_renal==='4'?'selected':'')+'>4 - >=5</option></select></div>'+
+          '<div class="field-group"><label for="f-sofa-hepat">Hepatico (Bil)</label><select id="f-sofa-hepat" onchange="calcSOFA()"><option value="0" '+(p.sofa_hepat==='0'?'selected':'')+'>0 - <1.2</option><option value="1" '+(p.sofa_hepat==='1'?'selected':'')+'>1 - 1.2-1.9</option><option value="2" '+(p.sofa_hepat==='2'?'selected':'')+'>2 - 2.0-5.9</option><option value="3" '+(p.sofa_hepat==='3'?'selected':'')+'>3 - 6.0-11.9</option><option value="4" '+(p.sofa_hepat==='4'?'selected':'')+'>4 - >=12</option></select></div>'+
+          '<div class="field-group"><label for="f-sofa-coag">Coagulacion (Plaq)</label><select id="f-sofa-coag" onchange="calcSOFA()"><option value="0" '+(p.sofa_coag==='0'?'selected':'')+'>0 - >=150</option><option value="1" '+(p.sofa_coag==='1'?'selected':'')+'>1 - 100-149</option><option value="2" '+(p.sofa_coag==='2'?'selected':'')+'>2 - 50-99</option><option value="3" '+(p.sofa_coag==='3'?'selected':'')+'>3 - 20-49</option><option value="4" '+(p.sofa_coag==='4'?'selected':'')+'>4 - <20</option></select></div>'+
+          '<div class="field-group"><label for="f-sofa-renal">Renal (Creat)</label><select id="f-sofa-renal" onchange="calcSOFA()"><option value="0" '+(p.sofa_renal==='0'?'selected':'')+'>0 - <1.2</option><option value="1" '+(p.sofa_renal==='1'?'selected':'')+'>1 - 1.2-1.9</option><option value="2" '+(p.sofa_renal==='2'?'selected':'')+'>2 - 2.0-3.4</option><option value="3" '+(p.sofa_renal==='3'?'selected':'')+'>3 - 3.5-4.9</option><option value="4" '+(p.sofa_renal==='4'?'selected':'')+'>4 - >=5</option></select></div>'+
         '</div>'+
         '<div class="calc-result" style="margin-top:10px">'+
           '<div class="big" id="cv-sofa">'+(p.sofa_total||'0')+'</div>'+
@@ -2398,26 +2401,26 @@ function renderActivePatient(){
       '<h4><span>📊</span>APACHE II</h4>'+
       '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Ingrese los valores fisiológicos; el puntaje se calcula automáticamente (bandas estándar APACHE II).</div>'+
       '<div class="field-row four">'+
-        '<div class="field-group"><label>Temperatura (°C)</label><input id="f-ap-temp" type="number" step="0.1" value="'+esc(p.ap_temp)+'" oninput="calcApache()"></div>'+
-        '<div class="field-group"><label>PAM (mmHg)</label><input id="f-ap-map" type="number" value="'+esc(p.ap_map)+'" oninput="calcApache()"></div>'+
-        '<div class="field-group"><label>FC (lpm)</label><input id="f-ap-hr" type="number" value="'+esc(p.ap_hr)+'" oninput="calcApache()"></div>'+
-        '<div class="field-group"><label>FR (rpm)</label><input id="f-ap-rr" type="number" value="'+esc(p.ap_rr)+'" oninput="calcApache()"></div>'+
+        '<div class="field-group"><label for="f-ap-temp">Temperatura (°C)</label><input id="f-ap-temp" type="number" step="0.1" value="'+esc(p.ap_temp)+'" oninput="calcApache()"></div>'+
+        '<div class="field-group"><label for="f-ap-map">PAM (mmHg)</label><input id="f-ap-map" type="number" value="'+esc(p.ap_map)+'" oninput="calcApache()"></div>'+
+        '<div class="field-group"><label for="f-ap-hr">FC (lpm)</label><input id="f-ap-hr" type="number" value="'+esc(p.ap_hr)+'" oninput="calcApache()"></div>'+
+        '<div class="field-group"><label for="f-ap-rr">FR (rpm)</label><input id="f-ap-rr" type="number" value="'+esc(p.ap_rr)+'" oninput="calcApache()"></div>'+
       '</div>'+
       '<div class="field-row four" style="margin-top:8px">'+
-        '<div class="field-group"><label>Oxigenación<br><small style="color:var(--muted)">FiO2&lt;0.5→PaO2 · &ge;0.5→A-aDO2</small></label><input id="f-ap-oxy" type="number" value="'+esc(p.ap_oxy)+'" oninput="calcApache()"></div>'+
-        '<div class="field-group"><label>pH arterial</label><input id="f-ap-ph" type="number" step="0.01" value="'+esc(p.ap_ph)+'" oninput="calcApache()"></div>'+
-        '<div class="field-group"><label>Na (mEq/L)</label><input id="f-ap-na" type="number" value="'+esc(p.ap_na)+'" oninput="calcApache()"></div>'+
-        '<div class="field-group"><label>K (mEq/L)</label><input id="f-ap-k" type="number" step="0.1" value="'+esc(p.ap_k)+'" oninput="calcApache()"></div>'+
+        '<div class="field-group"><label for="f-ap-oxy">Oxigenación<br><small style="color:var(--muted)">FiO2&lt;0.5→PaO2 · &ge;0.5→A-aDO2</small></label><input id="f-ap-oxy" type="number" value="'+esc(p.ap_oxy)+'" oninput="calcApache()"></div>'+
+        '<div class="field-group"><label for="f-ap-ph">pH arterial</label><input id="f-ap-ph" type="number" step="0.01" value="'+esc(p.ap_ph)+'" oninput="calcApache()"></div>'+
+        '<div class="field-group"><label for="f-ap-na">Na (mEq/L)</label><input id="f-ap-na" type="number" value="'+esc(p.ap_na)+'" oninput="calcApache()"></div>'+
+        '<div class="field-group"><label for="f-ap-k">K (mEq/L)</label><input id="f-ap-k" type="number" step="0.1" value="'+esc(p.ap_k)+'" oninput="calcApache()"></div>'+
       '</div>'+
       '<div class="field-row four" style="margin-top:8px">'+
-        '<div class="field-group"><label>Creatinina (mg/dL)</label><input id="f-ap-creat" type="number" step="0.1" value="'+esc(p.ap_creat)+'" oninput="calcApache()"></div>'+
-        '<div class="field-group"><label>Hematocrito (%)</label><input id="f-ap-hto" type="number" step="0.1" value="'+esc(p.ap_hto)+'" oninput="calcApache()"></div>'+
-        '<div class="field-group"><label>Leucocitos (x10³)</label><input id="f-ap-wbc" type="number" step="0.1" value="'+esc(p.ap_wbc)+'" oninput="calcApache()"></div>'+
-        '<div class="field-group"><label>Glasgow (GCS)</label><input id="f-ap-gcs" type="number" min="3" max="15" value="'+esc(p.ap_gcs)+'" oninput="calcApache()"></div>'+
+        '<div class="field-group"><label for="f-ap-creat">Creatinina (mg/dL)</label><input id="f-ap-creat" type="number" step="0.1" value="'+esc(p.ap_creat)+'" oninput="calcApache()"></div>'+
+        '<div class="field-group"><label for="f-ap-hto">Hematocrito (%)</label><input id="f-ap-hto" type="number" step="0.1" value="'+esc(p.ap_hto)+'" oninput="calcApache()"></div>'+
+        '<div class="field-group"><label for="f-ap-wbc">Leucocitos (x10³)</label><input id="f-ap-wbc" type="number" step="0.1" value="'+esc(p.ap_wbc)+'" oninput="calcApache()"></div>'+
+        '<div class="field-group"><label for="f-ap-gcs">Glasgow (GCS)</label><input id="f-ap-gcs" type="number" min="3" max="15" value="'+esc(p.ap_gcs)+'" oninput="calcApache()"></div>'+
       '</div>'+
       '<div class="field-row three" style="margin-top:8px">'+
-        '<div class="field-group"><label>Edad (años)</label><input id="f-ap-age" type="number" value="'+esc(p.ap_age)+'" oninput="calcApache()"></div>'+
-        '<div class="field-group"><label>Salud crónica</label><select id="f-ap-chronic" onchange="calcApache()"><option value="0" '+(p.ap_chronic==='0'||p.ap_chronic===''?'selected':'')+'>Ninguna (0)</option><option value="2" '+(p.ap_chronic==='2'?'selected':'')+'>Postoperatorio electivo (+2)</option><option value="5" '+(p.ap_chronic==='5'?'selected':'')+'>No quirúrgico / postop urgente (+5)</option></select></div>'+
+        '<div class="field-group"><label for="f-ap-age">Edad (años)</label><input id="f-ap-age" type="number" value="'+esc(p.ap_age)+'" oninput="calcApache()"></div>'+
+        '<div class="field-group"><label for="f-ap-chronic">Salud crónica</label><select id="f-ap-chronic" onchange="calcApache()"><option value="0" '+(p.ap_chronic==='0'||p.ap_chronic===''?'selected':'')+'>Ninguna (0)</option><option value="2" '+(p.ap_chronic==='2'?'selected':'')+'>Postoperatorio electivo (+2)</option><option value="5" '+(p.ap_chronic==='5'?'selected':'')+'>No quirúrgico / postop urgente (+5)</option></select></div>'+
         '<div class="field-group"><label>Falla renal aguda</label><div style="display:flex;align-items:center;height:33px"><label class="stats-chk" style="cursor:pointer"><input type="checkbox" id="f-ap-arf" '+(p.ap_arf?'checked':'')+' onchange="calcApache()"><span>Duplica pts creatinina</span></label></div></div>'+
       '</div>'+
       '<div class="calc-result" style="margin-top:10px">'+
@@ -2434,21 +2437,21 @@ function renderActivePatient(){
       '<h4><span>\uD83E\uDE78</span>Gasometr\u00EDa</h4>'+
       '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Fuente \u00FAnica de iones y equilibrio \u00E1cido-base. PaFi, Ani\u00F3n Gap, SID e interpretaci\u00F3n se calculan autom\u00E1ticamente.</div>'+
       '<div class="field-row four">'+
-        '<div class="field-group"><label>pH</label><input id="f-ph" type="number" step="0.01" value="'+p.ph+'" oninput="gasoRecalc('+ab+')"></div>'+
-        '<div class="field-group"><label>PaCO2 (mmHg)</label><input id="f-pco2" type="number" value="'+p.pco2+'" oninput="gasoRecalc('+ab+')"></div>'+
-        '<div class="field-group"><label>PaO2 (mmHg)</label><input id="f-po2" type="number" value="'+p.po2+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-ph">pH</label><input id="f-ph" type="number" step="0.01" value="'+p.ph+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-pco2">PaCO2 (mmHg)</label><input id="f-pco2" type="number" value="'+p.pco2+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-po2">PaO2 (mmHg)</label><input id="f-po2" type="number" value="'+p.po2+'" oninput="gasoRecalc('+ab+')"></div>'+
         '<div class="field-group"><label>PaFi <small style="color:var(--muted)">(PaO2/FiO2)</small></label><div class="calc-val" id="cv-pafi">'+(p.pafi_calc||'-')+'</div></div>'+
       '</div>'+
       '<div class="field-row four" style="margin-top:8px">'+
-        '<div class="field-group"><label>HCO3 (mEq/L)</label><input id="f-hco3" type="number" step="0.1" value="'+p.hco3+'" oninput="gasoRecalc('+ab+')"></div>'+
-        '<div class="field-group"><label>BE (mEq/L)</label><input id="f-be" type="number" step="0.1" value="'+esc(p.be)+'" oninput="gasoRecalc('+ab+')"></div>'+
-        '<div class="field-group"><label>Lactato (mmol/L)</label><input id="f-lac" type="number" step="0.1" value="'+p.lac+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-hco3">HCO3 (mEq/L)</label><input id="f-hco3" type="number" step="0.1" value="'+p.hco3+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-be">BE (mEq/L)</label><input id="f-be" type="number" step="0.1" value="'+esc(p.be)+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-lac">Lactato (mmol/L)</label><input id="f-lac" type="number" step="0.1" value="'+p.lac+'" oninput="gasoRecalc('+ab+')"></div>'+
         '<div class="field-group"><label>SID (Stewart)</label><div class="calc-val" id="cv-sid">'+(p.sid_result||'SID = -')+'</div></div>'+
       '</div>'+
       '<div class="field-row four" style="margin-top:8px">'+
-        '<div class="field-group"><label>Na (mEq/L)</label><input id="f-na" type="number" value="'+p.na+'" oninput="gasoRecalc('+ab+')"></div>'+
-        '<div class="field-group"><label>K (mEq/L)</label><input id="f-k" type="number" step="0.1" value="'+p.k+'" oninput="gasoRecalc('+ab+')"></div>'+
-        '<div class="field-group"><label>Cl (mEq/L)</label><input id="f-cl" type="number" value="'+p.cl+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-na">Na (mEq/L)</label><input id="f-na" type="number" value="'+p.na+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-k">K (mEq/L)</label><input id="f-k" type="number" step="0.1" value="'+p.k+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-cl">Cl (mEq/L)</label><input id="f-cl" type="number" value="'+p.cl+'" oninput="gasoRecalc('+ab+')"></div>'+
         '<div class="field-group"><label>Ani\u00F3n Gap <small style="color:var(--muted)">(Na-(Cl+HCO3))</small></label><div class="calc-val" id="cv-ag">'+(p.ag_result||'-')+'</div></div>'+
       '</div>'+
       '<div class="alert-box info" id="cv-eab" style="margin-top:10px">'+esc(p.eab_result||'Interpretaci\u00F3n \u00E1cido-base: complete pH, PaCO2 y HCO3.')+'</div>'+
@@ -2456,13 +2459,13 @@ function renderActivePatient(){
     '<div class="section-card" style="flex:1;min-width:0">'+
       '<h4><span>💨</span>Ventilación mecánica — parámetros</h4>'+
       '<div class="field-row four">'+
-        '<div class="field-group"><label>FiO2 (0.21-1.0)</label><input id="f-fio2" type="number" step="0.01" min="0.21" max="1" value="'+p.fio2+'" oninput="calcDerived('+ab+')"></div>'+
-        '<div class="field-group"><label>PEEP (cmH2O)</label><input id="f-peep" type="number" value="'+p.peep+'" oninput="calcDerived('+ab+')"></div>'+
-        '<div class="field-group"><label>PIP/Pmeseta (cmH2O)</label><input id="f-pip" type="number" value="'+p.pip+'" oninput="calcDerived('+ab+')"></div>'+
-        '<div class="field-group"><label>VT (mL)</label><input id="f-vt" type="number" value="'+p.vt+'" oninput="calcDerived('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-fio2">FiO2 (0.21-1.0)</label><input id="f-fio2" type="number" step="0.01" min="0.21" max="1" value="'+p.fio2+'" oninput="calcDerived('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-peep">PEEP (cmH2O)</label><input id="f-peep" type="number" value="'+p.peep+'" oninput="calcDerived('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-pip">PIP/Pmeseta (cmH2O)</label><input id="f-pip" type="number" value="'+p.pip+'" oninput="calcDerived('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-vt">VT (mL)</label><input id="f-vt" type="number" value="'+p.vt+'" oninput="calcDerived('+ab+')"></div>'+
       '</div>'+
       '<div class="field-row four" style="margin-top:8px">'+
-        '<div class="field-group"><label>VM (L/min)</label><input id="f-vm" type="number" step="0.1" value="'+p.vm+'"></div>'+
+        '<div class="field-group"><label for="f-vm">VM (L/min)</label><input id="f-vm" type="number" step="0.1" value="'+p.vm+'"></div>'+
         '<div class="field-group"><label>VT/kg PBW</label><div class="calc-val" id="cv-vt">-</div></div>'+
         '<div class="field-group"><label>Driving Pressure</label><div class="calc-val" id="cv-dp">'+(p.drivp_calc||'-')+'</div></div>'+
         '<div class="field-group"><label>Compliance estática (mL/cmH2O)</label><div class="calc-val" id="cv-cst">'+(p.cst_calc||'-')+'</div></div>'+
@@ -2477,16 +2480,16 @@ function renderActivePatient(){
     '<div class="section-card" style="flex:1;min-width:0">'+
       '<h4><span>🫁</span>Vía Aérea</h4>'+
       '<div class="field-row four">'+
-        '<div class="field-group"><label>Tipo</label><select id="f-va-tipo"><option value="">-</option><option '+(p.va_tipo==='SOT'?'selected':'')+'>SOT</option><option '+(p.va_tipo==='Traqueostomía'?'selected':'')+'>Traqueostomía</option><option '+(p.va_tipo==='Máscara laríngea'?'selected':'')+'>Máscara laríngea</option></select></div>'+
-        '<div class="field-group"><label>Número / tamaño</label><input id="f-va-num" value="'+esc(p.va_num)+'" placeholder="7.5"></div>'+
-        '<div class="field-group"><label>Marca en comisura (cm)</label><input id="f-va-comisura" type="number" step="0.1" value="'+esc(p.va_comisura)+'"></div>'+
-        '<div class="field-group"><label>Presión cuff (cmH2O)</label><input id="f-va-cuff" type="number" value="'+esc(p.va_cuff)+'" oninput="calcCuff()"></div>'+
+        '<div class="field-group"><label for="f-va-tipo">Tipo</label><select id="f-va-tipo"><option value="">-</option><option '+(p.va_tipo==='SOT'?'selected':'')+'>SOT</option><option '+(p.va_tipo==='Traqueostomía'?'selected':'')+'>Traqueostomía</option><option '+(p.va_tipo==='Máscara laríngea'?'selected':'')+'>Máscara laríngea</option></select></div>'+
+        '<div class="field-group"><label for="f-va-num">Número / tamaño</label><input id="f-va-num" value="'+esc(p.va_num)+'" placeholder="7.5"></div>'+
+        '<div class="field-group"><label for="f-va-comisura">Marca en comisura (cm)</label><input id="f-va-comisura" type="number" step="0.1" value="'+esc(p.va_comisura)+'"></div>'+
+        '<div class="field-group"><label for="f-va-cuff">Presión cuff (cmH2O)</label><input id="f-va-cuff" type="number" value="'+esc(p.va_cuff)+'" oninput="calcCuff()"></div>'+
       '</div>'+
       '<div id="cv-va-cuff-alert" class="alert-box danger" style="margin-top:8px;display:none">⚠️ Presión de cuff &gt;30 cmH2O — riesgo de isquemia de mucosa traqueal.</div>'+
       '<div class="field-row three" style="margin-top:8px">'+
-        '<div class="field-group"><label>Fecha intubación</label><input id="f-va-fint" type="date" value="'+esc(p.va_fint)+'"></div>'+
-        '<div class="field-group"><label>Fecha último cambio</label><input id="f-va-fcambio" type="date" value="'+esc(p.va_fcambio)+'"></div>'+
-        '<div class="field-group"><label>Fijación</label><input id="f-va-fijacion" value="'+esc(p.va_fijacion)+'" placeholder="Cinta / sujetador..."></div>'+
+        '<div class="field-group"><label for="f-va-fint">Fecha intubación</label><input id="f-va-fint" type="date" value="'+esc(p.va_fint)+'"></div>'+
+        '<div class="field-group"><label for="f-va-fcambio">Fecha último cambio</label><input id="f-va-fcambio" type="date" value="'+esc(p.va_fcambio)+'"></div>'+
+        '<div class="field-group"><label for="f-va-fijacion">Fijación</label><input id="f-va-fijacion" value="'+esc(p.va_fijacion)+'" placeholder="Cinta / sujetador..."></div>'+
       '</div>'+
       '<div style="margin-top:8px"><label>Verificación de posición</label>'+
         '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">'+
@@ -2496,9 +2499,9 @@ function renderActivePatient(){
         '</div>'+
       '</div>'+
       '<div class="field-row three" style="margin-top:8px">'+
-        '<div class="field-group"><label>Secreciones — color</label><input id="f-va-sec-color" value="'+esc(p.va_sec_color)+'" placeholder="Claras / purulentas..."></div>'+
-        '<div class="field-group"><label>Secreciones — cantidad</label><input id="f-va-sec-cant" value="'+esc(p.va_sec_cant)+'" placeholder="Escasa / abundante..."></div>'+
-        '<div class="field-group"><label>Frec. aspiración</label><input id="f-va-sec-frec" value="'+esc(p.va_sec_frec)+'" placeholder="c/4h..."></div>'+
+        '<div class="field-group"><label for="f-va-sec-color">Secreciones — color</label><input id="f-va-sec-color" value="'+esc(p.va_sec_color)+'" placeholder="Claras / purulentas..."></div>'+
+        '<div class="field-group"><label for="f-va-sec-cant">Secreciones — cantidad</label><input id="f-va-sec-cant" value="'+esc(p.va_sec_cant)+'" placeholder="Escasa / abundante..."></div>'+
+        '<div class="field-group"><label for="f-va-sec-frec">Frec. aspiración</label><input id="f-va-sec-frec" value="'+esc(p.va_sec_frec)+'" placeholder="c/4h..."></div>'+
       '</div>'+
     '</div>'+
     '<div class="section-card" style="flex:1;min-width:0">'+
@@ -2519,8 +2522,8 @@ function renderActivePatient(){
     '<div class="section-card">'+
       '<h4><span>\u2696\uFE0F</span>Balance h\u00EDdrico simplificado</h4>'+
       '<div class="field-row">'+
-        '<div class="field-group"><label>Balance h\u00EDdrico del d\u00EDa (mL)</label><input id="f-bal-dia" type="number" value="'+esc((p.balanceHist&&p.balanceHist[isoToday()]&&p.balanceHist[isoToday()].dia!=null)?p.balanceHist[isoToday()].dia:'')+'" placeholder="+/- mL"></div>'+
-        '<div class="field-group"><label>Balance h\u00EDdrico acumulado (mL)</label><input id="f-bal-acum" type="number" value="'+esc((p.balanceHist&&p.balanceHist[isoToday()]&&p.balanceHist[isoToday()].acum!=null)?p.balanceHist[isoToday()].acum:'')+'" placeholder="+/- mL"></div>'+
+        '<div class="field-group"><label for="f-bal-dia">Balance h\u00EDdrico del d\u00EDa (mL)</label><input id="f-bal-dia" type="number" value="'+esc((p.balanceHist&&p.balanceHist[isoToday()]&&p.balanceHist[isoToday()].dia!=null)?p.balanceHist[isoToday()].dia:'')+'" placeholder="+/- mL"></div>'+
+        '<div class="field-group"><label for="f-bal-acum">Balance h\u00EDdrico acumulado (mL)</label><input id="f-bal-acum" type="number" value="'+esc((p.balanceHist&&p.balanceHist[isoToday()]&&p.balanceHist[isoToday()].acum!=null)?p.balanceHist[isoToday()].acum:'')+'" placeholder="+/- mL"></div>'+
       '</div>'+
       '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="balanceSimpSave()">\uD83D\uDCBE Guardar balance del d\u00EDa</button></div>'+
       '<div style="font-size:11px;color:var(--muted);margin-top:4px">Se guarda en el historial con la fecha de hoy ('+esc(isoToday())+').</div>'+
@@ -2533,8 +2536,8 @@ function renderActivePatient(){
     '<div class="section-card" style="margin-top:12px">'+
       '<h4><span>\uD83D\uDEBD</span>Diuresis (ml/h autom\u00E1tico)</h4>'+
       '<div class="field-row three">'+
-        '<div class="field-group"><label>Volumen (mL)</label><input id="diu-vol" type="number" step="any" placeholder="ej. 250"></div>'+
-        '<div class="field-group"><label>Período</label><select id="diu-periodo"><option value="8">8 horas</option><option value="12">12 horas</option><option value="24" selected>24 horas</option></select></div>'+
+        '<div class="field-group"><label for="diu-vol">Volumen (mL)</label><input id="diu-vol" type="number" step="any" placeholder="ej. 250"></div>'+
+        '<div class="field-group"><label for="diu-periodo">Período</label><select id="diu-periodo"><option value="8">8 horas</option><option value="12">12 horas</option><option value="24" selected>24 horas</option></select></div>'+
         '<div class="field-group"><label>.</label><button class="btn btn-teal btn-sm" style="margin-top:18px" onclick="addDiuresis()">\u2795 Registrar diuresis</button></div>'+
       '</div>'+
       '<div style="font-size:11px;color:var(--muted);margin-top:4px">El ml/h se calcula como volumen \u00F7 las horas del período seleccionado (8, 12 o 24).</div>'+
@@ -2559,12 +2562,12 @@ function renderActivePatient(){
     '<div class="section-card">'+
       '<h4><span>\uD83E\uDD57</span>Soporte Nutricional</h4>'+
       '<div class="field-row four">'+
-        '<div class="field-group"><label>Via</label><select id="f-nutr-via"><option value="">-</option><option '+(p.nutr_via==='Enteral'?'selected':'')+'>Enteral</option><option '+(p.nutr_via==='Parenteral'?'selected':'')+'>Parenteral</option><option '+(p.nutr_via==='Mixta'?'selected':'')+'>Mixta</option></select></div>'+
-        '<div class="field-group"><label>Calorias (kcal/dia)</label><input id="f-nutr-cal" type="number" value="'+p.nutr_cal+'"></div>'+
-        '<div class="field-group"><label>Proteinas (g/dia)</label><input id="f-nutr-prot" type="number" value="'+p.nutr_prot+'"></div>'+
-        '<div class="field-group"><label>Volumen (mL/dia)</label><input id="f-nutr-vol" type="number" value="'+p.nutr_vol+'"></div>'+
+        '<div class="field-group"><label for="f-nutr-via">Via</label><select id="f-nutr-via"><option value="">-</option><option '+(p.nutr_via==='Enteral'?'selected':'')+'>Enteral</option><option '+(p.nutr_via==='Parenteral'?'selected':'')+'>Parenteral</option><option '+(p.nutr_via==='Mixta'?'selected':'')+'>Mixta</option></select></div>'+
+        '<div class="field-group"><label for="f-nutr-cal">Calorias (kcal/dia)</label><input id="f-nutr-cal" type="number" value="'+p.nutr_cal+'"></div>'+
+        '<div class="field-group"><label for="f-nutr-prot">Proteinas (g/dia)</label><input id="f-nutr-prot" type="number" value="'+p.nutr_prot+'"></div>'+
+        '<div class="field-group"><label for="f-nutr-vol">Volumen (mL/dia)</label><input id="f-nutr-vol" type="number" value="'+p.nutr_vol+'"></div>'+
       '</div>'+
-      '<div class="field-group" style="margin-top:8px"><label>Notas nutricionales</label><textarea id="f-nutr-notas" rows="3">'+p.nutr_notas+'</textarea></div>'+
+      '<div class="field-group" style="margin-top:8px"><label for="f-nutr-notas">Notas nutricionales</label><textarea id="f-nutr-notas" rows="3">'+p.nutr_notas+'</textarea></div>'+
       '<div class="alert-box info" style="margin-top:10px"><strong>Objetivo estandar:</strong> 25-30 kcal/kg PBW/dia (20-25 la 1a semana) - Proteinas: 1.2-2.0 g/kg/dia (hasta 2.5 en quemados). En obesidad: hipocalorica + hiperproteica.</div>'+
     '</div>'+
     '<div class="section-card" style="margin-top:12px">'+
@@ -2579,16 +2582,16 @@ function renderActivePatient(){
     '<div class="section-card">'+
       '<h4><span>💉</span>Sedoanalgesia — Calculadora de Dosis</h4>'+
       '<div class="field-row three">'+
-        '<div class="field-group"><label>Droga</label><select id="f-sedo-drug" onchange="calcSedo()">'+
+        '<div class="field-group"><label for="f-sedo-drug">Droga</label><select id="f-sedo-drug" onchange="calcSedo()">'+
           SEDO_DRUGS.map(function(d){return '<option value="'+d.k+'" '+(p.sedo_drug===d.k?'selected':'')+'>'+d.n+'</option>';}).join('')+
         '</select></div>'+
-        '<div class="field-group"><label>Objetivo RASS</label><input id="f-sedo-rass" value="'+esc(p.sedo_rass||'-1 a -2')+'"></div>'+
-        '<div class="field-group"><label>Peso (kg) <small style="color:var(--muted)">(auto paciente)</small></label><input id="f-sedo-weight" type="number" step="any" value="'+esc(p.sedo_weight||p.weight)+'" placeholder="usa el del paciente" oninput="calcSedo()"></div>'+
+        '<div class="field-group"><label for="f-sedo-rass">Objetivo RASS</label><input id="f-sedo-rass" value="'+esc(p.sedo_rass||'-1 a -2')+'"></div>'+
+        '<div class="field-group"><label for="f-sedo-weight">Peso (kg) <small style="color:var(--muted)">(auto paciente)</small></label><input id="f-sedo-weight" type="number" step="any" value="'+esc(p.sedo_weight||p.weight)+'" placeholder="usa el del paciente" oninput="calcSedo()"></div>'+
       '</div>'+
       '<div class="field-row three" style="margin-top:8px">'+
-        '<div class="field-group"><label>Mg totales de la droga</label><input id="f-sedo-mg" type="number" step="any" value="'+esc(p.sedo_mg)+'" placeholder="mg en la dilución" oninput="calcSedo()"></div>'+
-        '<div class="field-group"><label>Volumen de dilución (mL)</label><input id="f-sedo-vol" type="number" step="any" value="'+esc(p.sedo_vol)+'" placeholder="mL totales" oninput="calcSedo()"></div>'+
-        '<div class="field-group"><label>Velocidad de infusión (mL/h)</label><input id="f-sedo-rate" type="number" step="any" value="'+esc(p.sedo_rate)+'" oninput="calcSedo()"></div>'+
+        '<div class="field-group"><label for="f-sedo-mg">Mg totales de la droga</label><input id="f-sedo-mg" type="number" step="any" value="'+esc(p.sedo_mg)+'" placeholder="mg en la dilución" oninput="calcSedo()"></div>'+
+        '<div class="field-group"><label for="f-sedo-vol">Volumen de dilución (mL)</label><input id="f-sedo-vol" type="number" step="any" value="'+esc(p.sedo_vol)+'" placeholder="mL totales" oninput="calcSedo()"></div>'+
+        '<div class="field-group"><label for="f-sedo-rate">Velocidad de infusión (mL/h)</label><input id="f-sedo-rate" type="number" step="any" value="'+esc(p.sedo_rate)+'" oninput="calcSedo()"></div>'+
       '</div>'+
       '<div class="calc-result" style="margin-top:10px">'+
         '<div class="big" id="cv-sedo-result">-</div>'+
@@ -2602,15 +2605,15 @@ function renderActivePatient(){
     '<div class="section-card">'+
       '<h4><span>\uD83E\uDE7A</span>Accesos y Dispositivos</h4>'+
       '<div class="field-row four">'+
-        '<div class="field-group"><label>VVC - Sitio</label><input id="f-vvc-sitio" value="'+p.vvc_sitio+'" placeholder="Yugular D..."></div>'+
-        '<div class="field-group"><label>VVC - Fecha</label><input id="f-vvc-fecha" type="date" value="'+p.vvc_fecha+'"></div>'+
-        '<div class="field-group"><label>Via arterial</label><input id="f-via-art" value="'+p.via_art+'" placeholder="Radial D..."></div>'+
-        '<div class="field-group"><label>Art - Fecha</label><input id="f-art-fecha" type="date" value="'+p.art_fecha+'"></div>'+
+        '<div class="field-group"><label for="f-vvc-sitio">VVC - Sitio</label><input id="f-vvc-sitio" value="'+p.vvc_sitio+'" placeholder="Yugular D..."></div>'+
+        '<div class="field-group"><label for="f-vvc-fecha">VVC - Fecha</label><input id="f-vvc-fecha" type="date" value="'+p.vvc_fecha+'"></div>'+
+        '<div class="field-group"><label for="f-via-art">Via arterial</label><input id="f-via-art" value="'+p.via_art+'" placeholder="Radial D..."></div>'+
+        '<div class="field-group"><label for="f-art-fecha">Art - Fecha</label><input id="f-art-fecha" type="date" value="'+p.art_fecha+'"></div>'+
       '</div>'+
       '<div class="field-row three" style="margin-top:8px">'+
-        '<div class="field-group"><label>SNG / SNY</label><input id="f-sng" value="'+p.sng+'"></div>'+
-        '<div class="field-group"><label>Sonda vesical</label><input id="f-sonda-v" value="'+p.sonda_v+'"></div>'+
-        '<div class="field-group"><label>Drenajes</label><input id="f-dren" value="'+p.dren+'"></div>'+
+        '<div class="field-group"><label for="f-sng">SNG / SNY</label><input id="f-sng" value="'+p.sng+'"></div>'+
+        '<div class="field-group"><label for="f-sonda-v">Sonda vesical</label><input id="f-sonda-v" value="'+p.sonda_v+'"></div>'+
+        '<div class="field-group"><label for="f-dren">Drenajes</label><input id="f-dren" value="'+p.dren+'"></div>'+
       '</div>'+
     '</div>'+
   '</div>'+
@@ -3288,7 +3291,7 @@ function renderIndicaciones(){
       '<td><input style="width:65px;padding:3px 5px;font-size:12px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text)" value="'+esc(it.hora)+'" onchange="updateIndicacion(\''+f+'\','+i+',\'hora\',this.value)" placeholder="08:00"></td>'+
       '<td><input style="width:100%;padding:3px 5px;font-size:12px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text)" value="'+esc(it.obs)+'" onchange="updateIndicacion(\''+f+'\','+i+',\'obs\',this.value)" placeholder="Observaciones..."></td>'+
       turnosCells+
-      '<td><button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red);padding:3px 8px;font-size:11px" onclick="deleteIndicacion(\''+f+'\','+i+')">✕</button></td>'+
+      '<td><button aria-label="Eliminar indicación" class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red);padding:3px 8px;font-size:11px" onclick="deleteIndicacion(\''+f+'\','+i+')">✕</button></td>'+
     '</tr>';
   });
   wrap.innerHTML=html+'</tbody></table>';
@@ -3398,14 +3401,14 @@ function renderParaOrden(){
         '<div style="font-size:13px;font-weight:700;color:var(--teal)">🧪 '+esc(blq.cat)+'</div>'+
         '<div style="display:flex;gap:6px">'+
           '<button class="btn btn-teal btn-sm" style="font-size:11px;padding:3px 8px" onclick="addParaOrdenItem(\''+f+'\','+bi+')">➕ Ítem</button>'+
-          '<button class="btn btn-outline btn-sm" style="font-size:11px;padding:3px 8px;color:var(--red);border-color:var(--red)" onclick="deleteParaOrdenBloque(\''+f+'\','+bi+')">✕</button>'+
+          '<button aria-label="Eliminar bloque" class="btn btn-outline btn-sm" style="font-size:11px;padding:3px 8px;color:var(--red);border-color:var(--red)" onclick="deleteParaOrdenBloque(\''+f+'\','+bi+')">✕</button>'+
         '</div>'+
       '</div>';
     blq.items.forEach(function(it,ii){
       html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
         '<input type="checkbox"'+(it.marcado?' checked':'')+' onchange="updateParaOrdenItem(\''+f+'\','+bi+','+ii+',\'marcado\',this.checked)" style="width:16px;height:16px;accent-color:var(--teal);flex-shrink:0">'+
         '<input style="flex:1;padding:4px 8px;font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text)" value="'+esc(it.texto)+'" onchange="updateParaOrdenItem(\''+f+'\','+bi+','+ii+',\'texto\',this.value)" placeholder="Examen solicitado...">'+
-        '<button class="btn btn-outline btn-sm" style="font-size:11px;padding:2px 6px;color:var(--red);border-color:var(--red);flex-shrink:0" onclick="deleteParaOrdenItem(\''+f+'\','+bi+','+ii+')">✕</button>'+
+        '<button aria-label="Eliminar ítem" class="btn btn-outline btn-sm" style="font-size:11px;padding:2px 6px;color:var(--red);border-color:var(--red);flex-shrink:0" onclick="deleteParaOrdenItem(\''+f+'\','+bi+','+ii+')">✕</button>'+
       '</div>';
     });
     html+='</div>';
@@ -3453,7 +3456,7 @@ function renderProcedimientos(){
       '<td><input value="'+esc(pr.indicacion||'')+'" onchange="updateProc('+i+',\'indicacion\',this.value)"></td>'+
       '<td><select onchange="updateProc('+i+',\'compl\',this.value)"><option'+(pr.compl!=='Sí'?' selected':'')+'>No</option><option'+(pr.compl==='Sí'?' selected':'')+'>Sí</option></select></td>'+
       '<td>'+complDesc+'</td>'+
-      '<td style="text-align:center"><button class="btn btn-red btn-sm" style="padding:2px 8px;font-size:11px" onclick="delProc('+i+')">✕</button></td>'+
+      '<td style="text-align:center"><button aria-label="Eliminar procedimiento" class="btn btn-red btn-sm" style="padding:2px 8px;font-size:11px" onclick="delProc('+i+')">✕</button></td>'+
     '</tr>';
   }).join('');
   wrap.innerHTML='<table class="mini-tbl"><thead><tr><th>Fecha</th><th>Tipo</th><th>Operador</th><th>Indicación</th><th>Compl.</th><th>Descripción</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
@@ -4091,17 +4094,17 @@ function respAdmisionSectionHtml(p){
     '</div>'+
     '<div class="field-row" style="margin-top:8px">'+
       '<div class="field-group"><label>ARM</label>'+selSN('f-resp-arm',p.resp_arm)+'</div>'+
-      '<div class="field-group"><label>Días ARM</label><input id="f-resp-arm-dias" type="number" value="'+esc(p.resp_arm_dias||'')+'"></div>'+
+      '<div class="field-group"><label for="f-resp-arm-dias">Días ARM</label><input id="f-resp-arm-dias" type="number" value="'+esc(p.resp_arm_dias||'')+'"></div>'+
     '</div>'+
     '<div class="field-row four" style="margin-top:8px">'+
       '<div class="field-group"><label>VNI</label>'+selSN('f-resp-vni',p.resp_vni)+'</div>'+
-      '<div class="field-group"><label>Días VNI</label><input id="f-resp-vni-dias" type="number" value="'+esc(p.resp_vni_dias||'')+'"></div>'+
+      '<div class="field-group"><label for="f-resp-vni-dias">Días VNI</label><input id="f-resp-vni-dias" type="number" value="'+esc(p.resp_vni_dias||'')+'"></div>'+
       '<div class="field-group"><label>OAF</label>'+selSN('f-resp-oaf',p.resp_oaf)+'</div>'+
-      '<div class="field-group"><label>Días OAF</label><input id="f-resp-oaf-dias" type="number" value="'+esc(p.resp_oaf_dias||'')+'"></div>'+
+      '<div class="field-group"><label for="f-resp-oaf-dias">Días OAF</label><input id="f-resp-oaf-dias" type="number" value="'+esc(p.resp_oaf_dias||'')+'"></div>'+
     '</div>'+
     '<div class="field-row" style="margin-top:8px">'+
       '<div class="field-group"><label>Traqueostomía</label>'+selSN('f-resp-traqueo',p.resp_traqueo)+'</div>'+
-      '<div class="field-group"><label>Fecha traqueostomía</label><input id="f-resp-traqueo-fecha" type="date" value="'+esc(p.resp_traqueo_fecha||'')+'"></div>'+
+      '<div class="field-group"><label for="f-resp-traqueo-fecha">Fecha traqueostomía</label><input id="f-resp-traqueo-fecha" type="date" value="'+esc(p.resp_traqueo_fecha||'')+'"></div>'+
     '</div>'+
     '<div class="stats-note" style="margin-top:12px">FEVI se carga en <b>CV → Ecocardio</b>; vasopresores en <b>CV</b>; función renal (IRA/KDIGO) e infectología (neumococo/COVID) en <b>Labs</b>.</div>'+
   '</div>';
@@ -4244,19 +4247,19 @@ function ecocardioCardHtml(p){
     '<h4><span>🫀</span>Ecocardio (carga diaria)</h4>'+
     '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Valores del día. Se guardan con fecha para ver evolución en el resumen de egreso.</div>'+
     '<div class="field-row four">'+
-      '<div class="field-group"><label>FEVI (%)</label><input id="eco-fevi" type="number" step="1"></div>'+
-      '<div class="field-group"><label>Vol. sistólico (mL)</label><input id="eco-vs" type="number" step="0.1"></div>'+
-      '<div class="field-group"><label>Índice cardíaco (L/min/m²)</label><input id="eco-ic" type="number" step="0.1"></div>'+
-      '<div class="field-group"><label>Gasto cardíaco (L/min)</label><input id="eco-gc" type="number" step="0.1"></div>'+
+      '<div class="field-group"><label for="eco-fevi">FEVI (%)</label><input id="eco-fevi" type="number" step="1"></div>'+
+      '<div class="field-group"><label for="eco-vs">Vol. sistólico (mL)</label><input id="eco-vs" type="number" step="0.1"></div>'+
+      '<div class="field-group"><label for="eco-ic">Índice cardíaco (L/min/m²)</label><input id="eco-ic" type="number" step="0.1"></div>'+
+      '<div class="field-group"><label for="eco-gc">Gasto cardíaco (L/min)</label><input id="eco-gc" type="number" step="0.1"></div>'+
     '</div>'+
     '<div class="field-row four" style="margin-top:8px">'+
-      '<div class="field-group"><label>RVS (dyn·s·cm⁻⁵)</label><input id="eco-rvs" type="number"></div>'+
-      '<div class="field-group"><label>PSAP (mmHg)</label><input id="eco-psap" type="number"></div>'+
-      '<div class="field-group"><label>VCI (mm / colapso)</label><input id="eco-vci"></div>'+
-      '<div class="field-group"><label>Patrón hemodinámico</label><select id="eco-patron"><option value="">-</option>'+
+      '<div class="field-group"><label for="eco-rvs">RVS (dyn·s·cm⁻⁵)</label><input id="eco-rvs" type="number"></div>'+
+      '<div class="field-group"><label for="eco-psap">PSAP (mmHg)</label><input id="eco-psap" type="number"></div>'+
+      '<div class="field-group"><label for="eco-vci">VCI (mm / colapso)</label><input id="eco-vci"></div>'+
+      '<div class="field-group"><label for="eco-patron">Patrón hemodinámico</label><select id="eco-patron"><option value="">-</option>'+
         ECO_PATRONES.map(function(o){return '<option>'+esc(o)+'</option>';}).join('')+'</select></div>'+
     '</div>'+
-    '<div class="field-group" style="margin-top:8px"><label>Valvulopatías</label><input id="eco-valv" placeholder="texto libre..."></div>'+
+    '<div class="field-group" style="margin-top:8px"><label for="eco-valv">Valvulopatías</label><input id="eco-valv" placeholder="texto libre..."></div>'+
     '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="addEcocardio()">💾 Guardar ecocardio del día</button></div>'+
     '<div id="ecocardioTableWrap" style="margin-top:10px;overflow-x:auto"></div>'+
   '</div>';
@@ -4659,7 +4662,7 @@ function renderImgGrid(){
   grid.innerHTML=imgs.map(function(im,i){
     return '<div class="img-card">'+
       '<button class="img-del" onclick="delImg('+i+')" title="Eliminar">✕</button>'+
-      '<img src="'+im.data+'" onclick="window.open().document.write(\'<img src=\\\''+im.data+'\\\' style=max-width:100%>\')">'+
+      '<img src="'+im.data+'" alt="Imagen clínica adjunta" onclick="window.open().document.write(\'<img src=\\\''+im.data+'\\\' style=max-width:100%>\')">'+
       '<input type="date" value="'+esc(im.fecha)+'" onchange="updateImg('+i+',\'fecha\',this.value)">'+
       '<input value="'+esc(im.desc)+'" placeholder="Descripcion (RxTx...)" oninput="updateImg('+i+',\'desc\',this.value)">'+
     '</div>';
@@ -5792,13 +5795,13 @@ function renderCalc(){
   el.innerHTML=
   '<div class="calc-card">'+
     '<h4><span>\uD83D\uDCCA</span>APACHE II Score</h4>'+
-    '<div class="field-row"><div class="field-group"><label>Temp (C)</label><select id="ap-temp"><option value="4">&lt;30 o &gt;=41</option><option value="3">30-31.9 o 39-40.9</option><option value="1">32-33.9 o 38.5-38.9</option><option value="0" selected>34-38.4</option></select></div><div class="field-group"><label>PAM</label><select id="ap-pam"><option value="4">&lt;=49 o &gt;=160</option><option value="3">50-69 o 130-159</option><option value="2">110-129</option><option value="0" selected>70-109</option></select></div></div>'+
-    '<div class="field-row"><div class="field-group"><label>FC</label><select id="ap-fc"><option value="4">&lt;=39 o &gt;=180</option><option value="3">40-54 o 140-179</option><option value="2">55-69 o 110-139</option><option value="0" selected>70-109</option></select></div><div class="field-group"><label>FR</label><select id="ap-fr"><option value="4">&lt;=5 o &gt;=50</option><option value="3">6-9 o 35-49</option><option value="1">10-11 o 25-34</option><option value="0" selected>12-24</option></select></div></div>'+
-    '<div class="field-row"><div class="field-group"><label>Oxigenacion</label><select id="ap-ox"><option value="4">A-a&gt;=500 (FiO2&gt;=0.5)</option><option value="3">A-a 350-499</option><option value="2">A-a 200-349</option><option value="0" selected>PaO2&gt;70 o A-a&lt;200</option></select></div><div class="field-group"><label>pH arterial</label><select id="ap-ph"><option value="4">&lt;7.15 o &gt;=7.7</option><option value="3">7.15-7.24 o 7.6-7.69</option><option value="1">7.25-7.32 o 7.5-7.59</option><option value="0" selected>7.33-7.49</option></select></div></div>'+
-    '<div class="field-row"><div class="field-group"><label>Na</label><select id="ap-na"><option value="4">&lt;=110 o &gt;=180</option><option value="3">111-119 o 160-179</option><option value="2">120-129 o 155-159</option><option value="1">150-154</option><option value="0" selected>130-149</option></select></div><div class="field-group"><label>K</label><select id="ap-k"><option value="4">&lt;2.5 o &gt;=7</option><option value="3">6-6.9</option><option value="1">2.5-2.9 o 5.5-5.9</option><option value="0" selected>3.5-5.4</option></select></div></div>'+
-    '<div class="field-row"><div class="field-group"><label>Creatinina (x2 si IRA)</label><select id="ap-cr"><option value="4">&gt;=3.5</option><option value="3">2-3.4</option><option value="2">1.5-1.9 o &lt;0.6</option><option value="0" selected>0.6-1.4</option></select></div><div class="field-group"><label>Hto (%)</label><select id="ap-hto"><option value="4">&lt;20 o &gt;=60</option><option value="2">20-29.9 o 50-59.9</option><option value="1">46-49.9</option><option value="0" selected>30-45.9</option></select></div></div>'+
-    '<div class="field-row"><div class="field-group"><label>Leucocitos (x10.3)</label><select id="ap-wbc"><option value="4">&lt;1 o &gt;=40</option><option value="2">1-2.9 o 20-39.9</option><option value="1">15-19.9</option><option value="0" selected>3-14.9</option></select></div><div class="field-group"><label>GCS</label><input id="ap-gcs" type="number" min="3" max="15" value="15"></div></div>'+
-    '<div class="field-row"><div class="field-group"><label>Edad</label><select id="ap-age"><option value="0">&lt;=44 anios</option><option value="2">45-54</option><option value="3">55-64</option><option value="5">65-74</option><option value="6">&gt;=75</option></select></div><div class="field-group"><label>Salud cronica</label><select id="ap-sp"><option value="0">Sin enf cronica grave</option><option value="2">Postop electivo con enf cronica</option><option value="5">No operado / postop urgente con enf cronica</option></select></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="ap-temp">Temp (C)</label><select id="ap-temp"><option value="4">&lt;30 o &gt;=41</option><option value="3">30-31.9 o 39-40.9</option><option value="1">32-33.9 o 38.5-38.9</option><option value="0" selected>34-38.4</option></select></div><div class="field-group"><label for="ap-pam">PAM</label><select id="ap-pam"><option value="4">&lt;=49 o &gt;=160</option><option value="3">50-69 o 130-159</option><option value="2">110-129</option><option value="0" selected>70-109</option></select></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="ap-fc">FC</label><select id="ap-fc"><option value="4">&lt;=39 o &gt;=180</option><option value="3">40-54 o 140-179</option><option value="2">55-69 o 110-139</option><option value="0" selected>70-109</option></select></div><div class="field-group"><label for="ap-fr">FR</label><select id="ap-fr"><option value="4">&lt;=5 o &gt;=50</option><option value="3">6-9 o 35-49</option><option value="1">10-11 o 25-34</option><option value="0" selected>12-24</option></select></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="ap-ox">Oxigenacion</label><select id="ap-ox"><option value="4">A-a&gt;=500 (FiO2&gt;=0.5)</option><option value="3">A-a 350-499</option><option value="2">A-a 200-349</option><option value="0" selected>PaO2&gt;70 o A-a&lt;200</option></select></div><div class="field-group"><label for="ap-ph">pH arterial</label><select id="ap-ph"><option value="4">&lt;7.15 o &gt;=7.7</option><option value="3">7.15-7.24 o 7.6-7.69</option><option value="1">7.25-7.32 o 7.5-7.59</option><option value="0" selected>7.33-7.49</option></select></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="ap-na">Na</label><select id="ap-na"><option value="4">&lt;=110 o &gt;=180</option><option value="3">111-119 o 160-179</option><option value="2">120-129 o 155-159</option><option value="1">150-154</option><option value="0" selected>130-149</option></select></div><div class="field-group"><label for="ap-k">K</label><select id="ap-k"><option value="4">&lt;2.5 o &gt;=7</option><option value="3">6-6.9</option><option value="1">2.5-2.9 o 5.5-5.9</option><option value="0" selected>3.5-5.4</option></select></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="ap-cr">Creatinina (x2 si IRA)</label><select id="ap-cr"><option value="4">&gt;=3.5</option><option value="3">2-3.4</option><option value="2">1.5-1.9 o &lt;0.6</option><option value="0" selected>0.6-1.4</option></select></div><div class="field-group"><label for="ap-hto">Hto (%)</label><select id="ap-hto"><option value="4">&lt;20 o &gt;=60</option><option value="2">20-29.9 o 50-59.9</option><option value="1">46-49.9</option><option value="0" selected>30-45.9</option></select></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="ap-wbc">Leucocitos (x10.3)</label><select id="ap-wbc"><option value="4">&lt;1 o &gt;=40</option><option value="2">1-2.9 o 20-39.9</option><option value="1">15-19.9</option><option value="0" selected>3-14.9</option></select></div><div class="field-group"><label for="ap-gcs">GCS</label><input id="ap-gcs" type="number" min="3" max="15" value="15"></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="ap-age">Edad</label><select id="ap-age"><option value="0">&lt;=44 anios</option><option value="2">45-54</option><option value="3">55-64</option><option value="5">65-74</option><option value="6">&gt;=75</option></select></div><div class="field-group"><label for="ap-sp">Salud cronica</label><select id="ap-sp"><option value="0">Sin enf cronica grave</option><option value="2">Postop electivo con enf cronica</option><option value="5">No operado / postop urgente con enf cronica</option></select></div></div>'+
     '<button class="btn btn-teal" style="margin-top:8px;width:100%" onclick="calcAPACHE()">Calcular APACHE II</button>'+
     '<div class="calc-result" id="apache-result" style="display:none"><div class="big" id="apache-score">0</div><div class="interp" id="apache-interp">-</div></div>'+
     '<div style="font-size:10px;color:var(--muted);margin-top:6px">Knaus 1985. Puntos GCS = 15 - GCS medido.</div>'+
@@ -5806,8 +5809,8 @@ function renderCalc(){
 
   '<div class="calc-card">'+
     '<h4><span>\u2696\uFE0F</span>Peso Predicho y VT Protector</h4>'+
-    '<div class="field-row"><div class="field-group"><label>Sexo</label><select id="pi-sex"><option value="M">Masculino</option><option value="F">Femenino</option></select></div><div class="field-group"><label>Talla (cm)</label><input id="pi-h" type="number" placeholder="170"></div></div>'+
-    '<div class="field-row"><div class="field-group"><label>Peso real (kg)</label><input id="pi-w" type="number" placeholder="70"></div><div class="field-group"><label>IMC</label><div class="calc-val" id="pi-imc">-</div></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="pi-sex">Sexo</label><select id="pi-sex"><option value="M">Masculino</option><option value="F">Femenino</option></select></div><div class="field-group"><label for="pi-h">Talla (cm)</label><input id="pi-h" type="number" placeholder="170"></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="pi-w">Peso real (kg)</label><input id="pi-w" type="number" placeholder="70"></div><div class="field-group"><label>IMC</label><div class="calc-val" id="pi-imc">-</div></div></div>'+
     '<button class="btn btn-teal" style="margin-top:8px;width:100%" onclick="calcPesoIdeal()">Calcular</button>'+
     '<div class="calc-result" id="pi-result" style="display:none"><div class="big" id="pi-val">-</div><div class="interp" id="pi-interp">-</div></div>'+
     '<div style="font-size:10px;color:var(--muted);margin-top:6px">Devine. VT protector siempre sobre peso predicho.</div>'+
@@ -5815,9 +5818,9 @@ function renderCalc(){
 
   '<div class="calc-card">'+
     '<h4><span>\u2697\uFE0F</span>Stewart SID - Acido-Base</h4>'+
-    '<div class="field-row"><div class="field-group"><label>Na (mEq/L)</label><input id="sid2-na" type="number" placeholder="140"></div><div class="field-group"><label>K (mEq/L)</label><input id="sid2-k" type="number" step="0.1" placeholder="4.0"></div></div>'+
-    '<div class="field-row"><div class="field-group"><label>Cl (mEq/L)</label><input id="sid2-cl" type="number" placeholder="102"></div><div class="field-group"><label>Lactato (mEq/L)</label><input id="sid2-lac" type="number" step="0.1" placeholder="1.0"></div></div>'+
-    '<div class="field-row"><div class="field-group"><label>Albumina (g/dL)</label><input id="sid2-alb" type="number" step="0.1" placeholder="4.0"></div><div class="field-group"><label>Fosfato (mg/dL)</label><input id="sid2-phos" type="number" step="0.1" placeholder="3.5"></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="sid2-na">Na (mEq/L)</label><input id="sid2-na" type="number" placeholder="140"></div><div class="field-group"><label for="sid2-k">K (mEq/L)</label><input id="sid2-k" type="number" step="0.1" placeholder="4.0"></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="sid2-cl">Cl (mEq/L)</label><input id="sid2-cl" type="number" placeholder="102"></div><div class="field-group"><label for="sid2-lac">Lactato (mEq/L)</label><input id="sid2-lac" type="number" step="0.1" placeholder="1.0"></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="sid2-alb">Albumina (g/dL)</label><input id="sid2-alb" type="number" step="0.1" placeholder="4.0"></div><div class="field-group"><label for="sid2-phos">Fosfato (mg/dL)</label><input id="sid2-phos" type="number" step="0.1" placeholder="3.5"></div></div>'+
     '<button class="btn btn-teal" style="margin-top:8px;width:100%" onclick="calcStewart()">Calcular Stewart</button>'+
     '<div class="calc-result" id="sid-result" style="display:none"><div class="big" id="sid-val">-</div><div class="interp" id="sid-interp">-</div></div>'+
   '</div>'+
@@ -5825,43 +5828,43 @@ function renderCalc(){
   '<div class="calc-card">'+
     '<h4><span>\uD83D\uDCA7</span>Correcciones Electroliticas</h4>'+
     '<div style="margin-bottom:8px"><strong style="font-size:12px;color:var(--teal)">Hiponatremia - deficit de Na</strong></div>'+
-    '<div class="field-row three"><div class="field-group"><label>Na actual</label><input id="hn-na" type="number" placeholder="120"></div><div class="field-group"><label>Peso (kg)</label><input id="hn-w" type="number" placeholder="70"></div><div class="field-group"><label>Sexo</label><select id="hn-sex"><option value="0.6">M</option><option value="0.5">F</option></select></div></div>'+
+    '<div class="field-row three"><div class="field-group"><label for="hn-na">Na actual</label><input id="hn-na" type="number" placeholder="120"></div><div class="field-group"><label for="hn-w">Peso (kg)</label><input id="hn-w" type="number" placeholder="70"></div><div class="field-group"><label for="hn-sex">Sexo</label><select id="hn-sex"><option value="0.6">M</option><option value="0.5">F</option></select></div></div>'+
     '<button class="btn btn-outline btn-sm" style="margin-top:6px" onclick="calcHipoNa()">Calcular</button>'+
     '<div class="alert-box info" id="hn-result" style="display:none;margin-top:6px"></div>'+
     '<div style="margin:12px 0 8px"><strong style="font-size:12px;color:var(--teal)">Hipopotasemia - guia de reposicion</strong></div>'+
-    '<div class="field-row"><div class="field-group"><label>K actual (mEq/L)</label><input id="hk-k" type="number" step="0.1" placeholder="2.8"></div><div class="field-group"><label>Via</label><select id="hk-via"><option value="periferica">Periferica</option><option value="central">Central</option></select></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="hk-k">K actual (mEq/L)</label><input id="hk-k" type="number" step="0.1" placeholder="2.8"></div><div class="field-group"><label for="hk-via">Via</label><select id="hk-via"><option value="periferica">Periferica</option><option value="central">Central</option></select></div></div>'+
     '<button class="btn btn-outline btn-sm" style="margin-top:6px" onclick="calcHipoK()">Ver guia</button>'+
     '<div class="alert-box info" id="hk-result" style="display:none;margin-top:6px"></div>'+
   '</div>'+
 
   '<div class="calc-card">'+
     '<h4><span>\uD83E\uDEC0</span>Funcion Renal (CKD-EPI 2021 y Cockcroft-Gault)</h4>'+
-    '<div class="field-row three"><div class="field-group"><label>Creatinina (mg/dL)</label><input id="gfr-cr" type="number" step="0.01" placeholder="1.0"></div><div class="field-group"><label>Edad</label><input id="gfr-age" type="number" placeholder="60"></div><div class="field-group"><label>Sexo</label><select id="gfr-sex"><option value="M">M</option><option value="F">F</option></select></div></div>'+
-    '<div class="field-row" style="margin-top:8px"><div class="field-group"><label>Peso (kg) - para Cockcroft</label><input id="gfr-w" type="number" placeholder="70"></div><div class="field-group"><label></label><button class="btn btn-teal" style="margin-top:18px;width:100%" onclick="calcGFR()">Calcular</button></div></div>'+
+    '<div class="field-row three"><div class="field-group"><label for="gfr-cr">Creatinina (mg/dL)</label><input id="gfr-cr" type="number" step="0.01" placeholder="1.0"></div><div class="field-group"><label for="gfr-age">Edad</label><input id="gfr-age" type="number" placeholder="60"></div><div class="field-group"><label for="gfr-sex">Sexo</label><select id="gfr-sex"><option value="M">M</option><option value="F">F</option></select></div></div>'+
+    '<div class="field-row" style="margin-top:8px"><div class="field-group"><label for="gfr-w">Peso (kg) - para Cockcroft</label><input id="gfr-w" type="number" placeholder="70"></div><div class="field-group"><label></label><button class="btn btn-teal" style="margin-top:18px;width:100%" onclick="calcGFR()">Calcular</button></div></div>'+
     '<div class="calc-result" id="gfr-result" style="display:none"><div class="big" id="gfr-val">-</div><div class="interp" id="gfr-interp">-</div></div>'+
     '<div style="font-size:10px;color:var(--muted);margin-top:6px">CKD-EPI 2021 sin coeficiente de raza. Cockcroft-Gault usa peso real (util para dosis de ATB).</div>'+
   '</div>'+
 
   '<div class="calc-card">'+
     '<h4><span>\uD83E\uDDC2</span>Osmolaridad Plasmatica y Osmolar Gap</h4>'+
-    '<div class="field-row three"><div class="field-group"><label>Na (mEq/L)</label><input id="osm-na" type="number" placeholder="140"></div><div class="field-group"><label>Glucemia (mg/dL)</label><input id="osm-glu" type="number" placeholder="90"></div><div class="field-group"><label>Urea/BUN</label><input id="osm-urea" type="number" placeholder="30"></div></div>'+
-    '<div class="field-row" style="margin-top:8px"><div class="field-group"><label>Unidad de urea</label><select id="osm-ureatype"><option value="urea">Urea (mg/dL)</option><option value="bun">BUN (mg/dL)</option></select></div><div class="field-group"><label>Osm medida (opcional)</label><input id="osm-meas" type="number" placeholder="para gap"></div></div>'+
-    '<div class="field-row" style="margin-top:8px"><div class="field-group"><label>Etanol (mg/dL, opcional)</label><input id="osm-etoh" type="number" placeholder="0"></div><div class="field-group"><label></label><button class="btn btn-teal" style="margin-top:18px;width:100%" onclick="calcOsm()">Calcular</button></div></div>'+
+    '<div class="field-row three"><div class="field-group"><label for="osm-na">Na (mEq/L)</label><input id="osm-na" type="number" placeholder="140"></div><div class="field-group"><label for="osm-glu">Glucemia (mg/dL)</label><input id="osm-glu" type="number" placeholder="90"></div><div class="field-group"><label for="osm-urea">Urea/BUN</label><input id="osm-urea" type="number" placeholder="30"></div></div>'+
+    '<div class="field-row" style="margin-top:8px"><div class="field-group"><label for="osm-ureatype">Unidad de urea</label><select id="osm-ureatype"><option value="urea">Urea (mg/dL)</option><option value="bun">BUN (mg/dL)</option></select></div><div class="field-group"><label for="osm-meas">Osm medida (opcional)</label><input id="osm-meas" type="number" placeholder="para gap"></div></div>'+
+    '<div class="field-row" style="margin-top:8px"><div class="field-group"><label for="osm-etoh">Etanol (mg/dL, opcional)</label><input id="osm-etoh" type="number" placeholder="0"></div><div class="field-group"><label></label><button class="btn btn-teal" style="margin-top:18px;width:100%" onclick="calcOsm()">Calcular</button></div></div>'+
     '<div class="calc-result" id="osm-result" style="display:none"><div class="big" id="osm-val">-</div><div class="interp" id="osm-interp">-</div></div>'+
     '<div style="font-size:10px;color:var(--muted);margin-top:6px">Osm calc = 2xNa + glu/18 + urea/6 (+ etanol/4.6). Gap normal &lt;10; elevado sugiere toxico osmoticamente activo.</div>'+
   '</div>'+
 
   '<div class="calc-card">'+
     '<h4><span>\uD83D\uDCA7</span>Deficit de Agua Libre (Hipernatremia)</h4>'+
-    '<div class="field-row three"><div class="field-group"><label>Na actual</label><input id="fw-na" type="number" placeholder="160"></div><div class="field-group"><label>Peso (kg)</label><input id="fw-w" type="number" placeholder="70"></div><div class="field-group"><label>Sexo/edad</label><select id="fw-tbw"><option value="0.6">Hombre</option><option value="0.5">Mujer</option><option value="0.5">Anciano H</option><option value="0.45">Anciana M</option></select></div></div>'+
-    '<div class="field-row" style="margin-top:8px"><div class="field-group"><label>Na objetivo</label><input id="fw-target" type="number" value="140"></div><div class="field-group"><label></label><button class="btn btn-teal" style="margin-top:18px;width:100%" onclick="calcFreeWater()">Calcular</button></div></div>'+
+    '<div class="field-row three"><div class="field-group"><label for="fw-na">Na actual</label><input id="fw-na" type="number" placeholder="160"></div><div class="field-group"><label for="fw-w">Peso (kg)</label><input id="fw-w" type="number" placeholder="70"></div><div class="field-group"><label for="fw-tbw">Sexo/edad</label><select id="fw-tbw"><option value="0.6">Hombre</option><option value="0.5">Mujer</option><option value="0.5">Anciano H</option><option value="0.45">Anciana M</option></select></div></div>'+
+    '<div class="field-row" style="margin-top:8px"><div class="field-group"><label for="fw-target">Na objetivo</label><input id="fw-target" type="number" value="140"></div><div class="field-group"><label></label><button class="btn btn-teal" style="margin-top:18px;width:100%" onclick="calcFreeWater()">Calcular</button></div></div>'+
     '<div class="calc-result" id="fw-result" style="display:none"><div class="big" id="fw-val">-</div><div class="interp" id="fw-interp">-</div></div>'+
     '<div style="font-size:10px;color:var(--muted);margin-top:6px">Deficit = ACT x (Na/objetivo - 1). Corregir max 10-12 mEq/L/24h. Sumar perdidas insensibles/en curso.</div>'+
   '</div>'+
 
   '<div class="calc-card">'+
     '<h4><span>\uD83D\uDD25</span>Parkland (Reanimacion en Quemados)</h4>'+
-    '<div class="field-row"><div class="field-group"><label>Peso (kg)</label><input id="pk-w" type="number" placeholder="70"></div><div class="field-group"><label>SCQ (% superficie quemada)</label><input id="pk-tbsa" type="number" placeholder="30"></div></div>'+
+    '<div class="field-row"><div class="field-group"><label for="pk-w">Peso (kg)</label><input id="pk-w" type="number" placeholder="70"></div><div class="field-group"><label for="pk-tbsa">SCQ (% superficie quemada)</label><input id="pk-tbsa" type="number" placeholder="30"></div></div>'+
     '<button class="btn btn-teal" style="margin-top:8px;width:100%" onclick="calcParkland()">Calcular</button>'+
     '<div class="calc-result" id="pk-result" style="display:none"><div class="big" id="pk-val">-</div><div class="interp" id="pk-interp">-</div></div>'+
     '<div style="font-size:10px;color:var(--muted);margin-top:6px">4 mL x kg x %SCQ con Ringer lactato en 24h: 50% en las primeras 8h (desde la quemadura), 50% en las 16h siguientes. Titular por diuresis 0.5-1 mL/kg/h.</div>'+
@@ -5869,8 +5872,8 @@ function renderCalc(){
 
   '<div class="calc-card">'+
     '<h4><span>\uD83D\uDC8A</span>Conversion de Opioides</h4>'+
-    '<div class="field-row three"><div class="field-group"><label>Opioide origen</label><select id="op-from"></select></div><div class="field-group"><label>Dosis (mg/dia)</label><input id="op-dose" type="number" step="any" placeholder="30"></div><div class="field-group"><label>Opioide destino</label><select id="op-to"></select></div></div>'+
-    '<div class="field-row" style="margin-top:8px"><div class="field-group"><label>Reduccion tolerancia cruzada</label><select id="op-cross"><option value="1">0% (sin reduccion)</option><option value="0.75" selected>25%</option><option value="0.5">50%</option></select></div><div class="field-group"><label></label><button class="btn btn-teal" style="margin-top:18px;width:100%" onclick="calcOpioid()">Convertir</button></div></div>'+
+    '<div class="field-row three"><div class="field-group"><label for="op-from">Opioide origen</label><select id="op-from"></select></div><div class="field-group"><label for="op-dose">Dosis (mg/dia)</label><input id="op-dose" type="number" step="any" placeholder="30"></div><div class="field-group"><label for="op-to">Opioide destino</label><select id="op-to"></select></div></div>'+
+    '<div class="field-row" style="margin-top:8px"><div class="field-group"><label for="op-cross">Reduccion tolerancia cruzada</label><select id="op-cross"><option value="1">0% (sin reduccion)</option><option value="0.75" selected>25%</option><option value="0.5">50%</option></select></div><div class="field-group"><label></label><button class="btn btn-teal" style="margin-top:18px;width:100%" onclick="calcOpioid()">Convertir</button></div></div>'+
     '<div class="calc-result" id="op-result" style="display:none"><div class="big" id="op-val">-</div><div class="interp" id="op-interp">-</div></div>'+
     '<div style="font-size:10px;color:var(--muted);margin-top:6px">Equivalencias aproximadas a morfina oral. Reducir 25-50% por tolerancia cruzada incompleta al rotar. Verificar siempre y titular.</div>'+
   '</div>';
@@ -6681,8 +6684,8 @@ function renderCostosConfig(){
   var monedaCard =
     '<div class="section-card"><h4><span>💱</span>Moneda</h4>'+
     '<div class="field-row">'+
-      '<div class="field-group"><label>Símbolo</label><input id="cost-moneda-simbolo" value="'+esc(cfg.moneda_simbolo)+'" onchange="costosSetMoneda()"></div>'+
-      '<div class="field-group"><label>Nombre/Código</label><input id="cost-moneda-nombre" value="'+esc(cfg.moneda_nombre)+'" onchange="costosSetMoneda()"></div>'+
+      '<div class="field-group"><label for="cost-moneda-simbolo">Símbolo</label><input id="cost-moneda-simbolo" value="'+esc(cfg.moneda_simbolo)+'" onchange="costosSetMoneda()"></div>'+
+      '<div class="field-group"><label for="cost-moneda-nombre">Nombre/Código</label><input id="cost-moneda-nombre" value="'+esc(cfg.moneda_nombre)+'" onchange="costosSetMoneda()"></div>'+
     '</div>'+
     '<div class="stats-note">Ej.: $ / UYU · U$S / USD · R$ / BRL · € / EUR. Todos los importes usan este símbolo.</div></div>';
 
@@ -7536,13 +7539,13 @@ function renderEgresados(){
   var filters =
     '<div class="section-card"><h4><span>🔎</span>Filtros de egresados</h4>'+
       '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">'+
-        '<div class="stats-ctrl"><label>Nombre</label><input id="egrfNombre" value="'+esc(f.nombre||'')+'" oninput="egresadosApplyFilters()" placeholder="Buscar..."></div>'+
-        '<div class="stats-ctrl"><label>Diagnóstico</label><input id="egrfDx" value="'+esc(f.dx||'')+'" oninput="egresadosApplyFilters()" placeholder="Buscar..."></div>'+
-        '<div class="stats-ctrl"><label>Etiqueta / cobertura</label><select id="egrfEtiqueta" onchange="egresadosApplyFilters()">'+etqOpts+'</select></div>'+
-        '<div class="stats-ctrl"><label>Ingreso desde</label><input type="date" id="egrfIngDesde" value="'+esc(f.ingDesde||'')+'" onchange="egresadosApplyFilters()"></div>'+
-        '<div class="stats-ctrl"><label>Ingreso hasta</label><input type="date" id="egrfIngHasta" value="'+esc(f.ingHasta||'')+'" onchange="egresadosApplyFilters()"></div>'+
-        '<div class="stats-ctrl"><label>Egreso desde</label><input type="date" id="egrfEgrDesde" value="'+esc(f.egrDesde||'')+'" onchange="egresadosApplyFilters()"></div>'+
-        '<div class="stats-ctrl"><label>Egreso hasta</label><input type="date" id="egrfEgrHasta" value="'+esc(f.egrHasta||'')+'" onchange="egresadosApplyFilters()"></div>'+
+        '<div class="stats-ctrl"><label for="egrfNombre">Nombre</label><input id="egrfNombre" value="'+esc(f.nombre||'')+'" oninput="egresadosApplyFilters()" placeholder="Buscar..."></div>'+
+        '<div class="stats-ctrl"><label for="egrfDx">Diagnóstico</label><input id="egrfDx" value="'+esc(f.dx||'')+'" oninput="egresadosApplyFilters()" placeholder="Buscar..."></div>'+
+        '<div class="stats-ctrl"><label for="egrfEtiqueta">Etiqueta / cobertura</label><select id="egrfEtiqueta" onchange="egresadosApplyFilters()">'+etqOpts+'</select></div>'+
+        '<div class="stats-ctrl"><label for="egrfIngDesde">Ingreso desde</label><input type="date" id="egrfIngDesde" value="'+esc(f.ingDesde||'')+'" onchange="egresadosApplyFilters()"></div>'+
+        '<div class="stats-ctrl"><label for="egrfIngHasta">Ingreso hasta</label><input type="date" id="egrfIngHasta" value="'+esc(f.ingHasta||'')+'" onchange="egresadosApplyFilters()"></div>'+
+        '<div class="stats-ctrl"><label for="egrfEgrDesde">Egreso desde</label><input type="date" id="egrfEgrDesde" value="'+esc(f.egrDesde||'')+'" onchange="egresadosApplyFilters()"></div>'+
+        '<div class="stats-ctrl"><label for="egrfEgrHasta">Egreso hasta</label><input type="date" id="egrfEgrHasta" value="'+esc(f.egrHasta||'')+'" onchange="egresadosApplyFilters()"></div>'+
         '<button class="btn btn-outline btn-sm" onclick="egresadosClearFilters()">Limpiar filtros</button>'+
         '<button class="btn btn-teal btn-sm" onclick="exportEgresadosExcel()">📊 Exportar Excel</button>'+
       '</div>'+
