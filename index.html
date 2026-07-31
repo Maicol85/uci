@@ -4,8 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>UCI/CTI — Gestión de pacientes críticos</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <style>
 /* ===== TEMA: claro por defecto, oscuro via [data-theme=dark] ===== */
 :root{
@@ -4682,7 +4685,7 @@ function renderImgGrid(){
   grid.innerHTML=imgs.map(function(im,i){
     return '<div class="img-card">'+
       '<button class="img-del" onclick="delImg('+i+')" title="Eliminar">✕</button>'+
-      '<img src="'+im.data+'" alt="Imagen clínica adjunta" onclick="window.open().document.write(\'<img src=\\\''+im.data+'\\\' style=max-width:100%>\')">'+
+      '<img src="'+im.data+'" loading="lazy" alt="Imagen clínica adjunta" onclick="window.open().document.write(\'<img src=\\\''+im.data+'\\\' style=max-width:100%>\')">'+
       '<input type="date" value="'+esc(im.fecha)+'" onchange="updateImg('+i+',\'fecha\',this.value)">'+
       '<input value="'+esc(im.desc)+'" placeholder="Descripcion (RxTx...)" oninput="updateImg('+i+',\'desc\',this.value)">'+
     '</div>';
@@ -6175,7 +6178,7 @@ window.addEventListener('load', function(){
   initLogin();      // pantalla de acceso (sesión 8h)
   loadTheme();      // tema claro por defecto, recuerda eleccion
   loadMeta();       // nombres/lista de centros personalizados
-  updateBackupBadge();
+  setTimeout(updateBackupBadge, 0);
   // No cargamos pacientes hasta que se elija un centro (closeSplash -> showCentroSelect)
 });
 </script>
