@@ -2000,7 +2000,7 @@ function renderBeds(){
     if(hasPatient){
       var abadges=[];
       try{
-        if(sepsisAlert(p)) abadges.push('<span title="≥3 criterios de sepsis" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid var(--red);color:var(--red);background:var(--red-dim)">🔴 Posible Sepsis</span>');
+        if(sepsisAlert(p)) abadges.push('<span title="≥3 criterios de alarma — evaluar sospecha de infección y disfunción orgánica (Sepsis-3/SSC 2026)" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid var(--red);color:var(--red);background:var(--red-dim)">⚠ Criterios de alarma</span>');
         var dt=sofaDeterioro(p);
         if(dt.jump) abadges.push('<span title="Salto de SOFA ≥2" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid var(--amber);color:var(--amber);background:#7c5c0022">⚠️ Deterioro SOFA (+'+dt.diff+')</span>');
       }catch(e){}
