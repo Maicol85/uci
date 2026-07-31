@@ -2463,7 +2463,7 @@ function renderActivePatient(){
       '<div class="field-row four">'+
         '<div class="field-group"><label for="f-fio2">FiO2 (0.21-1.0)</label><input id="f-fio2" type="number" step="0.01" min="0.21" max="1" value="'+p.fio2+'" oninput="calcDerived('+ab+')"></div>'+
         '<div class="field-group"><label for="f-peep">PEEP (cmH2O)</label><input id="f-peep" type="number" value="'+p.peep+'" oninput="calcDerived('+ab+')"></div>'+
-        '<div class="field-group"><label for="f-pip">PIP/Pmeseta (cmH2O)</label><input id="f-pip" type="number" value="'+p.pip+'" oninput="calcDerived('+ab+')"></div>'+
+        '<div class="field-group"><label for="f-pip">PIP (cmH2O)</label><input id="f-pip" type="number" value="'+p.pip+'" oninput="calcDerived('+ab+')"></div>'+'<div class="field-group"><label for="f-pplat">Pplat (cmH2O) <small style="color:var(--muted)">(pausa inspir.)</small></label><input id="f-pplat" type="number" value="'+(p.pplat||'')+'" oninput="calcDerived('+ab+')"></div>'+
         '<div class="field-group"><label for="f-vt">VT (mL)</label><input id="f-vt" type="number" value="'+p.vt+'" oninput="calcDerived('+ab+')"></div>'+
       '</div>'+
       '<div class="field-row four" style="margin-top:8px">'+
@@ -3488,12 +3488,12 @@ var WEAN_ITEMS = [
 // unit: 'mcgkgmin' = mcg/kg/min ; 'mcgkgh' = mcg/kg/h
 // mgPerMl = concentracion de la dilucion estandar (mg/mL)
 var SEDO_DRUGS = [
-  {k:'midazolam',   n:'Midazolam',       mgPerMl:1,   unit:'mcgkgh',   range:'0.02–0.2 mg/kg/h (20–200 mcg/kg/h)', dil:'50 mg en 50 mL = 1 mg/mL'},
-  {k:'propofol',    n:'Propofol',        mgPerMl:10,  unit:'mcgkgmin', range:'5–50 mcg/kg/min (0.3–3 mg/kg/h)',   dil:'1% = 10 mg/mL (sin diluir)'},
-  {k:'fentanilo',   n:'Fentanilo',       mgPerMl:0.05,unit:'mcgkgh',   range:'0.5–3 mcg/kg/h',                     dil:'2500 mcg en 50 mL = 50 mcg/mL (0.05 mg/mL)'},
-  {k:'dexmedetomidina',n:'Dexmedetomidina',mgPerMl:0.004,unit:'mcgkgh',range:'0.2–1.4 mcg/kg/h',                   dil:'200 mcg en 50 mL = 4 mcg/mL (0.004 mg/mL)'},
-  {k:'ketamina',    n:'Ketamina',        mgPerMl:1,   unit:'mcgkgmin', range:'5–30 mcg/kg/min (0.3–1.8 mg/kg/h)', dil:'500 mg en 500 mL = 1 mg/mL'},
-  {k:'morfina',     n:'Morfina',         mgPerMl:1,   unit:'mcgkgh',   range:'10–50 mcg/kg/h (1–5 mg/h aprox)',    dil:'50 mg en 50 mL = 1 mg/mL'}
+  {k:'midazolam',lo:20,hi:200,   n:'Midazolam',       mgPerMl:1,   unit:'mcgkgh',   range:'0.02–0.2 mg/kg/h (20–200 mcg/kg/h)', dil:'50 mg en 50 mL = 1 mg/mL'},
+  {k:'propofol',lo:5,hi:50,    n:'Propofol',        mgPerMl:10,  unit:'mcgkgmin', range:'5–50 mcg/kg/min (0.3–3 mg/kg/h)',   dil:'1% = 10 mg/mL (sin diluir)'},
+  {k:'fentanilo',lo:0.5,hi:3,   n:'Fentanilo',       mgPerMl:0.05,unit:'mcgkgh',   range:'0.5–3 mcg/kg/h',                     dil:'2500 mcg en 50 mL = 50 mcg/mL (0.05 mg/mL)'},
+  {k:'dexmedetomidina',lo:0.2,hi:1.4,n:'Dexmedetomidina',mgPerMl:0.004,unit:'mcgkgh',range:'0.2–1.4 mcg/kg/h',                   dil:'200 mcg en 50 mL = 4 mcg/mL (0.004 mg/mL)'},
+  {k:'ketamina',lo:5,hi:30,    n:'Ketamina',        mgPerMl:1,   unit:'mcgkgmin', range:'5–30 mcg/kg/min (0.3–1.8 mg/kg/h)', dil:'500 mg en 500 mL = 1 mg/mL'},
+  {k:'morfina',lo:10,hi:50,     n:'Morfina',         mgPerMl:1,   unit:'mcgkgh',   range:'10–50 mcg/kg/h (1–5 mg/h aprox)',    dil:'50 mg en 50 mL = 1 mg/mL'}
 ];
 
 // ===== F1: alerta de presion de cuff =====
@@ -3614,10 +3614,15 @@ function calcSedo(){
   var conc=(mg>0&&vol>0)?(mg/vol):d.mgPerMl;   // mg/mL (usa dilución estándar de la droga si no se ingresan mg/vol)
   if(w<=0){ res.textContent='-'; if(sub) sub.textContent='Ingrese peso (kg)'; return; }
   if(rate<=0){ res.textContent='-'; if(sub) sub.textContent='Ingrese velocidad de infusión (mL/h)'; return; }
-  var mgPerMin=rate*conc/60;              // mg/min
-  var mcgPerKgMin=mgPerMin*1000/w;        // mcg/kg/min
-  res.textContent=(Math.round(mcgPerKgMin*1000)/1000)+' mcg/kg/min';
-  if(sub) sub.textContent=(Math.round(mgPerMin*1000)/1000)+' mg/min · '+rate+' mL/h · conc '+(Math.round(conc*1000)/1000)+' mg/mL · peso '+w+' kg'+((mg>0&&vol>0)?'':' (dilución estándar)');
+  var mgPerH=rate*conc;                    // mg/h (rate mL/h × conc mg/mL)
+  var val, unit;
+  if(d.unit==='mcgkgmin'){ val=mgPerH*1000/(60*w); unit='mcg/kg/min'; }   // propofol, ketamina
+  else { val=mgPerH*1000/w; unit='mcg/kg/h'; }   // mcgkgh: fentanilo, dexme, midazolam, morfina — NO dividir por 60
+  var rounded=Math.round(val*1000)/1000;
+  var oor=(d.lo!=null&&d.hi!=null)&&(rounded<d.lo||rounded>d.hi);
+  res.textContent=rounded+' '+unit+(oor?' ⚠ fuera de rango':'');
+  res.style.color=oor?'var(--red)':'';
+  if(sub) sub.textContent=(oor?('⚠ Fuera del rango típico ('+d.lo+'–'+d.hi+' '+unit+') · '):'')+(Math.round(mgPerH*1000)/1000)+' mg/h · '+rate+' mL/h · conc '+(Math.round(conc*1000)/1000)+' mg/mL · peso '+w+' kg'+((mg>0&&vol>0)?'':' (dilución estándar)');
 }
 
 // ===== F5: control glucemico =====
@@ -3685,7 +3690,7 @@ function calcDerived(idx){
   function gv(id, fallback){ var el=document.getElementById(id); return el? (parseFloat(el.value)||0) : (parseFloat(fallback)||0); }
   var pas=gv('f-pas',p.pas), pad=gv('f-pad',p.pad), fc=gv('f-fc',p.fc);
   var po2=gv('f-po2',p.po2), fio2=gv('f-fio2',p.fio2);
-  var pip=gv('f-pip',p.pip), peep=gv('f-peep',p.peep), vt=gv('f-vt',p.vt);
+  var pip=gv('f-pip',p.pip), peep=gv('f-peep',p.peep), vt=gv('f-vt',p.vt), pplat=gv('f-pplat',p.pplat); p.pplat=pplat;
   // sexo y talla para PBW
   var sexEl=document.getElementById('f-sex'); var sex = sexEl? sexEl.value : p.sex;
   var htEl=document.getElementById('f-height'); var ht = htEl? htEl.value : p.height;
@@ -3716,17 +3721,23 @@ function calcDerived(idx){
     if(el3){el3.textContent=pafi;el3.className='calc-val'+(pafi<100?' danger':pafi<200?' warn':'');}
     p.pafi_calc=pafi;
   }
-  if(pip>0&&peep>0){
-    var dp=pip-peep;
-    var el4=document.getElementById('cv-dp');
-    if(el4){el4.textContent=dp+' cmH2O';el4.className='calc-val'+(dp>15?' danger':dp>13?' warn':'');}
-    p.drivp_calc=dp;
-  }
-  if(vt>0&&pip>0&&peep>0){
-    var cst=Math.round(vt/(pip-peep)*10)/10;
-    var el5=document.getElementById('cv-cst');
-    if(el5){el5.textContent=cst+' mL/cmH2O';el5.className='calc-val'+(cst<30?' danger':cst<40?' warn':'');}
-    p.cst_calc=cst;
+  var el4=document.getElementById('cv-dp'), el5=document.getElementById('cv-cst');
+  if(pplat>0&&peep>0){
+    if(pplat<=peep || (pip>0 && pplat>pip)){   // Pplat debe ser > PEEP total y ≤ PIP
+      if(el4){el4.textContent='⚠ Pplat inválida (debe ser > PEEP y ≤ PIP)';el4.className='calc-val danger';}
+      if(el5){el5.textContent='⚠ Pplat inválida';el5.className='calc-val danger';}
+      p.drivp_calc=''; p.cst_calc='';
+    } else {
+      var dp=pplat-peep;   // ΔP = Pplat − PEEP total
+      if(el4){el4.textContent=dp+' cmH2O';el4.className='calc-val'+(dp>15?' danger':dp>13?' warn':'');}
+      p.drivp_calc=dp;
+      if(vt>0){ var cst=Math.round(vt/(pplat-peep)*10)/10; if(el5){el5.textContent=cst+' mL/cmH2O';el5.className='calc-val'+(cst<30?' danger':cst<40?' warn':'');} p.cst_calc=cst; }
+      else if(el5){el5.textContent='-';el5.className='calc-val';}
+    }
+  } else {
+    if(el4){el4.textContent='ΔP: requiere Pplat';el4.className='calc-val';}
+    if(el5){el5.textContent='Cstat: requiere Pplat';el5.className='calc-val';}
+    p.drivp_calc=''; p.cst_calc='';
   }
   // FIX CLINICO: VT/kg sobre PESO PREDICHO (no peso real)
   var elvt=document.getElementById('cv-vt');
