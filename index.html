@@ -146,6 +146,12 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .inner-tab.active{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:700}
 .inner-panel{display:none}
 .inner-panel.active{display:block}
+.inner-actions{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;padding-left:10px;border-left:1px solid var(--border)}
+.vent-cols{display:flex;gap:12px}
+@media(max-width:768px){
+  .inner-actions{margin-left:0;padding-left:0;border-left:none;width:100%;margin-top:4px}
+  .vent-cols{flex-direction:column}
+}
 .drug-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
 .drug-table th{background:var(--surface2);color:var(--muted);padding:6px 8px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
 .drug-table td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}
@@ -320,7 +326,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
       </svg>
       <div style="font-size:50px;font-weight:800;letter-spacing:-1px;color:#2dd4bf;line-height:1;text-shadow:0 0 22px rgba(45,212,191,.55)">UCI</div>
       <div style="font-size:18px;color:#ffffff;font-weight:600;margin-top:6px">Gestión de Camas</div>
-      <div style="font-size:13px;color:#86efac;opacity:.9;font-weight:500;margin-top:4px;letter-spacing:.5px">EasyMed</div>
+      <div style="font-size:13px;color:#86efac;opacity:.9;font-weight:500;margin-top:4px;letter-spacing:.5px">CeiboMed</div>
     </div>
     <h2 style="color:#eafff6;font-size:17px;margin-bottom:10px">🔐 Acceso</h2>
     <p style="color:rgba(230,255,245,.7);font-size:13px;margin-bottom:14px">Ingresá tu contraseña para acceder al sistema.</p>
@@ -347,7 +353,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 </div>
 <div id="centroScreen">
   <div style="text-align:center;margin-bottom:20px">
-    <div style="font-size:40px;font-weight:900;letter-spacing:-1px;color:var(--teal);line-height:1">EasyMed</div>
+    <div style="font-size:40px;font-weight:900;letter-spacing:-1px;color:var(--teal);line-height:1">CeiboMed</div>
     <div style="font-size:13px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px">UCI — Cuidados Críticos</div>
   </div>
   <h2>Seleccionar Centro</h2>
@@ -357,7 +363,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
     <input id="medicoInput" placeholder="Nombre del médico que ingresa" oninput="saveMedicoUsuario()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none">
   </div>
   <div class="centro-grid" id="centroGrid"></div>
-  <div style="position:absolute;bottom:16px;right:20px;font-size:12px;color:var(--muted);opacity:.6;font-weight:400">EasyMed</div>
+  <div style="position:absolute;bottom:16px;right:20px;font-size:12px;color:var(--muted);opacity:.6;font-weight:400">CeiboMed</div>
 </div>
 <div id="app">
   <div class="topbar">
@@ -425,7 +431,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
   <div id="panelAlertas" style="display:none;padding:16px;overflow-y:auto"></div>
 </div>
 <div id="app-footer" style="text-align:center;padding:14px 16px;color:var(--muted);font-size:11px;border-top:1px solid var(--border)">© 2026 Dr. M. D. S. y col. · UCI · Todos los derechos reservados · Uso clínico exclusivo</div>
-<div id="easymed-corner" style="position:fixed;bottom:12px;right:16px;font-size:12px;color:var(--muted);opacity:.55;font-weight:400;z-index:50;pointer-events:none">EasyMed</div>
+<div id="easymed-corner" style="position:fixed;bottom:12px;right:16px;font-size:12px;color:var(--muted);opacity:.55;font-weight:400;z-index:50;pointer-events:none">CeiboMed</div>
 <div id="modalParaChart" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box" style="max-width:640px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
@@ -2139,7 +2145,7 @@ function renderActivePatient(){
     '<button class="inner-tab" onclick="showInner(\'scores\',this)">\uD83D\uDCCA Scores</button>'+
     '<button class="inner-tab" onclick="showInner(\'evol\',this)">\uD83D\uDCC9 Evoluci\u00F3n</button>'+
     '<button class="inner-tab" onclick="showInner(\'proced\',this)">\uD83D\uDD27 Procedimientos</button>'+
-    '<div style="margin-left:auto;display:flex;gap:4px;padding-left:10px;border-left:1px solid var(--border)">'+
+    '<div class="inner-actions">'+
       '<button class="inner-tab" onclick="showInner(\'indicaciones\',this)">\uD83D\uDC8A Indicaciones</button>'+
       '<button class="inner-tab" onclick="showInner(\'paraorden\',this)">\uD83E\uDDEA Paracl\u00EDnica</button>'+
       '<button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();renderBeds();alert(\'Guardado.\')">\uD83D\uDCBE Guardar</button>'+
@@ -2468,7 +2474,7 @@ function renderActivePatient(){
   '</div>'+
 
   '<div id="inner-vent" class="inner-panel">'+
-    '<div style="display:flex;gap:12px">'+
+    '<div class="vent-cols">'+
     '<div class="section-card" style="flex:1;min-width:0">'+
       '<h4><span>\uD83E\uDE78</span>Gasometr\u00EDa</h4>'+
       '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Fuente \u00FAnica de iones y equilibrio \u00E1cido-base. PaFi, Ani\u00F3n Gap, SID e interpretaci\u00F3n se calculan autom\u00E1ticamente.</div>'+
@@ -2512,7 +2518,7 @@ function renderActivePatient(){
       '<div class="alert-box info" style="margin-top:8px">VT/kg calculado sobre <strong>peso predicho (PBW)</strong>, no peso real. Objetivo protector: 4-6 mL/kg PBW, Driving pressure <15, Pmeseta <30 cmH2O.</div>'+
     '</div>'+
     '</div>'+
-    '<div style="display:flex;gap:12px;margin-top:12px">'+
+    '<div class="vent-cols" style="margin-top:12px">'+
     '<div class="section-card" style="flex:1;min-width:0">'+
       '<h4><span>🫁</span>Vía Aérea</h4>'+
       '<div class="field-row four">'+
@@ -3369,7 +3375,7 @@ function pdfIndicaciones(){
     '<div style="display:flex;justify-content:space-between;margin-top:6px"><div><b>Paciente:</b> '+esc(nombre)+'</div><div><b>Cama:</b> '+esc(String(p.bed))+'</div><div><b>Fecha:</b> '+f+'</div><div><b>Médico:</b> Dr. M. Dos Santos</div></div></div>'+
     (lista.length?'<table><thead><tr><th style="border:1px solid #999">Droga</th><th style="width:80px;border:1px solid #999">Dosis</th><th style="width:60px;border:1px solid #999">Vía</th><th style="width:90px;border:1px solid #999">Frecuencia</th><th style="width:60px;border:1px solid #999">Hora</th><th style="border:1px solid #999">Observaciones</th>'+turnosHdr+'</tr></thead><tbody>'+filas+'</tbody></table>':'<p style="color:#888">Sin indicaciones.</p>')+
     '<div style="margin-top:24px;border-top:1px solid #ccc;padding-top:12px;display:flex;justify-content:space-between"><div style="font-size:11px">Firma:</div><div style="border-bottom:1px solid #333;width:200px"></div></div>'+
-    '<div class="footer">UCI Dashboard EasyMed — CJPP 129296 — '+new Date().toLocaleString('es-UY')+'</div></body></html>';
+    '<div class="footer">UCI Dashboard CeiboMed — CJPP 129296 — '+new Date().toLocaleString('es-UY')+'</div></body></html>';
   var w=window.open('','_blank','width=900,height=700'); w.document.write(html); w.document.close(); setTimeout(function(){ w.print(); },400);
 }
 
@@ -3486,7 +3492,7 @@ function pdfParaOrden(){
     '<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px"><div><b>Paciente:</b> '+esc(nombre)+'</div><div><b>Cama:</b> '+esc(String(p.bed))+'</div><div><b>Fecha:</b> '+f+'</div><div><b>Solicitante:</b> Dr. M. Dos Santos — CJPP 129296</div></div></div>'+
     (cuerpo||'<p style="color:#888">Sin ítems marcados.</p>')+
     '<div style="margin-top:24px;border-top:1px solid #ccc;padding-top:12px;display:flex;justify-content:space-between"><div style="font-size:11px">Firma del médico solicitante:</div><div style="border-bottom:1px solid #333;width:200px"></div></div>'+
-    '<div style="margin-top:10px;font-size:10px;color:#666">UCI Dashboard EasyMed — '+new Date().toLocaleString('es-UY')+'</div></body></html>';
+    '<div style="margin-top:10px;font-size:10px;color:#666">UCI Dashboard CeiboMed — '+new Date().toLocaleString('es-UY')+'</div></body></html>';
   var w=window.open('','_blank','width=800,height=700'); w.document.write(html); w.document.close(); setTimeout(function(){ w.print(); },400);
 }
 
