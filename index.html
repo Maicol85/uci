@@ -131,6 +131,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
 .field-row.three{grid-template-columns:1fr 1fr 1fr}
 .field-row.four{grid-template-columns:1fr 1fr 1fr 1fr}
+.field-row.five{grid-template-columns:repeat(5,1fr)}
 .field-group{display:flex;flex-direction:column;gap:3px}
 .calc-val{background:var(--teal-dim);border:1px solid var(--teal);border-radius:var(--rs);padding:6px 10px;font-size:13px;font-weight:700;color:var(--teal);text-align:center;min-height:33px;display:flex;align-items:center;justify-content:center}
 .calc-val.warn{background:var(--amber-dim);border-color:var(--amber);color:var(--amber)}
@@ -160,9 +161,9 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .inner-shell>.inner-tabs>.inner-actions>.btn{width:100%}
 .inner-shell>.inner-panel{flex:1;overflow-y:auto;padding:16px}
 /* === Tab Paciente: layout 3 columnas (Identificación · Historia · Examen físico) === */
-.pt-cols{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:12px;align-items:stretch}
+.pt-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:stretch}
 .pt-col{display:flex;flex-direction:column;gap:12px;min-width:0}
-.pt-col-span{grid-column:2 / 4;min-width:0}
+.pt-col-span{grid-column:1 / 3;min-width:0}
 .pt-compact input,.pt-compact select,.pt-compact textarea{padding:4px 8px;font-size:12px}
 .pt-compact label{font-size:11px}
 .pt-exam .section-card{padding:10px}
@@ -2176,19 +2177,19 @@ function renderActivePatient(){
   c.innerHTML =
   '<div class="inner-shell">'+
   '<div class="inner-tabs">'+
-    '<button class="inner-tab active" onclick="showInner(\'datos\',this)">\uD83D\uDCCB Paciente</button>'+
-    '<button class="inner-tab" onclick="showInner(\'vent\',this)">\uD83D\uDCA8 Ventilaci\u00F3n</button>'+
-    '<button class="inner-tab" onclick="showInner(\'hemo\',this)">\u2764\uFE0F CV</button>'+
-    '<button class="inner-tab" onclick="showInner(\'balance\',this)">\u2696\uFE0F Balance</button>'+
-    '<button class="inner-tab" onclick="showInner(\'accesos\',this)">\uD83E\uDE7A Accesos</button>'+
-    '<button class="inner-tab" onclick="showInner(\'nutr\',this)">\uD83E\uDD57 Nutrici\u00F3n</button>'+
-    '<button class="inner-tab" onclick="showInner(\'sedo\',this)">\uD83D\uDC89 Sedoanalgesia</button>'+
-    '<button class="inner-tab" onclick="showInner(\'labs\',this)">\uD83E\uDDEA Labs</button>'+
-    '<button class="inner-tab" onclick="showInner(\'imagenes\',this)">\uD83D\uDDBC\uFE0F Im\u00E1genes</button>'+
-    '<button class="inner-tab" onclick="showInner(\'scores\',this)">\uD83D\uDCCA Scores</button>'+
-    '<button class="inner-tab" onclick="showInner(\'checklist\',this)">\u2705 Checklist</button>'+
-    '<button class="inner-tab" onclick="showInner(\'evol\',this)">\uD83D\uDCC8 Tendencias</button>'+
-    '<button class="inner-tab" onclick="showInner(\'proced\',this)">\uD83D\uDD27 Procedimientos</button>'+
+    '<button class="inner-tab active" onclick="showInner(\'datos\',this)">🧑 Paciente</button>'+
+    '<button class="inner-tab" onclick="showInner(\'examen\',this)">🩺 Examen físico</button>'+
+    '<button class="inner-tab" onclick="showInner(\'vent\',this)">💨 Ventilación</button>'+
+    '<button class="inner-tab" onclick="showInner(\'hemo\',this)">❤️ CV</button>'+
+    '<button class="inner-tab" onclick="showInner(\'accesos\',this)">🔗 Accesos</button>'+
+    '<button class="inner-tab" onclick="showInner(\'nutr\',this)">🥗 Nutrición</button>'+
+    '<button class="inner-tab" onclick="showInner(\'sedo\',this)">💉 Sedoanalgesia</button>'+
+    '<button class="inner-tab" onclick="showInner(\'labs\',this)">🧪 Labs</button>'+
+    '<button class="inner-tab" onclick="showInner(\'imagenes\',this)">🖼 Imágenes</button>'+
+    '<button class="inner-tab" onclick="showInner(\'scores\',this)">📊 Scores</button>'+
+    '<button class="inner-tab" onclick="showInner(\'checklist\',this)">✅ Checklist</button>'+
+    '<button class="inner-tab" onclick="showInner(\'evol\',this)">📈 Tendencias</button>'+
+    '<button class="inner-tab" onclick="showInner(\'proced\',this)">🔪 Procedimientos</button>'+
     '<div class="inner-actions">'+
       '<button class="inner-tab" onclick="showInner(\'indicaciones\',this)">\uD83D\uDC8A Indicaciones</button>'+
       '<button class="inner-tab" onclick="showInner(\'paraorden\',this)">\uD83E\uDDEA Paracl\u00EDnica</button>'+
@@ -2237,7 +2238,24 @@ function renderActivePatient(){
         '<textarea id="f-evolucion" rows="6" placeholder="Evoluciones del dia...">'+p.evolucion+'</textarea>'+
       '</div>'+
     '</div>'+
-        /* ===== COLUMNA 3 — Examen fisico por sistemas ===== */
+    /* ===== Evolucion y conducta del dia (col2+col3) ===== */
+    '<div class="pt-col-span">'+
+      '<div class="section-card">'+
+        '<h4><span>📋</span>Evolucion y conducta del dia</h4>'+
+        '<textarea id="f-sis-conductas" rows="5" placeholder="Problema principal, evolucion, objetivos de hoy, pendientes y contingencias...">'+esc(p.sis_conductas)+'</textarea>'+
+      '</div>'+
+    '</div>'+
+    '</div>'+/* fin pt-cols */
+    '<div class="section-grid" style="margin-top:12px">'+
+      comorbSectionHtml(p)+
+      respAdmisionSectionHtml(p)+
+    '</div>'+
+
+  '</div>'+
+
+  '<div id="inner-examen" class="inner-panel">'+
+    '<div class="pt-cols">'+
+    /* ===== COLUMNA IZQUIERDA: Neuro · Hemodinamia · Balance ===== */
     '<div class="pt-col pt-compact pt-exam">'+
       /* Neuro */
       '<div class="section-card">'+
@@ -2269,7 +2287,7 @@ function renderActivePatient(){
         '</div>'+
         '<div class="field-row three" style="margin-top:6px">'+
           '<div class="field-group"><label for="f-fc">FC (lpm)</label><input id="f-fc" type="number" value="'+p.fc+'" oninput="calcDerived('+ab+')"></div>'+
-          '<div class="field-group"><label for="f-perfusion">Perfusion</label><select id="f-perfusion"><option value="">-</option>'+['Normal','Livideces','Relleno capilar enlentecido','Frio / moteado'].map(function(o){return '<option'+(p.perfusion===o?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></div>'+
+          '<div class="field-group"><label for="f-perfusion">Perfusion</label><select id="f-perfusion"><option value="">-</option>'+['Normal','Comprometida','Shock'].map(function(o){return '<option'+(p.perfusion===o?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></div>'+
           '<div class="field-group"><label for="f-lac">Lactato (mmol/L)</label><input id="f-lac" type="number" step="0.1" value="'+p.lac+'" oninput="gasoRecalc('+ab+')"></div>'+
         '</div>'+
         '<div style="margin-top:10px">'+
@@ -2277,10 +2295,55 @@ function renderActivePatient(){
           '<div id="vasoCol3" style="margin-top:6px"></div>'+
         '</div>'+
         '<div style="margin-top:10px">'+
-          '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><strong style="font-size:11px;color:var(--muted);text-transform:uppercase">Diuresis</strong><button class="btn btn-outline btn-sm pt-pill" onclick="showInner(\'balance\')">+ Registrar</button></div>'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><strong style="font-size:11px;color:var(--muted);text-transform:uppercase">Diuresis</strong></div>'+
           '<div id="diuCol3" style="margin-top:6px"></div>'+
         '</div>'+
       '</div>'+
+      /* Balance (mismo contenido que la tab Balance; renderBalanceSimp/diuresis/drenajes) */
+      '<div class="section-card">'+
+        '<h4><span>⚖️</span>Balance</h4>'+
+    '<div class="section-card">'+
+      '<h4><span>\u2696\uFE0F</span>Balance h\u00EDdrico simplificado</h4>'+
+      '<div class="field-row">'+
+        '<div class="field-group"><label for="f-bal-dia">Balance h\u00EDdrico del d\u00EDa (mL)</label><input id="f-bal-dia" type="number" value="'+esc((p.balanceHist&&p.balanceHist[isoToday()]&&p.balanceHist[isoToday()].dia!=null)?p.balanceHist[isoToday()].dia:'')+'" placeholder="+/- mL"></div>'+
+        '<div class="field-group"><label for="f-bal-acum">Balance h\u00EDdrico acumulado (mL)</label><input id="f-bal-acum" type="number" value="'+esc((p.balanceHist&&p.balanceHist[isoToday()]&&p.balanceHist[isoToday()].acum!=null)?p.balanceHist[isoToday()].acum:'')+'" placeholder="+/- mL"></div>'+
+      '</div>'+
+      '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="balanceSimpSave()">\uD83D\uDCBE Guardar balance del d\u00EDa</button></div>'+
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px">Se guarda en el historial con la fecha de hoy ('+esc(isoToday())+').</div>'+
+    '</div>'+
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>\uD83D\uDCC8</span>Evoluci\u00F3n del balance</h4>'+
+      '<div id="balanceHistWrap"></div>'+
+    '</div>'+
+    /* P12: Diuresis con hora y c\u00E1lculo de ml/h */
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>\uD83D\uDEBD</span>Diuresis (ml/h autom\u00E1tico)</h4>'+
+      '<div class="field-row three">'+
+        '<div class="field-group"><label for="diu-vol">Volumen (mL)</label><input id="diu-vol" type="number" step="any" placeholder="ej. 250"></div>'+
+        '<div class="field-group"><label for="diu-periodo">Período</label><select id="diu-periodo"><option value="8">8 horas</option><option value="12">12 horas</option><option value="24" selected>24 horas</option></select></div>'+
+        '<div class="field-group"><label>.</label><button class="btn btn-teal btn-sm" style="margin-top:18px" onclick="addDiuresis()">\u2795 Registrar diuresis</button></div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px">El ml/h se calcula como volumen \u00F7 las horas del período seleccionado (8, 12 o 24).</div>'+
+      '<div id="diuresisTableWrap" style="margin-top:10px;overflow-x:auto"></div>'+
+    '</div>'+
+    /* P12: Drenajes m\u00FAltiples */
+    '<div class="section-card" style="margin-top:12px">'+
+      '<h4><span>\uD83E\uDE78</span>Gasto por drenajes</h4>'+
+      '<div class="btn-row" style="margin-top:0"><button class="btn btn-teal btn-sm" onclick="addDrenaje()">\u2795 Agregar drenaje</button></div>'+
+      '<div id="drenajesTableWrap" style="margin-top:10px;overflow-x:auto"></div>'+
+    '</div>'+
+    /* Campos legados (ocultos) para no romper calcBalance / readPatientForm / PDF */
+    '<input type="hidden" id="f-ing-ev" value="'+esc(p.ing_ev)+'">'+
+    '<input type="hidden" id="f-ing-ent" value="'+esc(p.ing_ent)+'">'+
+    '<input type="hidden" id="f-ing-otros" value="'+esc(p.ing_otros)+'">'+
+    '<input type="hidden" id="f-eg-ur" value="'+esc(p.eg_ur)+'">'+
+    '<input type="hidden" id="f-eg-sg" value="'+esc(p.eg_sg)+'">'+
+    '<input type="hidden" id="f-eg-otros" value="'+esc(p.eg_otros)+'">'+
+  
+      '</div>'+
+    '</div>'+
+    /* ===== COLUMNA DERECHA: Respiratorio · Infeccioso · Nutricional ===== */
+    '<div class="pt-col pt-compact pt-exam">'+
       /* Respiratorio */
       '<div class="section-card">'+
         '<h4><span>💨</span>Respiratorio</h4>'+
@@ -2293,65 +2356,68 @@ function renderActivePatient(){
         '<div class="field-row four" style="margin-top:6px">'+
           '<div class="field-group"><label for="f-fr">FR (rpm)</label><input id="f-fr" type="number" value="'+p.fr+'"></div>'+
           '<div class="field-group"><label for="f-pplat">P.plateau</label><input id="f-pplat" type="number" value="'+(p.pplat||'')+'" oninput="calcDerived('+ab+')"></div>'+
-          '<div class="field-group"><label for="f-pip">PIP</label><input id="f-pip" type="number" value="'+p.pip+'" oninput="calcDerived('+ab+')"></div>'+
-          '<div class="field-group"><label for="f-vm">VM (L/min)</label><input id="f-vm" type="number" step="0.1" value="'+p.vm+'"></div>'+
-        '</div>'+
-        '<div class="field-row four" style="margin-top:6px">'+
-          '<div class="field-group"><label>Driving P</label><div class="calc-val" id="cv-dp">'+(p.drivp_calc||'-')+'</div></div>'+
+          '<div class="field-group"><label>Driving</label><div class="calc-val" id="cv-dp">'+(p.drivp_calc||'-')+'</div></div>'+
           '<div class="field-group"><label>Compliance</label><div class="calc-val" id="cv-cst">'+(p.cst_calc||'-')+'</div></div>'+
-          '<div class="field-group"><label>VT/kg PBW</label><div class="calc-val" id="cv-vt">-</div></div>'+
-          '<div class="field-group"><label>PBW</label><div class="calc-val" id="cv-pbw-vent">'+(p.pbw_calc?(p.pbw_calc+' kg'):'-')+'</div></div>'+
         '</div>'+
+        '<div class="field-row four" style="margin-top:6px" style="display:none"></div>'+
         '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:10px 0 4px">Gasometria</div>'+
-        '<div class="field-row four">'+
-          '<div class="field-group"><label for="f-ph">pH</label><input id="f-ph" type="number" step="0.01" value="'+p.ph+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '<div class="field-row five">'+
           '<div class="field-group"><label for="f-po2">PaO2</label><input id="f-po2" type="number" value="'+p.po2+'" oninput="gasoRecalc('+ab+')"></div>'+
           '<div class="field-group"><label>PaFi</label><div class="calc-val" id="cv-pafi">'+(p.pafi_calc||'-')+'</div></div>'+
           '<div class="field-group"><label for="f-pco2">PaCO2</label><input id="f-pco2" type="number" value="'+p.pco2+'" oninput="gasoRecalc('+ab+')"></div>'+
-        '</div>'+
-        '<div class="field-row four" style="margin-top:6px">'+
           '<div class="field-group"><label for="f-hco3">HCO3</label><input id="f-hco3" type="number" step="0.1" value="'+p.hco3+'" oninput="gasoRecalc('+ab+')"></div>'+
           '<div class="field-group"><label for="f-be">BE</label><input id="f-be" type="number" step="0.1" value="'+esc(p.be)+'" oninput="gasoRecalc('+ab+')"></div>'+
+        '</div>'+
+        '<div class="field-row five" style="margin-top:6px">'+
           '<div class="field-group"><label for="f-na">Na</label><input id="f-na" type="number" value="'+p.na+'" oninput="gasoRecalc('+ab+')"></div>'+
           '<div class="field-group"><label for="f-k">K</label><input id="f-k" type="number" step="0.1" value="'+p.k+'" oninput="gasoRecalc('+ab+')"></div>'+
-        '</div>'+
-        '<div class="field-row four" style="margin-top:6px">'+
           '<div class="field-group"><label for="f-cl">Cl</label><input id="f-cl" type="number" value="'+p.cl+'" oninput="gasoRecalc('+ab+')"></div>'+
-        '</div>'+
-        '<div class="field-row" style="margin-top:6px">'+
           '<div class="field-group"><label title="SID (Stewart). Calculo actual: (Na+K)-(Cl+Lactato).">SID</label><div class="calc-val" id="cv-sid">'+(p.sid_result||'SID = -')+'</div></div>'+
-          '<div class="field-group"><label title="Anion Gap = Na - (Cl + HCO3)">Anion Gap</label><div class="calc-val" id="cv-ag">'+(p.ag_result||'-')+'</div></div>'+
+          '<div class="field-group"><label title="Anion Gap = Na - (Cl + HCO3)">Anion GAP</label><div class="calc-val" id="cv-ag">'+(p.ag_result||'-')+'</div></div>'+
         '</div>'+
         '<div class="alert-box info" id="cv-eab" style="margin-top:8px">'+esc(p.eab_result||'Interpretacion acido-base: complete pH, PaCO2 y HCO3.')+'</div>'+
       '</div>'+
+      /* Infeccioso */
+      '<div class="section-card">'+
+        '<h4><span>🦠</span>Infeccioso</h4>'+
+        '<div class="field-row three">'+
+          '<div class="field-group"><label for="f-temp">Temperatura (°C)</label><input id="f-temp" type="number" step="0.1" value="'+p.temp+'"></div>'+
+          '<div class="field-group"><label for="f-ex-fiebre">Fiebre</label><select id="f-ex-fiebre"><option value="">-</option>'+['Sin fiebre','Febrícula','Fiebre'].map(function(o){return '<option'+(p.ex_fiebre===o?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></div>'+
+          '<div class="field-group"><label for="f-ex-foco">Foco infeccioso</label><input id="f-ex-foco" value="'+esc(p.ex_foco||'')+'" placeholder="Pulmonar, abdominal..."></div>'+
+        '</div>'+
+        '<div class="field-row four" style="margin-top:6px">'+
+          '<div class="field-group"><label for="f-ex-secr">Secreciones</label><select id="f-ex-secr"><option value="">-</option>'+['Sin secreciones','Escasas','Moderadas','Abundantes'].map(function(o){return '<option'+(p.ex_secr===o?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></div>'+
+          '<div class="field-group"><label for="f-ex-secr-color">Color secreciones</label><input id="f-ex-secr-color" value="'+esc(p.ex_secr_color||'')+'" placeholder="Claras, purulentas..."></div>'+
+          '<div class="field-group"><label for="f-leucos">Leucocitos (x10³)</label><input id="f-leucos" type="number" step="0.1" value="'+p.leucos+'"></div>'+
+          '<div class="field-group"><label for="f-pcr">PCR (mg/L)</label><input id="f-pcr" type="number" step="0.1" value="'+esc(p.pcr)+'"></div>'+
+        '</div>'+
+        '<div class="field-row three" style="margin-top:6px">'+
+          '<div class="field-group"><label for="f-pct">PCT (ng/mL)</label><input id="f-pct" type="number" step="0.01" value="'+esc(p.pct)+'"></div>'+
+        '</div>'+
+      '</div>'+
+      /* Nutricional / metabolico */
+      '<div class="section-card">'+
+        '<h4><span>🥗</span>Nutricional / metabólico</h4>'+
+        '<div class="field-row three">'+
+          '<div class="field-group"><label for="f-nutr-via">Vía nutricional</label><select id="f-nutr-via"><option value="">-</option>'+['Ayuno','Enteral','Parenteral','Mixta'].map(function(o){return '<option'+(p.nutr_via===o?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></div>'+
+          '<div class="field-group"><label for="f-nutr-vol">Volumen (mL/día)</label><input id="f-nutr-vol" type="number" value="'+p.nutr_vol+'"></div>'+
+          '<div class="field-group"><label for="f-nutr-cal">Calorías (kcal/día)</label><input id="f-nutr-cal" type="number" value="'+p.nutr_cal+'"></div>'+
+        '</div>'+
+        '<div class="field-row three" style="margin-top:6px">'+
+          '<div class="field-group"><label for="f-glu">Glucemia (mg/dL)</label><input id="f-glu" type="number" value="'+p.glu+'"></div>'+
+          '<div class="field-group"><label for="f-creat">Creatinina (mg/dL)</label><input id="f-creat" type="number" step="0.1" value="'+p.creat+'" oninput="calcTFGLab()"></div>'+
+          '<div class="field-group"><label for="f-urea">Urea (mg/dL)</label><input id="f-urea" type="number" value="'+p.urea+'"></div>'+
+        '</div>'+
+      '</div>'+
     '</div>'+
-    /* ===== Evolucion y conducta del dia (col2+col3) ===== */
+    /* ===== Evolucion y conducta del dia (span) ===== */
     '<div class="pt-col-span">'+
       '<div class="section-card">'+
-        '<h4><span>📋</span>Evolucion y conducta del dia</h4>'+
-        '<textarea id="f-sis-conductas" rows="5" placeholder="Problema principal, evolucion, objetivos de hoy, pendientes y contingencias...">'+esc(p.sis_conductas)+'</textarea>'+
+        '<h4><span>📋</span>Evolución y conducta del día</h4>'+
+        '<textarea id="f-examen-conducta" rows="5" placeholder="Problema principal, evolución, objetivos de hoy, pendientes y contingencias...">'+esc(p.examen_conducta||'')+'</textarea>'+
       '</div>'+
     '</div>'+
     '</div>'+/* fin pt-cols */
-    /* Resumen por Sistemas Fisiologicos (texto libre, se conserva) */
-    '<div class="section-card" style="margin-top:12px">'+
-      '<h4><span>🧬</span>Resumen por Sistemas Fisiologicos</h4>'+
-      '<div class="section-grid">'+
-        '<div class="field-group"><label for="f-sis-neuro">🧠 Neurologico</label><textarea id="f-sis-neuro" rows="3" placeholder="Sedacion, RASS, evolucion neurologica...">'+esc(p.sis_neuro)+'</textarea></div>'+
-        '<div class="field-group"><label for="f-sis-hemo">❤️ Hemodinamico + drogas</label><textarea id="f-sis-hemo" rows="3" placeholder="PAM, ritmo, vasoactivos/dosis...">'+esc(p.sis_hemo)+'</textarea></div>'+
-        '<div class="field-group"><label for="f-sis-resp">💨 Respiratorio + ventilador</label><textarea id="f-sis-resp" rows="3" placeholder="Modo VM, FiO2/PEEP, PaFi, destete...">'+esc(p.sis_resp)+'</textarea></div>'+
-        '<div class="field-group"><label>🦠 Infeccioso</label>'+'<div class="field-group" style="margin-bottom:6px"><label for="f-temp" style="font-size:11px;color:var(--muted)">Temperatura (°C)</label><input id="f-temp" type="number" step="0.1" value="'+p.temp+'"></div>'+'<textarea id="f-sis-infec" rows="3" placeholder="Fiebre, leucocitosis, secreciones, foco...">'+esc(p.sis_infec)+'</textarea></div>'+
-        '<div class="field-group"><label for="f-sis-accesos">🩺 Accesos (con fechas)</label><textarea id="f-sis-accesos" rows="3" placeholder="VVC, VA, SV, SNG - fechas de colocacion...">'+esc(p.sis_accesos)+'</textarea></div>'+
-        '<div class="field-group"><label for="f-sis-metab">🥗 Metabolico / nutricional</label><textarea id="f-sis-metab" rows="3" placeholder="Glucemia, funcion renal, nutricion...">'+esc(p.sis_metab)+'</textarea></div>'+
-      '</div>'+
-    '</div>'+
-    '<div class="section-grid" style="margin-top:12px">'+
-      comorbSectionHtml(p)+
-      respAdmisionSectionHtml(p)+
-    '</div>'+
-        '<div style="margin-top:12px">'+
-      dischargePanelHtml(p)+
-    '</div>'+
   '</div>'+
 
   '<div id="inner-hemo" class="inner-panel">'+
@@ -2457,21 +2523,16 @@ function renderActivePatient(){
         '<h4><span>\uD83E\uDE78</span>Hemograma</h4>'+
         '<div class="field-row three">'+
           '<div class="field-group"><label for="f-hb">Hb (g/dL)</label><input id="f-hb" type="number" step="0.1" value="'+p.hb+'"></div>'+
-          '<div class="field-group"><label for="f-leucos">Leucos (x10.3)</label><input id="f-leucos" type="number" step="0.1" value="'+p.leucos+'"></div>'+
           '<div class="field-group"><label for="f-plaquetas">Plaquetas (x10.3)</label><input id="f-plaquetas" type="number" value="'+p.plaquetas+'"></div>'+
         '</div>'+
         '<div class="field-row three" style="margin-top:8px">'+
-          '<div class="field-group"><label for="f-pcr">PCR (mg/L)</label><input id="f-pcr" type="number" step="0.1" value="'+esc(p.pcr)+'"></div>'+
           '<div class="field-group"><label for="f-ves">VES (mm/h)</label><input id="f-ves" type="number" value="'+esc(p.ves)+'"></div>'+
-          '<div class="field-group"><label for="f-pct">Procalcitonina (ng/mL)</label><input id="f-pct" type="number" step="0.01" value="'+esc(p.pct)+'"></div>'+
         '</div>'+
       '</div>'+
       /* Bloque 2: Funci\u00F3n renal */
       '<div class="section-card">'+
         '<h4><span>\u2697\uFE0F</span>Funci\u00F3n renal e ionograma</h4>'+
         '<div class="field-row three">'+
-          '<div class="field-group"><label for="f-creat">Creat (mg/dL)</label><input id="f-creat" type="number" step="0.1" value="'+p.creat+'" oninput="calcTFGLab()"></div>'+
-          '<div class="field-group"><label for="f-urea">Urea (mg/dL)</label><input id="f-urea" type="number" value="'+p.urea+'"></div>'+
           '<div class="field-group"><label for="f-ca">Ca (mg/dL)</label><input id="f-ca" type="number" step="0.1" value="'+esc(p.ca)+'"></div>'+
         '</div>'+
         '<div class="field-row three" style="margin-top:8px">'+
@@ -2522,7 +2583,6 @@ function renderActivePatient(){
         '<div class="field-row three">'+
           '<div class="field-group"><label for="f-cpk">CPK (U/L)</label><input id="f-cpk" type="number" value="'+esc(p.cpk)+'"></div>'+
           '<div class="field-group"><label for="f-troponina">Troponinas</label><input id="f-troponina" type="number" step="0.001" value="'+esc(p.troponina)+'"></div>'+
-          '<div class="field-group"><label for="f-glu">Glucemia (mg/dL)</label><input id="f-glu" type="number" value="'+p.glu+'"></div>'+
         '</div>'+
       '</div>'+
     '</div>'+
@@ -2690,54 +2750,11 @@ function renderActivePatient(){
     '</div>'+
   '</div>'+
 
-'<div id="inner-balance" class="inner-panel">'+
-    '<div class="section-card">'+
-      '<h4><span>\u2696\uFE0F</span>Balance h\u00EDdrico simplificado</h4>'+
-      '<div class="field-row">'+
-        '<div class="field-group"><label for="f-bal-dia">Balance h\u00EDdrico del d\u00EDa (mL)</label><input id="f-bal-dia" type="number" value="'+esc((p.balanceHist&&p.balanceHist[isoToday()]&&p.balanceHist[isoToday()].dia!=null)?p.balanceHist[isoToday()].dia:'')+'" placeholder="+/- mL"></div>'+
-        '<div class="field-group"><label for="f-bal-acum">Balance h\u00EDdrico acumulado (mL)</label><input id="f-bal-acum" type="number" value="'+esc((p.balanceHist&&p.balanceHist[isoToday()]&&p.balanceHist[isoToday()].acum!=null)?p.balanceHist[isoToday()].acum:'')+'" placeholder="+/- mL"></div>'+
-      '</div>'+
-      '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="balanceSimpSave()">\uD83D\uDCBE Guardar balance del d\u00EDa</button></div>'+
-      '<div style="font-size:11px;color:var(--muted);margin-top:4px">Se guarda en el historial con la fecha de hoy ('+esc(isoToday())+').</div>'+
-    '</div>'+
-    '<div class="section-card" style="margin-top:12px">'+
-      '<h4><span>\uD83D\uDCC8</span>Evoluci\u00F3n del balance</h4>'+
-      '<div id="balanceHistWrap"></div>'+
-    '</div>'+
-    /* P12: Diuresis con hora y c\u00E1lculo de ml/h */
-    '<div class="section-card" style="margin-top:12px">'+
-      '<h4><span>\uD83D\uDEBD</span>Diuresis (ml/h autom\u00E1tico)</h4>'+
-      '<div class="field-row three">'+
-        '<div class="field-group"><label for="diu-vol">Volumen (mL)</label><input id="diu-vol" type="number" step="any" placeholder="ej. 250"></div>'+
-        '<div class="field-group"><label for="diu-periodo">Período</label><select id="diu-periodo"><option value="8">8 horas</option><option value="12">12 horas</option><option value="24" selected>24 horas</option></select></div>'+
-        '<div class="field-group"><label>.</label><button class="btn btn-teal btn-sm" style="margin-top:18px" onclick="addDiuresis()">\u2795 Registrar diuresis</button></div>'+
-      '</div>'+
-      '<div style="font-size:11px;color:var(--muted);margin-top:4px">El ml/h se calcula como volumen \u00F7 las horas del período seleccionado (8, 12 o 24).</div>'+
-      '<div id="diuresisTableWrap" style="margin-top:10px;overflow-x:auto"></div>'+
-    '</div>'+
-    /* P12: Drenajes m\u00FAltiples */
-    '<div class="section-card" style="margin-top:12px">'+
-      '<h4><span>\uD83E\uDE78</span>Gasto por drenajes</h4>'+
-      '<div class="btn-row" style="margin-top:0"><button class="btn btn-teal btn-sm" onclick="addDrenaje()">\u2795 Agregar drenaje</button></div>'+
-      '<div id="drenajesTableWrap" style="margin-top:10px;overflow-x:auto"></div>'+
-    '</div>'+
-    /* Campos legados (ocultos) para no romper calcBalance / readPatientForm / PDF */
-    '<input type="hidden" id="f-ing-ev" value="'+esc(p.ing_ev)+'">'+
-    '<input type="hidden" id="f-ing-ent" value="'+esc(p.ing_ent)+'">'+
-    '<input type="hidden" id="f-ing-otros" value="'+esc(p.ing_otros)+'">'+
-    '<input type="hidden" id="f-eg-ur" value="'+esc(p.eg_ur)+'">'+
-    '<input type="hidden" id="f-eg-sg" value="'+esc(p.eg_sg)+'">'+
-    '<input type="hidden" id="f-eg-otros" value="'+esc(p.eg_otros)+'">'+
-  '</div>'+
-
   '<div id="inner-nutr" class="inner-panel">'+
     '<div class="section-card">'+
       '<h4><span>\uD83E\uDD57</span>Soporte Nutricional</h4>'+
       '<div class="field-row four">'+
-        '<div class="field-group"><label for="f-nutr-via">Via</label><select id="f-nutr-via"><option value="">-</option><option '+(p.nutr_via==='Enteral'?'selected':'')+'>Enteral</option><option '+(p.nutr_via==='Parenteral'?'selected':'')+'>Parenteral</option><option '+(p.nutr_via==='Mixta'?'selected':'')+'>Mixta</option></select></div>'+
-        '<div class="field-group"><label for="f-nutr-cal">Calorias (kcal/dia)</label><input id="f-nutr-cal" type="number" value="'+p.nutr_cal+'"></div>'+
         '<div class="field-group"><label for="f-nutr-prot">Proteinas (g/dia)</label><input id="f-nutr-prot" type="number" value="'+p.nutr_prot+'"></div>'+
-        '<div class="field-group"><label for="f-nutr-vol">Volumen (mL/dia)</label><input id="f-nutr-vol" type="number" value="'+p.nutr_vol+'"></div>'+
       '</div>'+
       '<div class="field-group" style="margin-top:8px"><label for="f-nutr-notas">Notas nutricionales</label><textarea id="f-nutr-notas" rows="3">'+p.nutr_notas+'</textarea></div>'+
       '<div class="alert-box info" style="margin-top:10px"><strong>Objetivo contextual:</strong> preferir calorimetría indirecta cuando esté disponible. Si se usan ecuaciones, individualizar peso de referencia, energía y proteínas según fase crítica, estado nutricional, obesidad, pérdidas y protocolo; progresar evitando sobrealimentación temprana.</div>'+
@@ -2858,7 +2875,12 @@ function renderActivePatient(){
         '<div style="font-size:11px;color:var(--muted);margin-top:6px">Toque cada ítem para alternar 🟢 cumplido / 🔴 pendiente. Se guarda por fecha.</div>'+
       '</div>'+
     '</details>'+
-  '</div>'+
+      '<details class="acc"><summary>🪪 Alta / Egreso de UCI</summary>'+
+      '<div class="section-card">'+
+      dischargePanelHtml(p)+
+      '</div>'+
+    '</details>'+
+'</div>'+
 
   '<div id="inner-paraorden" class="inner-panel">'+
     '<div class="section-card">'+
@@ -4174,8 +4196,14 @@ function readPatientForm(idx){
   p.pup_i_mm=gv('f-pup-i-mm');p.pup_i_react=gv('f-pup-i-react');
   (function(){ var o=parseFloat(p.gcs_o),v=parseFloat(p.gcs_v),m=parseFloat(p.gcs_m);
     p.gcs_total = (!isNaN(o)&&!isNaN(v)&&!isNaN(m)) ? String(o+v+m) : ''; })();
-  p.sis_neuro=gv('f-sis-neuro');p.sis_hemo=gv('f-sis-hemo');p.sis_resp=gv('f-sis-resp');
-  p.sis_infec=gv('f-sis-infec');p.sis_accesos=gv('f-sis-accesos');p.sis_metab=gv('f-sis-metab');p.sis_conductas=gv('f-sis-conductas');
+  // f-sis-* (card "Resumen por sistemas") retirado en P8 -> lectura sticky para conservar datos guardados
+  p.sis_neuro=gvs('f-sis-neuro',p.sis_neuro);p.sis_hemo=gvs('f-sis-hemo',p.sis_hemo);p.sis_resp=gvs('f-sis-resp',p.sis_resp);
+  p.sis_infec=gvs('f-sis-infec',p.sis_infec);p.sis_accesos=gvs('f-sis-accesos',p.sis_accesos);p.sis_metab=gvs('f-sis-metab',p.sis_metab);
+  p.sis_conductas=gvs('f-sis-conductas',p.sis_conductas);
+  // Examen físico (P8)
+  p.examen_conducta=gvs('f-examen-conducta',p.examen_conducta);
+  p.ex_fiebre=gvs('f-ex-fiebre',p.ex_fiebre);p.ex_foco=gvs('f-ex-foco',p.ex_foco);
+  p.ex_secr=gvs('f-ex-secr',p.ex_secr);p.ex_secr_color=gvs('f-ex-secr-color',p.ex_secr_color);
   for(var i=0;i<PADUA_ITEMS.length;i++){var el=document.getElementById('padua-'+i);if(el)p['padua_'+i]=el.checked;}
   ['sofa-resp','sofa-neuro','sofa-cv','sofa-hepat','sofa-coag','sofa-renal'].forEach(function(kk){var el=document.getElementById('f-'+kk);if(el)p[kk.replace('-','_')]=el.value;});
   function chk(id){var el=document.getElementById(id);return el?el.checked:false;}
