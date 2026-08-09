@@ -119,6 +119,14 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .pt-tab .pt-tab-name{display:block;font-weight:600;font-size:11px}
 .pt-tab .pt-tab-num{display:block;font-size:10px;color:var(--muted)}
 .pt-content{flex:1;overflow-y:auto;padding:16px}
+/* Barra de acciones fija (entre camas y contenido del paciente) */
+.pt-actionbar{display:flex;align-items:center;gap:8px;padding:6px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.pt-actionbar-sep{width:1px;height:22px;background:var(--border);margin:0 2px}
+@media(max-width:768px){
+  .pt-actionbar{padding:6px 8px;gap:4px}
+  .pt-actionbar .btn{font-size:11px;padding:4px 8px}
+  .pt-actionbar-sep{display:none}
+}
 .pt-header{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
 .pt-header-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px;box-shadow:var(--shadow)}
 .pt-header-card label{font-size:11px;color:var(--muted);margin-bottom:4px}
@@ -458,6 +466,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
   </div>
   <div id="panelPacientes" style="display:none;flex:1;overflow:hidden;flex-direction:column">
     <div class="pt-tabs" id="ptTabs"></div>
+    <div id="ptActionBar" class="pt-actionbar"></div>
     <div class="pt-content" id="ptContent"></div>
   </div>
   <div id="panelRefs" style="display:none;flex:1;overflow:hidden;flex-direction:column">
@@ -2168,15 +2177,6 @@ function renderActivePatient(){
     '<button class="inner-tab" onclick="showInner(\'checklist\',this)">✅ Checklist</button>'+
     '<button class="inner-tab" onclick="showInner(\'evol\',this)">📈 Tendencias</button>'+
     '<button class="inner-tab" onclick="showInner(\'proced\',this)">🔪 Procedimientos</button>'+
-    '<div class="inner-actions">'+
-      '<button class="inner-tab" onclick="showInner(\'indicaciones\',this)">\uD83D\uDC8A Indicaciones</button>'+
-      '<button class="inner-tab" onclick="showInner(\'paraorden\',this)">\uD83E\uDDEA Paracl\u00EDnica</button>'+
-      '<button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();renderBeds();alert(\'Guardado.\')">\uD83D\uDCBE Guardar</button>'+
-      '<button class="btn btn-outline btn-sm" onclick="archivarDia('+ab+')" title="Guardar snapshot del d\u00EDa en el historial (sin egresar)">\uD83D\uDCC1 Archivar d\u00EDa</button>'+
-      '<button class="btn btn-sm" style="background:#0e7c66;color:#fff" onclick="askEgreso('+ab+')">\uD83D\uDEAA Egreso</button>'+
-      '<button class="btn btn-red btn-sm" onclick="askEgreso('+ab+')">\uD83D\uDDD1 Limpiar cama</button>'+
-      '<button class="btn btn-outline btn-sm" onclick="openTransferModal('+ab+')">\u2194 Transferir</button>'+
-    '</div>'+
   '</div>'+
 
   '<div id="inner-datos" class="inner-panel active">'+
@@ -2897,6 +2897,7 @@ function renderActivePatient(){
   try{ examenSnapshotHoy(); examHeaderRender(); examBannerRender(); examAyerRender(); }catch(e){}
   try{ uciSyncAll(); calcHemoProfile(); }catch(e){}
   try{ renderPafiTable(); renderRxGrid(); renderSemChecklists(); }catch(e){}
+  try{ renderActionBar(ab); }catch(e){}
 }
 
 // ===== SUB-TABS de Labs =====
@@ -4871,6 +4872,22 @@ function _examSnapCanonical(p){
   o.drogas_snapshot=Array.isArray(p.drugs)?JSON.parse(JSON.stringify(p.drugs)):[];
   o.diuresis_snapshot=Array.isArray(p.diuresis)?JSON.parse(JSON.stringify(p.diuresis)):[];
   return o;
+}
+// Barra de acciones fija horizontal (entre camas y contenido del paciente).
+function renderActionBar(ab){
+  var el=document.getElementById('ptActionBar'); if(!el) return;
+  if(ab==null) ab=state.activeBed;
+  var sep='<span class="pt-actionbar-sep"></span>';
+  el.innerHTML=
+    '<button class="btn btn-outline btn-sm" onclick="showInner(\'indicaciones\')">💊 Indicaciones</button>'+
+    '<button class="btn btn-outline btn-sm" onclick="showInner(\'paraorden\')">🧪 Paraclínica</button>'+
+    sep+
+    '<button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();renderBeds();alert(\'Guardado.\')">💾 Guardar</button>'+
+    '<button class="btn btn-outline btn-sm" onclick="archivarDia('+ab+')" title="Guardar snapshot del día en el historial (sin egresar)">📁 Archivar día</button>'+
+    sep+
+    '<button class="btn btn-sm" style="background:#0e7c66;color:#fff" onclick="askEgreso('+ab+')">🚪 Egreso</button>'+
+    '<button class="btn btn-red btn-sm" onclick="askEgreso('+ab+')">🗑 Limpiar cama</button>'+
+    '<button class="btn btn-outline btn-sm" onclick="openTransferModal('+ab+')">↔ Transferir</button>';
 }
 function examenSnapshotHoy(){ var p=curPatient(); if(!p) return; if(!p.examenes||typeof p.examenes!=='object') p.examenes={}; p.examenes[isoToday()]=_examSnapCanonical(p); }
 function examenSnapshotManual(){ examenSnapshotHoy(); try{ save(); }catch(e){} alert('📸 Snapshot del '+_examDMY(isoToday())+' guardado en el historial.'); }
