@@ -120,12 +120,12 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .pt-tab .pt-tab-num{display:block;font-size:10px;color:var(--muted)}
 .pt-content{flex:1;overflow-y:auto;padding:16px}
 /* Barra de acciones fija (entre camas y contenido del paciente) */
-.pt-actionbar{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:6px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.pt-actionbar{display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding:6px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.pt-actionbar-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .pt-actionbar-sep{width:1px;height:22px;background:var(--border);margin:0 2px}
 @media(max-width:768px){
-  .pt-actionbar{padding:6px 8px;gap:4px}
+  .pt-actionbar{padding:6px 8px}
   .pt-actionbar .btn{font-size:11px;padding:4px 8px}
-  .pt-actionbar-sep{display:none}
 }
 .pt-header{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
 .pt-header-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px;box-shadow:var(--shadow)}
@@ -4871,17 +4871,19 @@ function _examSnapCanonical(p){
 function renderActionBar(ab){
   var el=document.getElementById('ptActionBar'); if(!el) return;
   if(ab==null) ab=state.activeBed;
-  var sep='<span class="pt-actionbar-sep"></span>';
   el.innerHTML=
-    '<button class="btn btn-outline btn-sm" onclick="showInner(\'indicaciones\')">💊 Indicaciones</button>'+
-    '<button class="btn btn-outline btn-sm" onclick="showInner(\'paraorden\')">🧪 Paraclínica</button>'+
-    sep+
-    '<button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();renderBeds();alert(\'Guardado.\')">💾 Guardar</button>'+
-    '<button class="btn btn-outline btn-sm" onclick="archivarDia('+ab+')" title="Guardar snapshot del día en el historial (sin egresar)">📁 Archivar día</button>'+
-    sep+
-    '<button class="btn btn-sm" style="background:#0e7c66;color:#fff" onclick="askEgreso('+ab+')">🚪 Egreso</button>'+
-    '<button class="btn btn-red btn-sm" onclick="askEgreso('+ab+')">🗑 Limpiar cama</button>'+
-    '<button class="btn btn-outline btn-sm" onclick="openTransferModal('+ab+')">↔ Transferir</button>';
+    '<div class="pt-actionbar-row">'+
+      '<button class="btn btn-outline btn-sm" onclick="showInner(\'indicaciones\')">💊 Indicaciones</button>'+
+      '<button class="btn btn-outline btn-sm" onclick="showInner(\'paraorden\')">🧪 Paraclínica</button>'+
+      '<span class="pt-actionbar-sep"></span>'+
+      '<button class="btn btn-teal btn-sm" onclick="readPatientForm('+ab+');save();renderBeds();alert(\'Guardado.\')">💾 Guardar</button>'+
+      '<button class="btn btn-outline btn-sm" onclick="archivarDia('+ab+')" title="Guardar snapshot del día en el historial (sin egresar)">📁 Archivar día</button>'+
+    '</div>'+
+    '<div class="pt-actionbar-row">'+
+      '<button class="btn btn-sm" style="background:#0e7c66;color:#fff" onclick="askEgreso('+ab+')">🚪 Egreso</button>'+
+      '<button class="btn btn-red btn-sm" onclick="askEgreso('+ab+')">🗑 Limpiar cama</button>'+
+      '<button class="btn btn-outline btn-sm" onclick="openTransferModal('+ab+')">↔ Transferir</button>'+
+    '</div>';
 }
 function examenSnapshotHoy(){ var p=curPatient(); if(!p) return; if(!p.examenes||typeof p.examenes!=='object') p.examenes={}; p.examenes[isoToday()]=_examSnapCanonical(p); }
 function examenSnapshotManual(){ examenSnapshotHoy(); try{ save(); }catch(e){} alert('📸 Snapshot del '+_examDMY(isoToday())+' guardado en el historial.'); }
